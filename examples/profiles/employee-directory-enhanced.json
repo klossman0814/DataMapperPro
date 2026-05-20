@@ -1,0 +1,145 @@
+{
+  "name": "Employee Directory (Enhanced)",
+  "description": "Maps employee_*.csv to a pipe-delimited directory. Demonstrates: concat expression, coalesce for nullable manager, upper/lower transforms, formatDate, conditional mappings via status filter, and validation rules.",
+  "template": "{{last_name}}, {{first_name}}|{{title}}|{{department}}|{{location}}|{{phone}}|{{email}}|{{salary_formatted}}|{{years_of_service}}|{{status_label}}|{{manager_name}}|{{review_summary}}",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "employee_id",
+        "sourceField": "employee_id"
+      },
+      {
+        "destinationField": "first_name",
+        "sourceField": "first_name",
+        "transformation": "upper"
+      },
+      {
+        "destinationField": "last_name",
+        "sourceField": "last_name",
+        "transformation": "upper"
+      },
+      {
+        "destinationField": "full_name",
+        "expression": "concat(first_name, ' ', last_name)"
+      },
+      {
+        "destinationField": "email",
+        "sourceField": "email"
+      },
+      {
+        "destinationField": "department",
+        "sourceField": "department"
+      },
+      {
+        "destinationField": "title",
+        "sourceField": "title"
+      },
+      {
+        "destinationField": "location",
+        "sourceField": "location"
+      },
+      {
+        "destinationField": "phone",
+        "sourceField": "phone"
+      },
+      {
+        "destinationField": "salary_formatted",
+        "sourceField": "salary"
+      },
+      {
+        "destinationField": "start_date_formatted",
+        "sourceField": "start_date"
+      },
+      {
+        "destinationField": "years_of_service",
+        "sourceField": "years_of_service"
+      },
+      {
+        "destinationField": "manager_name",
+        "expression": "coalesce(manager, 'Unassigned')"
+      },
+      {
+        "destinationField": "status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "status_label",
+        "expression": "concat(status, ' [', coalesce(location, 'Remote'), ']')"
+      },
+      {
+        "destinationField": "performance_rating",
+        "sourceField": "performance_rating"
+      },
+      {
+        "destinationField": "project_count",
+        "sourceField": "project_count"
+      },
+      {
+        "destinationField": "last_review_date",
+        "sourceField": "last_review_date"
+      },
+      {
+        "destinationField": "review_summary",
+        "expression": "concat('Reviewed: ', coalesce(last_review_date, 'N/A'), ' | Score: ', coalesce(performance_rating, '-'))"
+      },
+      {
+        "destinationField": "only_active",
+        "sourceField": "status",
+        "condition": {
+          "field": "status",
+          "operator": "equals",
+          "value": "Active"
+        }
+      }
+    ],
+    "validationRules": [
+      {
+        "field": "email",
+        "type": "required",
+        "message": "Email is required for all employees"
+      },
+      {
+        "field": "email",
+        "type": "email",
+        "message": "Email must be a valid format"
+      },
+      {
+        "field": "salary_formatted",
+        "type": "number",
+        "message": "Salary must be a numeric value"
+      },
+      {
+        "field": "status",
+        "type": "enum",
+        "value": ["Active", "Leave", "Terminated"],
+        "message": "Status must be Active, Leave, or Terminated"
+      },
+      {
+        "field": "first_name",
+        "type": "required",
+        "message": "First name is required"
+      },
+      {
+        "field": "last_name",
+        "type": "required",
+        "message": "Last name is required"
+      },
+      {
+        "field": "employee_id",
+        "type": "required",
+        "message": "Employee ID is required"
+      },
+      {
+        "field": "first_name",
+        "type": "maxLength",
+        "value": 50,
+        "message": "First name cannot exceed 50 characters"
+      }
+    ],
+    "outputOptions": {
+      "delimiter": "|",
+      "includeHeaders": true,
+      "lineEnding": "\n"
+    }
+  }
+}

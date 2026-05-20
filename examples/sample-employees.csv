@@ -1,0 +1,31 @@
+employee_id,first_name,last_name,email,department,title,salary,start_date,phone,status,location,manager,project_count,years_of_service,last_review_date,performance_rating
+1001,John,Smith,john.smith@example.com,Engineering,Senior Engineer,105000,2019-03-15,555-0101,Active,New York,Alice Johnson,3,6,2025-11-01,4
+1002,Jane,Doe,jane.doe@example.com,Marketing,Marketing Manager,95000,2020-06-01,555-0102,Active,Chicago,Bob Williams,5,5,2025-10-15,5
+1003,Bob,Johnson,bob.johnson@example.com,Engineering,Junior Engineer,75000,2022-01-10,555-0103,Active,New York,John Smith,2,3,2025-09-20,3
+1004,Alice,Williams,alice.williams@example.com,Human Resources,HR Coordinator,65000,2021-09-01,555-0104,Active,New York,Carol Brown,1,4,2025-08-05,4
+1005,Charlie,Brown,charlie.brown@example.com,Sales,Sales Rep,85000,2018-11-15,555-0105,Active,Chicago,Bob Williams,8,7,2025-10-01,3
+1006,Diana,Martinez,diana.martinez@example.com,Engineering,Senior Engineer,110000,2017-07-01,555-0106,Active,San Francisco,Alice Johnson,4,8,2025-11-20,5
+1007,Edward,Davis,edward.davis@example.com,Marketing,Marketing Specialist,70000,2023-04-01,555-0107,Active,Chicago,Jane Doe,2,2,2025-09-10,3
+1008,Fiona,Garcia,fiona.garcia@example.com,IT,Security Analyst,90000,2020-02-15,555-0108,Active,New York,Alice Johnson,3,5,2025-10-25,4
+1009,George,Martinez,george.martinez@example.com,Sales,Sales Rep,80000,2021-06-01,555-0109,Active,Chicago,Charlie Brown,6,4,2025-08-30,2
+1010,Helen,Chen,helen.chen@example.com,Engineering,Principal Engineer,135000,2016-04-10,555-0110,Active,San Francisco,Alice Johnson,5,9,2025-11-30,5
+1011,Ian,Thompson,ian.thompson@example.com,Finance,Financial Analyst,72000,2022-08-15,555-0111,Active,New York,Carol Brown,2,3,2025-07-15,3
+1012,Julia,Rodriguez,julia.rodriguez@example.com,Human Resources,HR Manager,82000,2019-11-20,555-0112,Active,Chicago,Carol Brown,4,6,2025-10-10,4
+1013,Kevin,O'Brien,kevin.obrien@example.com,Engineering,DevOps Engineer,95000,2020-09-01,555-0113,Active,New York,John Smith,3,5,2025-11-05,4
+1014,Laura,Wilson,laura.wilson@example.com,Marketing,Content Strategist,68000,2023-01-15,555-0114,Active,Chicago,Jane Doe,2,2,2025-09-25,3
+1015,Mark,Anderson,mark.anderson@example.com,IT,SysAdmin,78000,2021-03-01,555-0115,Active,San Francisco,Fiona Garcia,3,4,2025-08-20,3
+1016,Nancy,Lee,nancy.lee@example.com,Finance,Accounting Manager,88000,2019-08-01,555-0116,Active,New York,Ian Thompson,5,6,2025-10-20,4
+1017,Oscar,Taylor,oscar.taylor@example.com,Sales,Sales Manager,92000,2018-06-01,555-0117,Active,Chicago,Bob Williams,7,7,2025-11-10,4
+1018,Patricia,Moore,patricia.moore@example.com,Engineering,Frontend Developer,82000,2021-11-01,555-0118,Active,New York,John Smith,3,4,2025-09-05,4
+1019,Quentin,Jackson,quentin.jackson@example.com,Marketing,SEO Specialist,62000,2022-05-01,555-0119,Leave,Chicago,Jane Doe,1,3,2025-07-20,2
+1020,Rachel,White,rachel.white@example.com,Human Resources,Recruiter,58000,2023-07-01,555-0120,Active,New York,Julia Rodriguez,2,2,2025-08-10,3
+1021,Samuel,Harris,samuel.harris@example.com,IT,Network Engineer,85000,2020-04-01,555-0121,Active,Chicago,Fiona Garcia,4,5,2025-10-05,4
+1022,Tina,Clark,tina.clark@example.com,Engineering,Backend Developer,88000,2021-08-15,555-0122,Active,San Francisco,Diana Martinez,3,4,2025-11-15,3
+1023,Uma,Patel,uma.patel@example.com,Finance,Accountant,60000,2022-10-01,555-0123,Active,New York,Nancy Lee,1,3,2025-08-25,3
+1024,Victor,Martin,victor.martin@example.com,Sales,Sales Rep,78000,2020-07-15,555-0124,Terminated,Chicago,Charlie Brown,5,5,2024-12-15,2
+1025,Wendy,Chen,wendy.chen@example.com,Engineering,Data Engineer,98000,2019-05-20,555-0125,Active,New York,Alice Johnson,4,6,2025-11-25,5
+1026,Xavier,Nguyen,xavier.nguyen@example.com,Marketing,Graphic Designer,65000,2022-03-01,555-0126,Active,Chicago,Jane Doe,2,3,2025-09-15,4
+1027,Yvonne,Kim,yvonne.kim@example.com,IT,DevOps Lead,102000,2018-10-01,555-0127,Active,San Francisco,Alice Johnson,4,7,2025-10-30,5
+1028,Zachary,Adams,zachary.adams@example.com,Sales,Sales Rep,76000,2021-04-15,555-0128,Active,New York,Oscar Taylor,4,4,2025-08-15,3
+1029,Amanda,Baker,amanda.baker@example.com,Engineering,QA Engineer,72000,2022-06-01,555-0129,Active,New York,John Smith,2,3,2025-09-30,4
+1030,Brian,Carter,brian.carter@example.com,Finance,CFO,185000,2015-03-01,555-0130,Active,New York,Nancy Lee,8,10,2025-11-28,5

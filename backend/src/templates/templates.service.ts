@@ -52,7 +52,7 @@ export class TemplatesService {
         name: body.name,
         description: body.description,
         template: body.template,
-        configurationJson: Prisma.JsonNull,
+        configurationJson: JSON.parse(JSON.stringify({ mappings: [] })) as Prisma.InputJsonValue,
         createdById: userId,
       },
     });

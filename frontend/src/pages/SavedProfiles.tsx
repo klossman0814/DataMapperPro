@@ -168,7 +168,7 @@ export function SavedProfiles() {
               )}
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <span>v{profile.version}</span>
-                <span>{profile.configurationJson.mappings.length} mappings</span>
+                <span>{profile.configurationJson?.mappings?.length ?? 0} mappings</span>
                 <span>Updated {new Date(profile.updatedAt).toLocaleDateString()}</span>
               </div>
               <div className="mt-4 flex items-center gap-2">

@@ -1,0 +1,60 @@
+{
+  "name": "Employee Directory Export",
+  "description": "Maps employee_*.csv columns to a clean directory format. Uses transformation: upper for names and formatDate for start dates.",
+  "template": "{{last_name}}, {{first_name}}|{{department}}|{{title}}|${{salary}}|{{start_date_formatted}}|{{years_of_service}} yr(s)|{{status}}|{{location}}|{{email}}",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "first_name",
+        "sourceField": "first_name",
+        "transformation": "upper"
+      },
+      {
+        "destinationField": "last_name",
+        "sourceField": "last_name",
+        "transformation": "upper"
+      },
+      {
+        "destinationField": "email",
+        "sourceField": "email"
+      },
+      {
+        "destinationField": "department",
+        "sourceField": "department"
+      },
+      {
+        "destinationField": "title",
+        "sourceField": "title"
+      },
+      {
+        "destinationField": "salary",
+        "sourceField": "salary"
+      },
+      {
+        "destinationField": "start_date_formatted",
+        "sourceField": "start_date",
+        "transformation": "formatDate(yyyyMMdd)"
+      },
+      {
+        "destinationField": "years_of_service",
+        "sourceField": "years_of_service"
+      },
+      {
+        "destinationField": "status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "location",
+        "sourceField": "location"
+      },
+      {
+        "destinationField": "phone",
+        "sourceField": "phone"
+      },
+      {
+        "destinationField": "manager",
+        "sourceField": "manager"
+      }
+    ]
+  }
+}

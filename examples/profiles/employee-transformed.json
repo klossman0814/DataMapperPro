@@ -1,0 +1,78 @@
+{
+  "name": "Employee Transformed (Expressions Demo)",
+  "description": "Advanced profile demonstrating concat, coalesce, and conditional expressions on employee_*.csv data with date formatting and review summaries.",
+  "template": "{{full_name}} ({{employee_id}})\nDept: {{department}} - {{title}}\nContact: {{contact_info}}\nSalary Band: {{salary_band}}\nReview: {{review_summary}}\nStatus: {{status}}{{#if years_of_service}}\nTenure: {{years_of_service}} year(s){{/if}}\n{{#if is_high_performer}}⭐ High Performer{{/if}}",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "employee_id",
+        "sourceField": "employee_id"
+      },
+      {
+        "destinationField": "full_name",
+        "expression": "concat(first_name, ' ', last_name)"
+      },
+      {
+        "destinationField": "department",
+        "sourceField": "department"
+      },
+      {
+        "destinationField": "title",
+        "sourceField": "title"
+      },
+      {
+        "destinationField": "contact_info",
+        "expression": "coalesce(email, phone, 'No contact')"
+      },
+      {
+        "destinationField": "salary_band",
+        "sourceField": "salary"
+      },
+      {
+        "destinationField": "start_date_formatted",
+        "sourceField": "start_date",
+        "transformation": "formatDate(yyyyMMdd)"
+      },
+      {
+        "destinationField": "years_of_service",
+        "sourceField": "years_of_service"
+      },
+      {
+        "destinationField": "status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "status_label",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "performance_rating",
+        "sourceField": "performance_rating"
+      },
+      {
+        "destinationField": "is_high_performer",
+        "sourceField": "performance_rating"
+      },
+      {
+        "destinationField": "review_summary",
+        "expression": "concat('Rating: ', coalesce(performance_rating, 'N/A'), ' on ', coalesce(last_review_date, 'N/A'), ' | Manager: ', coalesce(manager, 'TBD'))"
+      },
+      {
+        "destinationField": "last_review_date",
+        "sourceField": "last_review_date"
+      },
+      {
+        "destinationField": "manager",
+        "sourceField": "manager"
+      },
+      {
+        "destinationField": "location",
+        "sourceField": "location"
+      },
+      {
+        "destinationField": "project_count",
+        "sourceField": "project_count"
+      }
+    ]
+  }
+}

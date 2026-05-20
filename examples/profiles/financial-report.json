@@ -1,0 +1,150 @@
+{
+  "name": "Financial Report (Fixed-Width)",
+  "description": "Maps sample-financial.csv to a fixed-width formatted report. Demonstrates: coalesce for nullable vendor, concat for full description, upper transforms, date formatting, conditional templates, fixed-width output config, and numeric validation.",
+  "template": "{{formatted_date}}  {{account_padded}}  {{category_padded}}  {{description_trimmed}}{{#if vendor_name}}  {{vendor_name}}{{/if}}  {{amount_col}}  {{status}}",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "transaction_id",
+        "sourceField": "transaction_id"
+      },
+      {
+        "destinationField": "date_raw",
+        "sourceField": "date"
+      },
+      {
+        "destinationField": "formatted_date",
+        "sourceField": "date"
+      },
+      {
+        "destinationField": "description",
+        "sourceField": "description"
+      },
+      {
+        "destinationField": "description_trimmed",
+        "sourceField": "description"
+      },
+      {
+        "destinationField": "debit",
+        "sourceField": "debit"
+      },
+      {
+        "destinationField": "credit",
+        "sourceField": "credit"
+      },
+      {
+        "destinationField": "account",
+        "sourceField": "account"
+      },
+      {
+        "destinationField": "account_padded",
+        "sourceField": "account"
+      },
+      {
+        "destinationField": "category",
+        "sourceField": "category"
+      },
+      {
+        "destinationField": "category_padded",
+        "sourceField": "category"
+      },
+      {
+        "destinationField": "vendor_name",
+        "expression": "coalesce(vendor, '')"
+      },
+      {
+        "destinationField": "amount_col",
+        "expression": "concat('$', coalesce(debit, credit, '0'))"
+      },
+      {
+        "destinationField": "amount_type",
+        "condition": {
+          "field": "debit",
+          "operator": "greaterThan",
+          "value": 0
+        }
+      },
+      {
+        "destinationField": "status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "status_upper",
+        "sourceField": "status"
+      }
+    ],
+    "validationRules": [
+      {
+        "field": "transaction_id",
+        "type": "required",
+        "message": "Transaction ID is required"
+      },
+      {
+        "field": "date_raw",
+        "type": "required",
+        "message": "Transaction date is required"
+      },
+      {
+        "field": "date_raw",
+        "type": "date",
+        "message": "Date must be a valid date (YYYY-MM-DD)"
+      },
+      {
+        "field": "description",
+        "type": "required",
+        "message": "Description is required"
+      },
+      {
+        "field": "account",
+        "type": "required",
+        "message": "Account code is required"
+      },
+      {
+        "field": "account",
+        "type": "regex",
+        "value": "^\\d{4}$",
+        "message": "Account must be a 4-digit code"
+      },
+      {
+        "field": "category",
+        "type": "enum",
+        "value": ["Revenue", "COGS", "Payroll", "Supplies", "Rent", "Travel", "Marketing", "Contractors", "Benefits", "Utilities", "Taxes"],
+        "message": "Invalid expense category"
+      },
+      {
+        "field": "status",
+        "type": "enum",
+        "value": ["Posted", "Pending", "Reconciled", "Void"],
+        "message": "Status must be Posted, Pending, Reconciled, or Void"
+      },
+      {
+        "field": "debit",
+        "type": "number",
+        "message": "Debit amount must be numeric"
+      },
+      {
+        "field": "credit",
+        "type": "number",
+        "message": "Credit amount must be numeric"
+      },
+      {
+        "field": "status",
+        "type": "required",
+        "message": "Status is required"
+      }
+    ],
+    "outputOptions": {
+      "fixedWidthConfig": [
+        { "field": "formatted_date", "width": 12, "align": "left", "padChar": " " },
+        { "field": "account", "width": 10, "align": "left", "padChar": " " },
+        { "field": "category", "width": 15, "align": "left", "padChar": " " },
+        { "field": "description", "width": 45, "align": "left", "padChar": " " },
+        { "field": "vendor_name", "width": 20, "align": "left", "padChar": " " },
+        { "field": "debit", "width": 12, "align": "right", "padChar": " " },
+        { "field": "credit", "width": 12, "align": "right", "padChar": " " },
+        { "field": "status", "width": 10, "align": "left", "padChar": " " }
+      ],
+      "lineEnding": "\n"
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "name": "Order Processing (Validation Demo)",
+  "description": "Maps orders_*.csv to structured output with comprehensive validation. Tests 8 rule types: required, email, enum, number, maxLength, minLength, regex, and date. Template uses conditional blocks for status flags and discount labels.",
+  "template": "ORDER #{{order_id}}\nCustomer: {{customer_name}} <{{customer_email}}>\nItem: {{product_name}} | Qty: {{quantity}} @ ${{unit_price}} = ${{line_total}}\nCategory: {{category}}\nOrdered: {{order_date}}\n{{#if status_flag}}{{status_flag}}{{/if}}\nShipping: {{shipping_method}} to {{shipping_address}}, {{shipping_city}} {{shipping_state}} {{shipping_zip}}\nPayment: {{payment_method}}\n{{#if discount_label}}Discount: {{discount_label}}{{/if}}\n{{#if notes}}{{notes}}{{/if}}\nStatus: {{order_status}}\n---",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "order_id",
+        "sourceField": "order_id"
+      },
+      {
+        "destinationField": "customer_name",
+        "sourceField": "customer_name",
+        "transformation": "upper"
+      },
+      {
+        "destinationField": "customer_email",
+        "sourceField": "customer_email"
+      },
+      {
+        "destinationField": "product_name",
+        "sourceField": "product_name"
+      },
+      {
+        "destinationField": "category",
+        "sourceField": "category"
+      },
+      {
+        "destinationField": "unit_price",
+        "sourceField": "unit_price"
+      },
+      {
+        "destinationField": "quantity",
+        "sourceField": "quantity"
+      },
+      {
+        "destinationField": "line_total",
+        "expression": "concat('$', quantity, ' x $', unit_price)"
+      },
+      {
+        "destinationField": "order_date",
+        "sourceField": "order_date"
+      },
+      {
+        "destinationField": "order_status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "status_flag",
+        "sourceField": "status",
+        "condition": {
+          "field": "status",
+          "operator": "equals",
+          "value": "Cancelled"
+        }
+      },
+      {
+        "destinationField": "shipping_method",
+        "sourceField": "shipping_method"
+      },
+      {
+        "destinationField": "shipping_address",
+        "sourceField": "shipping_address"
+      },
+      {
+        "destinationField": "shipping_city",
+        "sourceField": "shipping_city"
+      },
+      {
+        "destinationField": "shipping_state",
+        "sourceField": "shipping_state"
+      },
+      {
+        "destinationField": "shipping_zip",
+        "sourceField": "shipping_zip"
+      },
+      {
+        "destinationField": "full_address",
+        "expression": "concat(shipping_address, ', ', shipping_city, ', ', shipping_state, ' ', shipping_zip)"
+      },
+      {
+        "destinationField": "payment_method",
+        "sourceField": "payment_method"
+      },
+      {
+        "destinationField": "discount",
+        "sourceField": "discount"
+      },
+      {
+        "destinationField": "discount_label",
+        "sourceField": "discount"
+      },
+      {
+        "destinationField": "notes",
+        "sourceField": "notes"
+      }
+    ],
+    "validationRules": [
+      {
+        "field": "order_id",
+        "type": "required",
+        "message": "Order ID is required"
+      },
+      {
+        "field": "customer_name",
+        "type": "required",
+        "message": "Customer name is required"
+      },
+      {
+        "field": "customer_name",
+        "type": "maxLength",
+        "value": 100,
+        "message": "Customer name exceeds 100 characters"
+      },
+      {
+        "field": "customer_email",
+        "type": "required",
+        "message": "Customer email is required"
+      },
+      {
+        "field": "customer_email",
+        "type": "email",
+        "message": "Customer email format is invalid"
+      },
+      {
+        "field": "unit_price",
+        "type": "required",
+        "message": "Unit price is required"
+      },
+      {
+        "field": "unit_price",
+        "type": "number",
+        "message": "Unit price must be numeric"
+      },
+      {
+        "field": "quantity",
+        "type": "required",
+        "message": "Quantity is required"
+      },
+      {
+        "field": "quantity",
+        "type": "number",
+        "message": "Quantity must be numeric"
+      },
+      {
+        "field": "order_status",
+        "type": "enum",
+        "value": ["Delivered", "Shipped", "Processing", "Pending", "Cancelled"],
+        "message": "Invalid order status"
+      },
+      {
+        "field": "shipping_zip",
+        "type": "required",
+        "message": "Shipping ZIP is required"
+      },
+      {
+        "field": "shipping_zip",
+        "type": "regex",
+        "value": "^\\d{5}$",
+        "message": "Shipping ZIP must be 5 digits"
+      },
+      {
+        "field": "payment_method",
+        "type": "enum",
+        "value": ["Credit Card", "Debit Card", "PayPal"],
+        "message": "Invalid payment method"
+      },
+      {
+        "field": "discount",
+        "type": "number",
+        "message": "Discount must be numeric"
+      },
+      {
+        "field": "order_date",
+        "type": "date",
+        "message": "Order date must be a valid date"
+      }
+    ],
+    "outputOptions": {
+      "delimiter": ",",
+      "includeHeaders": true
+    }
+  }
+}

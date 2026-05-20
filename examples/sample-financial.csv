@@ -1,0 +1,21 @@
+transaction_id,date,description,debit,credit,account,category,vendor,status,notes
+TXN-001,2025-01-05,Monthly software subscription - Q1,0,599.00,4001,COGS,CloudTech Inc,Posted,Quarterly enterprise license
+TXN-002,2025-01-08,Office supplies - Staples,247.83,0,5005,Supplies,Staples,Posted,Printer toner + paper reorder
+TXN-003,2025-01-10,Client payment - Acme Corp,0,12500.00,1001,Revenue,,Posted,Invoice INV-2024-1201
+TXN-004,2025-01-15,Payroll - Engineering team,48500.00,0,3001,Payroll,,Posted,Bi-weekly pay period 01/01-01/14
+TXN-005,2025-01-20,Google Cloud hosting,0,2340.50,4002,COGS,Google Cloud,Posted,Production cluster Jan 2025
+TXN-006,2025-01-22,Office rent - January,8500.00,0,6001,Rent,NYC Properties LLC,Posted,Suite 1200 - Jan payment
+TXN-007,2025-02-01,Client payment - Beta LLC,0,8750.00,1001,Revenue,,Posted,Invoice INV-2024-1203
+TXN-008,2025-02-05,Employee travel reimbursement,1230.00,0,7001,Travel,Delta Air Lines,Posted,NYC to SFO sales conference
+TXN-009,2025-02-10,AWS cloud services,0,1875.30,4002,COGS,Amazon Web Services,Posted,Dev/staging environment Feb
+TXN-010,2025-02-15,Payroll - Marketing team,22500.00,0,3001,Payroll,,Posted,Bi-weekly pay period 02/01-02/14
+TXN-011,2025-02-20,LinkedIn advertising,0,1500.00,8001,Marketing,LinkedIn,Posted,Q1 recruitment campaign
+TXN-012,2025-02-25,New office furniture,3400.00,0,5005,Supplies,IKEA Business,Posted,Standing desks x 5
+TXN-013,2025-03-01,Client payment - Global Inc,0,22000.00,1001,Revenue,,Posted,Invoice INV-2025-0101
+TXN-014,2025-03-05,Utilities - January,1240.00,0,6002,Utilities,ConEdison,Posted,Office electric + internet
+TXN-015,2025-03-08,HubSpot subscription renewal,0,800.00,4001,COGS,HubSpot,Posted,Annual sales platform renewal
+TXN-016,2025-03-10,Contractor payment - Web dev,7500.00,0,3002,Contractors,DevShop Agency,Pending,Website redesign Phase 2
+TXN-017,2025-03-12,Health insurance premium,12500.00,0,3003,Benefits,Aetna,Posted,Monthly group coverage Feb
+TXN-018,2025-03-15,Refund - order #ORD-014,0,54.99,1001,Revenue,,Posted,Customer cancellation refund
+TXN-019,2025-03-18,Google Workspace licenses,0,720.00,4001,COGS,Google Cloud,Posted,30 users annual subscription
+TXN-020,2025-03-20,Quarterly tax payment,18500.00,0,9001,Taxes,IRS,Posted,Estimated Q1 2025 payment

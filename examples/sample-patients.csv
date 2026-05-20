@@ -1,0 +1,26 @@
+mrn,last_name,first_name,dob,gender,phone,email,address,city,state,zip,insurance,provider,primary_care,last_visit,diagnosis,medication,allergies,smoking_status,height_cm,weight_kg,blood_type,emergency_contact,emergency_phone
+P-001,Smith,John,1985-03-15,M,555-0201,john.smith@email.com,123 Main St,Springfield,IL,62701,BlueCross,Dr. Williams,Dr. Adams,2025-10-15,Hypertension,Lisinopril,None,Former,178,82,A+,Jane Smith,555-0301
+P-002,Johnson,Mary,1990-07-22,F,555-0202,mary.j@email.com,456 Oak Ave,Portland,OR,97201,Kaiser,Dr. Brown,Dr. Clark,2025-11-01,Asthma,Albuterol,Pollen,Never,165,68,B-,Tom Johnson,555-0302
+P-003,Williams,Robert,1972-11-30,M,555-0203,bob.w@email.com,789 Pine Rd,Austin,TX,73301,Aetna,Dr. Davis,Dr. Evans,2025-09-20,Type 2 Diabetes,Metformin,Sulfa,Current,182,95,O+,Sarah Williams,555-0303
+P-004,Brown,Linda,1968-04-05,F,555-0204,linda.b@email.com,321 Elm St,Miami,FL,33101,Cigna,Dr. Wilson,Dr. Foster,2025-10-28,Arthritis,Ibuprofen,NSAIDs,Never,163,72,AB+,David Brown,555-0304
+P-005,Jones,Michael,1995-01-20,M,555-0205,mike.j@email.com,654 Maple Dr,Seattle,WA,98101,BlueCross,Dr. Taylor,Dr. Garcia,2025-11-15,Acute Bronchitis,Amoxicillin,Penicillin,Current,180,78,B-,Lisa Jones,555-0305
+P-006,Garcia,Sofia,1982-09-12,F,555-0206,sofia.g@email.com,987 Cedar Ln,Denver,CO,80201,UnitedHealth,Dr. Martinez,Dr. Hernandez,2025-08-05,Migraine,Sumatriptan,None,Former,162,65,A-,Carlos Garcia,555-0306
+P-007,Miller,David,1975-06-18,M,555-0207,dave.m@email.com,147 Birch St,Phoenix,AZ,85001,Aetna,Dr. Anderson,Dr. Jackson,2025-10-10,High Cholesterol,Atorvastatin,None,Never,175,80,O+,Emma Miller,555-0307
+P-008,Davis,Sarah,1992-02-28,F,555-0208,sarah.d@email.com,258 Walnut Ave,Chicago,IL,60601,Kaiser,Dr. Thomas,Dr. White,2025-11-20,Anemia,Iron Supplement,None,Former,168,60,B+,James Davis,555-0308
+P-009,Martinez,Jose,1960-08-14,M,555-0209,jose.m@email.com,369 Spruce Ct,Houston,TX,77001,Medicare,Dr. Garcia,Dr. Lee,2025-09-30,Heart Disease,Metoprolol,None,Former,170,88,AB-,Ana Martinez,555-0309
+P-010,Taylor,Lisa,1988-12-03,F,555-0210,lisa.t@email.com,741 Ash Blvd,Atlanta,GA,30301,Cigna,Dr. Harris,Dr. Moore,2025-10-05,Depression,Sertraline,None,Never,165,62,A-,Kevin Taylor,555-0310
+P-011,Anderson,James,1978-05-25,M,555-0211,james.a@email.com,852 Cherry Dr,Boston,MA,02101,BlueCross,Dr. Clark,Dr. Nelson,2025-11-25,Chronic Back Pain,Tramadol,Codeine,Current,183,90,O+,Patricia Anderson,555-0311
+P-012,Thomas,Emily,1998-09-08,F,555-0212,emily.t@email.com,963 Plum Ln,Dallas,TX,75201,UnitedHealth,Dr. Lewis,Dr. Hall,2025-07-30,Allergic Rhinitis,Cetirizine,Dust,Never,167,58,AB+,Mark Thomas,555-0312
+P-013,Jackson,William,1955-12-20,M,555-0213,bill.j@email.com,159 Peach St,Philadelphia,PA,19101,Medicare,Dr. Allen,Dr. Young,2025-10-20,COPD,Tiotropium,Sulfa,Former,176,84,A+,Betty Jackson,555-0313
+P-014,White,Olivia,1993-07-14,F,555-0214,olivia.w@email.com,357 Vine Ave,San Diego,CA,92101,Kaiser,Dr. King,Dr. Adams,2025-09-15,UTI,Ciprofloxacin,None,Never,162,59,B+,Noah White,555-0314
+P-015,Harris,Daniel,1980-11-01,M,555-0215,dan.h@email.com,486 Fig St,Minneapolis,MN,55401,Aetna,Dr. Baker,Dr. Scott,2025-10-30,GERD,Omeprazole,None,Former,179,85,O-,Susan Harris,555-0315
+P-016,Clark,Mia,1970-03-30,F,555-0216,mia.c@email.com,753 Date Ct,Portland,OR,97202,BlueCross,Dr. Green,Dr. Mitchell,2025-11-05,Hypothyroidism,Levothyroxine,None,Never,160,67,A+,Ethan Clark,555-0316
+P-017,Lewis,Alexander,2000-01-10,M,555-0217,alex.l@email.com,951 Berry Rd,Seattle,WA,98102,Cigna,Dr. Hill,Dr. Carter,2025-08-20,Fractured Arm,Ibuprofen,None,Never,185,76,B+,Grace Lewis,555-0317
+P-018,Walker,Isabella,1986-06-05,F,555-0218,bella.w@email.com,264 Apple Dr,Denver,CO,80202,UnitedHealth,Dr. Adams,Dr. Reed,2025-10-25,Asthma,Fluticasone,Pollen,Former,165,63,AB-,Lucas Walker,555-0318
+P-019,Hall,David,1996-04-15,M,555-0219,david.h@email.com,573 Lemon Ln,San Francisco,CA,94101,Kaiser,Dr. Carter,Dr. Bell,2025-09-25,Seasonal Allergies,Loratadine,Cat Dander,Current,178,70,A+,Emma Hall,555-0319
+P-020,Allen,Sophia,1965-10-30,F,555-0220,sophia.a@email.com,882 Grape Ct,New York,NY,10001,BlueCross,Dr. Wright,Dr. Bailey,2025-11-10,Osteoporosis,Alendronate,None,Never,158,55,B-,James Allen,555-0320
+P-021,Young,Benjamin,1991-08-22,M,555-0221,ben.y@email.com,415 Olive Blvd,Chicago,IL,60602,Aetna,Dr. Brown,Dr. Flores,2025-10-01,Eczema,Triamcinolone,Nickel,Former,182,80,O+,Charlotte Young,555-0321
+P-022,King,Aria,1977-12-11,F,555-0222,aria.k@email.com,628 Lime Ave,Austin,TX,73302,Medicare,Dr. Baker,Dr. Foster,2025-10-15,Hypertension,Lisinopril,None,Never,161,64,A-,Daniel King,555-0322
+P-023,Wright,Ethan,1983-02-14,M,555-0223,ethan.w@email.com,936 Melon Rd,Nashville,TN,37201,Cigna,Dr. Cox,Dr. Diaz,2025-11-01,Type 1 Diabetes,Insulin,None,Never,177,73,O+,Mia Wright,555-0323
+P-024,Lopez,Amelia,1994-05-20,F,555-0224,amelia.l@email.com,714 Kiwi St,Miami,FL,33102,UnitedHealth,Dr. Ward,Dr. Gray,2025-08-15,Anxiety,Bupropion,None,Never,163,61,AB+,Henry Lopez,555-0324
+P-025,Hill,Liam,1973-09-28,M,555-0225,liam.h@email.com,283 Lime Ct,Phoenix,AZ,85002,BlueCross,Dr. Torres,Dr. Hayes,2025-11-18,Chronic Kidney Disease,Lisinopril,None,Former,180,91,O-,Evelyn Hill,555-0325

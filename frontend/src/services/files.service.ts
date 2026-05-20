@@ -9,7 +9,7 @@ export const filesService = {
     if (options?.delimiter) formData.append('delimiter', options.delimiter);
     if (options?.hasHeader !== undefined) formData.append('hasHeader', String(options.hasHeader));
     return api.post<UploadedFileInfo>('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     }).then(r => r.data);
   },
 

@@ -1,0 +1,94 @@
+{
+  "name": "Patient HL7 Export",
+  "description": "Maps patient_*.csv columns to an HL7 ADT-style output. Demonstrates formatDate transformation for HL7 date compliance and multi-line template segments.",
+  "template": "MSH|^~\\&|DATAMAPPER|HOSPITAL|LAB|LAB|||ADT^A01|{{pid}}|P|2.5\rPID|1||{{mrn}}||{{last_name}}^{{first_name}}||{{dob}}|{{gender}}|||{{address}}^^{{city}}^{{state}}^{{zip}}||{{phone}}||{{emergency_contact}}^{{emergency_phone}}\rNK1|1|{{emergency_contact}}|EMC^EMERGENCY^HL70063||{{emergency_phone}}\rOBX|1|TX|DIAG||{{diagnosis}}||||||F\rOBX|2|TX|MED||{{medication}}||||||F\rPV1|1|O|{{provider}}||||{{primary_care}}|",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "pid",
+        "constant": "0"
+      },
+      {
+        "destinationField": "mrn",
+        "sourceField": "mrn"
+      },
+      {
+        "destinationField": "last_name",
+        "sourceField": "last_name"
+      },
+      {
+        "destinationField": "first_name",
+        "sourceField": "first_name"
+      },
+      {
+        "destinationField": "dob",
+        "sourceField": "dob",
+        "transformation": "formatDate(yyyyMMdd)"
+      },
+      {
+        "destinationField": "gender",
+        "sourceField": "gender"
+      },
+      {
+        "destinationField": "address",
+        "sourceField": "address"
+      },
+      {
+        "destinationField": "city",
+        "sourceField": "city"
+      },
+      {
+        "destinationField": "state",
+        "sourceField": "state"
+      },
+      {
+        "destinationField": "zip",
+        "sourceField": "zip"
+      },
+      {
+        "destinationField": "phone",
+        "sourceField": "phone"
+      },
+      {
+        "destinationField": "diagnosis",
+        "sourceField": "diagnosis"
+      },
+      {
+        "destinationField": "medication",
+        "sourceField": "medication"
+      },
+      {
+        "destinationField": "provider",
+        "sourceField": "provider"
+      },
+      {
+        "destinationField": "primary_care",
+        "sourceField": "primary_care"
+      },
+      {
+        "destinationField": "emergency_contact",
+        "sourceField": "emergency_contact"
+      },
+      {
+        "destinationField": "emergency_phone",
+        "sourceField": "emergency_phone"
+      },
+      {
+        "destinationField": "smoking_status",
+        "sourceField": "smoking_status"
+      },
+      {
+        "destinationField": "blood_type",
+        "sourceField": "blood_type"
+      },
+      {
+        "destinationField": "height_cm",
+        "sourceField": "height_cm"
+      },
+      {
+        "destinationField": "weight_kg",
+        "sourceField": "weight_kg"
+      }
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "Order Summary Report",
+  "description": "Maps orders CSV to a formatted summary. Uses concat for full address, coalesce for nullable discount, and conditional template blocks for notes and discount labels.",
+  "template": "Order: {{order_id}}\nCustomer: {{customer_name}}\nProduct: {{product_name}} x {{quantity}} @ ${{unit_price}} each\nTotal: ${{unit_price}} x {{quantity}}\nStatus: {{order_status}}\nShipping: {{shipping_method}} to {{full_address}}\nPayment: {{payment_method}}{{#if discount}}\nDiscount: {{discount}}% off{{/if}}{{#if notes}}\nNotes: {{notes}}{{/if}}",
+  "configurationJson": {
+    "mappings": [
+      {
+        "destinationField": "order_id",
+        "sourceField": "order_id"
+      },
+      {
+        "destinationField": "customer_name",
+        "sourceField": "customer_name"
+      },
+      {
+        "destinationField": "customer_email",
+        "sourceField": "customer_email"
+      },
+      {
+        "destinationField": "product_name",
+        "sourceField": "product_name"
+      },
+      {
+        "destinationField": "category",
+        "sourceField": "category"
+      },
+      {
+        "destinationField": "unit_price",
+        "sourceField": "unit_price"
+      },
+      {
+        "destinationField": "quantity",
+        "sourceField": "quantity"
+      },
+      {
+        "destinationField": "order_date",
+        "sourceField": "order_date"
+      },
+      {
+        "destinationField": "order_status",
+        "sourceField": "status"
+      },
+      {
+        "destinationField": "shipping_method",
+        "sourceField": "shipping_method"
+      },
+      {
+        "destinationField": "shipping_address",
+        "sourceField": "shipping_address"
+      },
+      {
+        "destinationField": "shipping_city",
+        "sourceField": "shipping_city"
+      },
+      {
+        "destinationField": "shipping_state",
+        "sourceField": "shipping_state"
+      },
+      {
+        "destinationField": "shipping_zip",
+        "sourceField": "shipping_zip"
+      },
+      {
+        "destinationField": "full_address",
+        "expression": "concat(shipping_address, ', ', shipping_city, ', ', shipping_state, ' ', shipping_zip)"
+      },
+      {
+        "destinationField": "payment_method",
+        "sourceField": "payment_method"
+      },
+      {
+        "destinationField": "discount",
+        "sourceField": "discount"
+      },
+      {
+        "destinationField": "notes",
+        "sourceField": "notes"
+      }
+    ]
+  }
+}

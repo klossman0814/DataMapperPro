@@ -1,0 +1,26 @@
+order_id,customer_name,customer_email,product_name,category,unit_price,quantity,order_date,status,shipping_method,shipping_address,shipping_city,shipping_state,shipping_zip,payment_method,discount,notes
+ORD-001,Alice Johnson,alice.j@email.com,Wireless Mouse,Electronics,29.99,2,2025-01-15,Delivered,Standard,123 Main St,New York,NY,10001,Credit Card,0,Leave at front desk
+ORD-002,Bob Smith,bob.s@email.com,USB-C Hub,Electronics,49.99,1,2025-01-16,Delivered,Express,456 Oak Ave,Los Angeles,CA,90001,PayPal,10,
+ORD-003,Carol Williams,carol.w@email.com,Desk Lamp,Home Office,39.99,3,2025-01-18,Delivered,Standard,789 Pine Rd,Chicago,IL,60601,Credit Card,15,Handle with care
+ORD-004,David Brown,david.b@email.com,Ergonomic Chair,Furniture,349.99,1,2025-01-20,Delivered,Freight,321 Elm St,Houston,TX,77001,PayPal,0,
+ORD-005,Emma Davis,emma.d@email.com,Notebook Set,Stationery,12.99,10,2025-01-22,Delivered,Standard,654 Maple Dr,Phoenix,AZ,85001,Debit Card,0,Office supplies
+ORD-006,Frank Garcia,frank.g@email.com,Monitor Stand,Electronics,89.99,2,2025-01-25,Processing,Express,987 Cedar Ln,Philadelphia,PA,19101,Credit Card,5,
+ORD-007,Grace Martinez,grace.m@email.com,Mechanical Keyboard,Electronics,159.99,1,2025-01-28,Processing,Standard,147 Birch St,San Antonio,TX,78201,PayPal,0,Rush order please
+ORD-008,Henry Anderson,henry.a@email.com,Coffee Mug,Kitchen,14.99,4,2025-02-01,Shipped,Standard,258 Walnut Ave,San Diego,CA,92101,Credit Card,0,
+ORD-009,Iris Thomas,iris.t@email.com,Desk Organizer,Office,24.99,2,2025-02-03,Shipped,Express,369 Spruce Ct,Dallas,TX,75201,Debit Card,10,
+ORD-010,Jack Jackson,jack.j@email.com,LED Strip Lights,Electronics,34.99,3,2025-02-05,Processing,Standard,741 Ash Blvd,San Jose,CA,95101,PayPal,0,Warranty card required
+ORD-011,Karen White,karen.w@email.com,Wireless Earbuds,Electronics,79.99,1,2025-02-08,Pending,Express,852 Cherry Dr,Austin,TX,73301,Credit Card,0,Leave with neighbor
+ORD-012,Larry Harris,larry.h@email.com,Standing Desk,Furniture,599.99,1,2025-02-10,Pending,Freight,963 Plum Ln,Jacksonville,FL,32201,PayPal,20,Deliver to back entrance
+ORD-013,Mona Clark,mona.c@email.com,Plant Pot,Home Decor,19.99,3,2025-02-12,Pending,Standard,159 Peach St,Fort Worth,TX,76101,Credit Card,0,Indoor plants
+ORD-014,Nathan Lewis,nathan.l@email.com,Shredder,Office,54.99,1,2025-02-15,Cancelled,Standard,357 Vine Ave,Columbus,OH,43201,Debit Card,0,Customer cancelled
+ORD-015,Olivia Walker,olivia.w@email.com,Webcam,Electronics,69.99,2,2025-02-18,Shipped,Express,486 Fig St,Charlotte,NC,28201,PayPal,0,
+ORD-016,Peter Hall,peter.h@email.com,Cable Management Kit,Electronics,22.99,5,2025-02-20,Shipped,Standard,753 Date Ct,Indianapolis,IN,46201,Credit Card,0,Office reorganization
+ORD-017,Quinn Robinson,quinn.r@email.com,Whiteboard,Office,89.99,1,2025-02-22,Processing,Express,951 Berry Rd,San Francisco,CA,94101,PayPal,15,Include markers
+ORD-018,Rachel Young,rachel.y@email.com,Task Light,Home Office,44.99,2,2025-02-25,Delivered,Standard,264 Apple Dr,Seattle,WA,98101,Credit Card,0,Desk lamp needed
+ORD-019,Sam King,sam.k@email.com,Bookshelf,Furniture,129.99,2,2025-03-01,Delivered,Freight,573 Lemon Ln,Denver,CO,80201,Debit Card,0,First floor delivery
+ORD-020,Tina Adams,tina.a@email.com,Desk Pad,Office,29.99,3,2025-03-03,Delivered,Standard,882 Grape Ct,Nashville,TN,37201,PayPal,5,
+ORD-021, Uma Patel,uma.p@email.com,External SSD,Electronics,129.99,1,2025-03-05,Shipped,Express,415 Olive Blvd,Portland,OR,97201,Credit Card,0,
+ORD-022,Victor Cruz,victor.c@email.com,Fan,Home Office,39.99,2,2025-03-08,Shipped,Standard,628 Lime Ave,Oklahoma City,OK,73101,PayPal,0,Summer ready
+ORD-023,Wendy Chen,wendy.c@email.com,Cable Ties,Office,8.99,20,2025-03-10,Processing,Standard,936 Melon Rd,Las Vegas,NV,89101,Credit Card,0,Bulk order
+ORD-024,Xavier Wright,xavier.w@email.com,Monitor Arm,Electronics,74.99,1,2025-03-12,Pending,Express,714 Kiwi St,Louisville,KY,40201,Debit Card,0,Ergonomic setup
+ORD-025,Yvonne Green,yvonne.g@email.com,Pencil Set,Stationery,6.99,15,2025-03-15,Pending,Standard,283 Lime Ct,Baltimore,MD,21201,PayPal,0,Classroom supplies
