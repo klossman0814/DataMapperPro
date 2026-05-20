@@ -238,6 +238,7 @@ export function MappingDesigner() {
             <TemplateEditor
               value={store.template}
               onChange={store.setTemplate}
+              sourceColumns={store.sourceColumns}
             />
           </div>
 
