@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  passwordHash String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mappingProfiles MappingProfile[]
+  uploadedFiles   UploadedFile[]
+  processingJobs  ProcessingJob[]
+}
+
+model MappingProfile {
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?
+  template           String
+  configurationJson  Json
+  version            Int      @default(1)
+  createdById        String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  createdBy      User             @relation(fields: [createdById], references: [id])
+  processingJobs ProcessingJob[]
+}
+
+model UploadedFile {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  rowCount     Int?
+  columns      Json?
+  preview      Json?
+  sheetNames   Json?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  uploadedBy     User             @relation(fields: [uploadedById], references: [id])
+  processingJobs ProcessingJob[]
+}
+
+model ProcessingJob {
+  id            String   @id @default(uuid())
+  status        String   @default("PENDING")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  totalRows     Int      @default(0)
+  processedRows Int      @default(0)
+  failedRows    Int      @default(0)
+  errorLog      Json?
+  config        Json
+  outputFormat  String
+  outputFile    String?
+  uploadedFileId String?
+  profileId     String?
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  uploadedFile UploadedFile?  @relation(fields: [uploadedFileId], references: [id])
+  profile      MappingProfile? @relation(fields: [profileId], references: [id])
+  createdBy    User            @relation(fields: [createdById], references: [id])
+}

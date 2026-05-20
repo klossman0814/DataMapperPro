@@ -1,0 +1,64 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAppStore } from './stores/appStore';
+import { authService } from './services/auth.service';
+import { Layout } from './components/Layout';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Upload } from './pages/Upload';
+import { MappingDesigner } from './pages/MappingDesigner';
+import { TemplateEditorPage } from './pages/TemplateEditorPage';
+import { ProcessingJobs } from './pages/ProcessingJobs';
+import { SavedProfiles } from './pages/SavedProfiles';
+import { Settings } from './pages/Settings';
+
+function AuthGuard() {
+  const { isAuthenticated } = useAppStore();
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+  return <Login />;
+}
+
+export default function App() {
+  const { user, setUser, theme } = useAppStore();
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token && !user) {
+      authService.getProfile()
+        .then((profile) => setUser(profile))
+        .catch(() => {
+          localStorage.removeItem('accessToken');
+        });
+    }
+  }, [user, setUser]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  return (
+    <Routes>
+      <Route path="/login" element={<AuthGuard />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="upload" element={<Upload />} />
+        <Route path="mapping/:fileId?" element={<MappingDesigner />} />
+        <Route path="template/:profileId?" element={<TemplateEditorPage />} />
+        <Route path="jobs" element={<ProcessingJobs />} />
+        <Route path="profiles" element={<SavedProfiles />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
