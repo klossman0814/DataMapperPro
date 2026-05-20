@@ -20,6 +20,7 @@ const outputFormats: { value: OutputFormat; label: string }[] = [
   { value: 'pipe', label: 'Pipe-Delimited' },
   { value: 'tab', label: 'Tab-Delimited' },
   { value: 'fixedwidth', label: 'Fixed-Width' },
+  { value: 'freeform', label: 'Free Form' },
 ];
 
 export function MappingDesigner() {
@@ -163,6 +164,12 @@ export function MappingDesigner() {
           const segFields = fields.map((f, i) => `${f}|{{${f}}}`).join('|');
           const firstField = fields[0] || 'name';
           preview = `MSH|^~\\&|DataMapperPro|||||RSP^K22|||2.5.1\nPID|||{{id}}||{{${firstField}}}^^^^^^||${segFields}`;
+          break;
+        }
+        case 'freeform': {
+          preview = hasTemplate
+            ? store.template
+            : fields.map((f) => `{{${f}}}`).join('|');
           break;
         }
         default: {

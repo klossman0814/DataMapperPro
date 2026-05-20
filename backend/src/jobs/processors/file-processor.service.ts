@@ -202,6 +202,7 @@ export class FileProcessorService {
       pipe: 'txt',
       tab: 'tsv',
       fixedwidth: 'txt',
+      freeform: 'txt',
     };
     return map[format] || 'txt';
   }
@@ -231,6 +232,12 @@ export class FileProcessorService {
       case 'fixedwidth':
         const fwContent = this.flatFileExport.export(rows, options);
         await writeFile(filePath, fwContent);
+        break;
+      case 'freeform':
+        const freeformContent = rows
+          .map((r) => r.output || Object.values(r).join('|'))
+          .join('\n');
+        await writeFile(filePath, freeformContent);
         break;
       default:
         const defaultContent = this.csvExport.export(rows, options);

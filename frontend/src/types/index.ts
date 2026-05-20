@@ -92,7 +92,7 @@ export interface TemplateContext {
   index: number;
 }
 
-export type OutputFormat = 'txt' | 'csv' | 'json' | 'xml' | 'hl7' | 'pipe' | 'tab' | 'fixedwidth';
+export type OutputFormat = 'txt' | 'csv' | 'json' | 'xml' | 'hl7' | 'pipe' | 'tab' | 'fixedwidth' | 'freeform';
 
 export interface UploadedFileInfo {
   id: string;

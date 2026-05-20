@@ -34,6 +34,7 @@ export function OutputPreview({ output, format, loading }: OutputPreviewProps) {
       pipe: 'text/plain',
       tab: 'text/plain',
       fixedwidth: 'text/plain',
+      freeform: 'text/plain',
     };
     const blob = new Blob([output], { type: mimeTypes[format] || 'text/plain' });
     const url = window.URL.createObjectURL(blob);
