@@ -139,6 +139,19 @@ export class FilesService {
     return Object.values(columnMap);
   }
 
+  async findAll(userId: string, page: number = 1, limit: number = 20) {
+    const [files, total] = await Promise.all([
+      this.prisma.uploadedFile.findMany({
+        where: { uploadedById: userId },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.uploadedFile.count({ where: { uploadedById: userId } }),
+    ]);
+    return { data: files, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
   async getFile(fileId: string) {
     const file = await this.prisma.uploadedFile.findUnique({ where: { id: fileId } });
     if (!file) {

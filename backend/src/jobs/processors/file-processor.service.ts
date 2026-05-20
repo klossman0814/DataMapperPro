@@ -62,7 +62,7 @@ export class FileProcessorService {
     try {
       const config = job.config as any;
       const mappings: Mapping[] = config.mappings || [];
-      const template = job.profile.template;
+      const template = config.template || job.profile?.template || '';
       const outputFormat = job.outputFormat;
       const outputOptions = config.outputOptions || {};
 

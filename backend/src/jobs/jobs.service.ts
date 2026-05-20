@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileProcessorService } from './processors/file-processor.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -11,10 +12,15 @@ export class JobsService {
   ) {}
 
   async create(dto: CreateJobDto, userId: string) {
+    const config = {
+      ...(dto.outputOptions || {}),
+      mappings: dto.mappings || [],
+      template: dto.template || '',
+    };
     const job = await this.prisma.processingJob.create({
       data: {
         status: 'PENDING',
-        config: dto.outputOptions || {},
+        config: JSON.parse(JSON.stringify(config)) as Prisma.InputJsonValue,
         outputFormat: dto.outputFormat,
         uploadedFileId: dto.fileId,
         profileId: dto.profileId,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Save, Play, Eye, SplitSquareHorizontal, Upload } from 'lucide-react';
 import { filesService } from '../services/files.service';
 import { jobsService } from '../services/jobs.service';
@@ -24,12 +24,15 @@ const outputFormats: { value: OutputFormat; label: string }[] = [
 
 export function MappingDesigner() {
   const { fileId } = useParams();
+  const [searchParams] = useSearchParams();
+  const profileId = searchParams.get('profileId');
   const navigate = useNavigate();
   const store = useMappingStore();
 
   const [files, setFiles] = useState<UploadedFileInfo[]>([]);
   const [selectedFileId, setSelectedFileId] = useState(fileId || store.uploadedFile?.id || '');
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('txt');
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
@@ -38,6 +41,19 @@ export function MappingDesigner() {
   useEffect(() => {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!profileId) return;
+    setLoadingProfile(true);
+    profilesService.get(profileId)
+      .then((profile) => {
+        store.setMappings(profile.configurationJson.mappings || []);
+        store.setTemplate(profile.template || '');
+        store.setProfileName(profile.name);
+      })
+      .catch(() => toast.error('Failed to load profile'))
+      .finally(() => setLoadingProfile(false));
+  }, [profileId]);
 
   useEffect(() => {
     if (selectedFileId && selectedFileId !== store.uploadedFile?.id) {
@@ -86,6 +102,7 @@ export function MappingDesigner() {
       const job = await jobsService.create({
         fileId: selectedFileId,
         template: store.template,
+        mappings: store.mappings,
         outputFormat,
       });
       toast.success('Job started');

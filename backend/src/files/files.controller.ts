@@ -46,6 +46,15 @@ export class FilesController {
     return this.filesService.upload(file, dto, userId);
   }
 
+  @Get()
+  list(
+    @CurrentUser('id') userId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.filesService.findAll(userId, page || 1, limit || 20);
+  }
+
   @Get(':id')
   getFile(@Param('id') id: string) {
     return this.filesService.getFile(id);

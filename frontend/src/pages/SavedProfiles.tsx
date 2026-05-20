@@ -173,7 +173,7 @@ export function SavedProfiles() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <button
-                  onClick={() => navigate(`/mapping/${profile.id}`)}
+                  onClick={() => navigate(`/mapping?profileId=${profile.id}`)}
                   className="btn-primary text-xs flex-1"
                 >
                   <GitBranch className="h-3.5 w-3.5" />

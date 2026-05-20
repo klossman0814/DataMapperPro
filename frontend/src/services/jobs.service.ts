@@ -5,8 +5,8 @@ export const jobsService = {
   create: (data: {
     fileId: string;
     profileId?: string;
-    mappingId?: string;
     template?: string;
+    mappings?: Record<string, any>[];
     outputFormat: string;
   }) => api.post<ProcessingJob>('/jobs', data).then(r => r.data),
 
