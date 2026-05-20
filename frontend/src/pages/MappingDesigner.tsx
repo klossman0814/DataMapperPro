@@ -35,6 +35,7 @@ export function MappingDesigner() {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('txt');
+  const [outputExtension, setOutputExtension] = useState('');
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [generatingPreview, setGeneratingPreview] = useState(false);
@@ -99,12 +100,17 @@ export function MappingDesigner() {
       return;
     }
     setRunning(true);
+    const opts: Record<string, any> = {};
+    if (outputExtension.trim()) {
+      opts.fileExtension = outputExtension.trim();
+    }
     try {
       const job = await jobsService.create({
         fileId: selectedFileId,
         template: store.template,
         mappings: store.mappings,
         outputFormat,
+        outputOptions: Object.keys(opts).length ? opts : undefined,
       });
       toast.success('Job started');
       navigate('/jobs');
@@ -282,6 +288,19 @@ export function MappingDesigner() {
                 </option>
               ))}
             </select>
+            <div className="mt-2">
+              <label className="text-xs text-gray-500 dark:text-slate-400">Extension (optional)</label>
+              <div className="mt-1 flex items-center gap-1">
+                <span className="text-sm text-gray-400">.</span>
+                <input
+                  type="text"
+                  value={outputExtension}
+                  onChange={(e) => setOutputExtension(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  className="input-field flex-1"
+                  placeholder={outputFormat === 'freeform' ? 'txt' : outputFormat}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="card">

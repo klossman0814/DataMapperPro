@@ -8,6 +8,7 @@ export const jobsService = {
     template?: string;
     mappings?: Record<string, any>[];
     outputFormat: string;
+    outputOptions?: Record<string, any>;
   }) => api.post<ProcessingJob>('/jobs', data).then(r => r.data),
 
   list: (page = 1, limit = 20) =>

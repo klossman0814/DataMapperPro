@@ -107,7 +107,9 @@ export class FileProcessorService {
           },
         });
       } else {
-        const outputFilename = `${uuid()}.${this.getExtension(outputFormat)}`;
+        const outputFilename = config.fileExtension
+        ? `${uuid()}.${config.fileExtension}`
+        : `${uuid()}.${this.getExtension(outputFormat)}`;
         const outputPath = join(this.outputDir, outputFilename);
         await this.writeOutput(outputPath, processedRows, outputFormat, outputOptions);
 

@@ -24,7 +24,11 @@ export function OutputPreview({ output, format, loading }: OutputPreviewProps) {
   };
 
   const handleDownload = () => {
-    const ext = format === 'txt' ? 'txt' : format;
+    const extMap: Record<string, string> = {
+      txt: 'txt', csv: 'csv', json: 'json', xml: 'xml', hl7: 'hl7',
+      pipe: 'txt', tab: 'tsv', fixedwidth: 'txt', freeform: 'txt',
+    };
+    const ext = extMap[format] || format;
     const mimeTypes: Record<string, string> = {
       txt: 'text/plain',
       csv: 'text/csv',
