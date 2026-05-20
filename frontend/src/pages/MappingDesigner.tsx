@@ -117,10 +117,64 @@ export function MappingDesigner() {
   const handleGeneratePreview = async () => {
     setGeneratingPreview(true);
     try {
-      const preview = store.mappings
-        .map((m) => `${m.destinationField}: ${m.sourceField || '(empty)'}`)
-        .join('\n');
-      store.setOutputPreview(`# Mapping Preview\n\n${preview}\n\n# Template\n${store.template || '(none)'}`);
+      const fields = store.mappings.map((m) => m.destinationField);
+      const hasTemplate = !!store.template;
+      let preview = '';
+
+      switch (outputFormat) {
+        case 'csv': {
+          const header = fields.join(',');
+          const sampleRow = fields.map((f) => `{{${f}}}`).join(',');
+          preview = `${header}\n${sampleRow}\n${sampleRow}`;
+          break;
+        }
+        case 'json': {
+          const obj = fields.reduce((acc, f) => ({ ...acc, [f]: `{{${f}}}` }), {});
+          preview = hasTemplate
+            ? `[ ${store.template} ]`
+            : JSON.stringify(obj, null, 2);
+          break;
+        }
+        case 'xml': {
+          const elements = fields.map((f) => `  <${f}>{{${f}}}</${f}>`).join('\n');
+          preview = `<record>\n${elements}\n</record>`;
+          break;
+        }
+        case 'pipe': {
+          const header = fields.join(' | ');
+          const sampleRow = fields.map((f) => `{{${f}}}`).join(' | ');
+          preview = `${header}\n${sampleRow}\n${sampleRow}`;
+          break;
+        }
+        case 'tab': {
+          const header = fields.join('\t');
+          const sampleRow = fields.map((f) => `{{${f}}}`).join('\t');
+          preview = `${header}\n${sampleRow}\n${sampleRow}`;
+          break;
+        }
+        case 'fixedwidth': {
+          const widths = fields.map((f) => Math.max(f.length, 10));
+          const header = fields.map((f, i) => f.padEnd(widths[i])).join('');
+          const sampleRow = fields.map((f, i) => `{{${f}}}`.padEnd(widths[i])).join('');
+          preview = `${header}\n${sampleRow}\n${sampleRow}`;
+          break;
+        }
+        case 'hl7': {
+          const segFields = fields.map((f, i) => `${f}|{{${f}}}`).join('|');
+          const firstField = fields[0] || 'name';
+          preview = `MSH|^~\\&|DataMapperPro|||||RSP^K22|||2.5.1\nPID|||{{id}}||{{${firstField}}}^^^^^^||${segFields}`;
+          break;
+        }
+        default: {
+          preview = fields.map((f) => `${f}: {{${f}}}`).join('\n');
+        }
+      }
+
+      if (hasTemplate && outputFormat !== 'json') {
+        preview += `\n\n# Template\n${store.template}`;
+      }
+
+      store.setOutputPreview(preview);
       toast.success('Preview generated');
     } catch {
       toast.error('Failed to generate preview');
