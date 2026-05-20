@@ -46,8 +46,8 @@ export class FileProcessorService {
       },
     });
 
-    if (!job || !job.uploadedFile || !job.profile) {
-      throw new Error('Job, file, or profile not found');
+    if (!job || !job.uploadedFile) {
+      throw new Error('Job or file not found');
     }
 
     await this.prisma.processingJob.update({
@@ -71,6 +71,10 @@ export class FileProcessorService {
       const errors: { row: number; message: string }[] = [];
 
       for (let i = 0; i < rows.length; i++) {
+        if (await this.isCancelled(jobId)) {
+          errors.push({ row: i + 1, message: 'Job cancelled by user' });
+          break;
+        }
         try {
           const mapped = this.mappingEngine.executeMapping(rows[i], mappings);
           const transformed = this.applyTransformations(mapped, config.transformations);
@@ -93,19 +97,30 @@ export class FileProcessorService {
         }
       }
 
-      const outputFilename = `${uuid()}.${this.getExtension(outputFormat)}`;
-      const outputPath = join(this.outputDir, outputFilename);
-      await this.writeOutput(outputPath, processedRows, outputFormat, outputOptions);
+      if (await this.isCancelled(jobId)) {
+        await this.prisma.processingJob.update({
+          where: { id: jobId },
+          data: {
+            errorLog: errors.length > 0
+              ? JSON.parse(JSON.stringify(errors)) as Prisma.InputJsonValue
+              : Prisma.JsonNull,
+          },
+        });
+      } else {
+        const outputFilename = `${uuid()}.${this.getExtension(outputFormat)}`;
+        const outputPath = join(this.outputDir, outputFilename);
+        await this.writeOutput(outputPath, processedRows, outputFormat, outputOptions);
 
-      await this.prisma.processingJob.update({
-        where: { id: jobId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-          outputFile: outputFilename,
-          errorLog: errors.length > 0 ? JSON.parse(JSON.stringify(errors)) as Prisma.InputJsonValue : Prisma.JsonNull,
-        },
-      });
+        await this.prisma.processingJob.update({
+          where: { id: jobId },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            outputFile: outputFilename,
+            errorLog: errors.length > 0 ? JSON.parse(JSON.stringify(errors)) as Prisma.InputJsonValue : Prisma.JsonNull,
+          },
+        });
+      }
     } catch (err: any) {
       await this.prisma.processingJob.update({
         where: { id: jobId },
@@ -157,6 +172,14 @@ export class FileProcessorService {
       }
     }
     return result;
+  }
+
+  private async isCancelled(jobId: string): Promise<boolean> {
+    const job = await this.prisma.processingJob.findUnique({
+      where: { id: jobId },
+      select: { status: true },
+    });
+    return job?.status === 'FAILED';
   }
 
   private async updateProgress(jobId: string, processed: number, failed: number) {

@@ -103,7 +103,7 @@ export class JobsService {
 
   async cancel(id: string) {
     const job = await this.findOne(id);
-    if (job.status === 'PROCESSING') {
+    if (job.status === 'PENDING' || job.status === 'PROCESSING') {
       return this.prisma.processingJob.update({
         where: { id },
         data: { status: 'FAILED', completedAt: new Date() },
