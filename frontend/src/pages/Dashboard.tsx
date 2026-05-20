@@ -27,27 +27,46 @@ import { profilesService } from '../services/profiles.service';
 import type { ProcessingJob } from '../types';
 import toast from 'react-hot-toast';
 
-const chartData = [
-  { name: 'Mon', jobs: 4 },
-  { name: 'Tue', jobs: 7 },
-  { name: 'Wed', jobs: 5 },
-  { name: 'Thu', jobs: 12 },
-  { name: 'Fri', jobs: 9 },
-  { name: 'Sat', jobs: 3 },
-  { name: 'Sun', jobs: 6 },
-];
+interface ChartPoint {
+  name: string;
+  jobs: number;
+}
+
+function computeChartData(jobs: ProcessingJob[]): ChartPoint[] {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const today = new Date();
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    return d;
+  }).reverse();
+  return last7.map((date) => {
+    const count = jobs.filter((j) => {
+      const created = new Date(j.createdAt);
+      return created.toDateString() === date.toDateString();
+    }).length;
+    return { name: days[date.getDay()], jobs: count };
+  });
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [recentJobs, setRecentJobs] = useState<ProcessingJob[]>([]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const loadData = () => {
     setLoading(true);
     setError(false);
-    jobsService.list(1, 5)
-      .then((res) => setRecentJobs(res.data))
+    Promise.all([
+      jobsService.list(1, 5),
+      jobsService.list(1, 200),
+    ])
+      .then(([recent, all]) => {
+        setRecentJobs(recent.data);
+        setChartData(computeChartData(all.data));
+      })
       .catch(() => {
         setError(true);
         toast.error('Failed to load dashboard data');
