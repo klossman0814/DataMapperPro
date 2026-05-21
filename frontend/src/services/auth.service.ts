@@ -5,4 +5,6 @@ export const authService = {
   login: (dto: LoginDto) => api.post<AuthResponse>('/auth/login', dto).then(r => r.data),
   register: (dto: RegisterDto) => api.post<AuthResponse>('/auth/register', dto).then(r => r.data),
   getProfile: () => api.get<User>('/auth/profile').then(r => r.data),
+  updateProfile: (dto: { name?: string }) => api.put<User>('/auth/profile', dto).then(r => r.data),
+  updatePassword: (dto: { currentPassword: string; newPassword: string }) => api.put('/auth/password', dto).then(r => r.data),
 };

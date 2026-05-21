@@ -67,7 +67,7 @@ export function Layout() {
               end={to === '/'}
               className={({ isActive }) =>
                 clsx(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.98]',
                   isActive
                     ? 'bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400'
                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-200'

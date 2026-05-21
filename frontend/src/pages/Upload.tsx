@@ -33,19 +33,6 @@ export function Upload() {
     }
   };
 
-  const handleReupload = async () => {
-    if (!uploadedFile) return;
-    try {
-      const result = await filesService.upload(new File([], ''), {
-        sheetName: sheetName || undefined,
-        delimiter,
-        hasHeader,
-      });
-    } catch {
-      // ignore
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div>
@@ -104,7 +91,7 @@ export function Upload() {
                     onChange={(e) => setSheetName(e.target.value)}
                     className="input-field w-40 text-sm"
                   >
-                    {uploadedFile.sheetNames.map((name: string) => (
+                    {uploadedFile.sheetNames.map((name) => (
                       <option key={name} value={name}>{name}</option>
                     ))}
                   </select>

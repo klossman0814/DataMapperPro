@@ -53,6 +53,32 @@ export class AuthService {
     };
   }
 
+  async updateProfile(userId: string, dto: { name?: string }) {
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+    const { passwordHash, ...profile } = user;
+    return { ...profile, notificationPreferences: (profile.notificationPreferences as Record<string, any>) || null };
+  }
+
+  async updatePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Current password is incorrect');
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    return { message: 'Password updated successfully' };
+  }
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {

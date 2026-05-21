@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
-import { Sun, Moon, User, Shield, Bell, Key, Download, Eye } from 'lucide-react';
+import { Sun, Moon, User, Shield, Bell, Key, Download, Eye, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { notificationsService } from '../services/notifications.service';
+import { authService } from '../services/auth.service';
 import { WeeklySummaryPreview } from '../components/WeeklySummaryPreview';
 import type { NotificationPreferences } from '../types';
 
@@ -18,6 +19,11 @@ export function Settings() {
   const [defaultDelimiter, setDefaultDelimiter] = useState(',');
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     notificationsService.getPreferences()
@@ -49,8 +55,48 @@ export function Settings() {
     }
   };
 
-  const handleSaveProfile = () => {
-    toast.success('Profile updated');
+  const handleSaveProfile = async () => {
+    if (!name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const updated = await authService.updateProfile({ name });
+      useAppStore.getState().setUser({ ...useAppStore.getState().user!, ...updated });
+      toast.success('Profile updated');
+    } catch {
+      toast.error('Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentPassword) {
+      toast.error('Enter your current password');
+      return;
+    }
+    if (!newPasswordVal || newPasswordVal.length < 6) {
+      toast.error('New password must be at least 6 characters');
+      return;
+    }
+    if (newPasswordVal !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await authService.updatePassword({ currentPassword, newPassword: newPasswordVal });
+      toast.success('Password updated');
+      setCurrentPassword('');
+      setNewPasswordVal('');
+      setConfirmPassword('');
+    } catch {
+      toast.error('Failed to update password');
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   const handleGenerateApiKey = () => {
@@ -108,8 +154,9 @@ export function Settings() {
               </div>
             </div>
             <div className="mt-4">
-              <button onClick={handleSaveProfile} className="btn-primary">
-                Save Changes
+              <button onClick={handleSaveProfile} disabled={savingProfile} className="btn-primary">
+                {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {savingProfile ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -128,6 +175,8 @@ export function Settings() {
                 </label>
                 <input
                   type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
                   className="input-field max-w-sm"
                   placeholder="Enter current password"
                 />
@@ -137,24 +186,31 @@ export function Settings() {
                   <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    className="input-field"
-                    placeholder="New password"
-                  />
+                    <input
+                      type="password"
+                      value={newPasswordVal}
+                      onChange={(e) => setNewPasswordVal(e.target.value)}
+                      className="input-field"
+                      placeholder="New password"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="input-field"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    className="input-field"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-              </div>
-              <button className="btn-primary">Update Password</button>
+                <button onClick={handleUpdatePassword} disabled={savingPassword} className="btn-primary">
+                  {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {savingPassword ? 'Updating...' : 'Update Password'}
+                </button>
             </div>
           </div>
 

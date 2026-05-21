@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   PlayCircle,
@@ -50,11 +50,16 @@ export function ProcessingJobs() {
     load();
   }, [setJobs]);
 
+  const pollingRefs = useRef<ReturnType<typeof setInterval>[]>([]);
+
   useEffect(() => {
+    pollingRefs.current.forEach(clearInterval);
+    pollingRefs.current = [];
+
     const processing = jobs.filter((j) => j.status === 'PROCESSING' || j.status === 'PENDING');
     if (processing.length === 0) return;
 
-    const intervals = processing.map((job) =>
+    pollingRefs.current = processing.map((job) =>
       setInterval(async () => {
         try {
           const progress = await jobsService.getProgress(job.id);
@@ -70,7 +75,10 @@ export function ProcessingJobs() {
       }, 3000)
     );
 
-    return () => intervals.forEach(clearInterval);
+    return () => {
+      pollingRefs.current.forEach(clearInterval);
+      pollingRefs.current = [];
+    };
   }, [jobs, updateJob]);
 
   const handleRefresh = async () => {

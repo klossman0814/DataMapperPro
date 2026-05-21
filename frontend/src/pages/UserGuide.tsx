@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ListTree } from 'lucide-react';
+import clsx from 'clsx';
 
 function extractText(children: ReactNode): string {
   if (typeof children === 'string') return children;
@@ -21,9 +22,32 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+interface TocEntry {
+  level: number;
+  text: string;
+  id: string;
+}
+
+function parseToc(markdown: string): TocEntry[] {
+  const lines = markdown.split('\n');
+  const entries: TocEntry[] = [];
+  for (const line of lines) {
+    const match = line.match(/^(#{1,4})\s+(.+)/);
+    if (match) {
+      const level = match[1].length;
+      const text = match[2].replace(/`/g, '');
+      entries.push({ level, text, id: slugify(text) });
+    }
+  }
+  return entries;
+}
+
 export function UserGuide() {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string>('');
+
+  const toc = useMemo(() => content ? parseToc(content) : [], [content]);
 
   useEffect(() => {
     fetch('/USER_GUIDE.md')
@@ -34,6 +58,31 @@ export function UserGuide() {
       .then(setContent)
       .catch(setError);
   }, []);
+
+  useEffect(() => {
+    if (toc.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-80px 0px -70% 0px', threshold: 0 }
+    );
+    for (const { id } of toc) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [toc]);
+
+  const handleTocClick = (id: string) => {
+    setActiveId(id);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className="space-y-6">
@@ -49,19 +98,19 @@ export function UserGuide() {
         </div>
       </div>
 
-      <div className="card overflow-hidden p-0">
-        {error ? (
-          <div className="p-6 text-center text-red-500">
-            <p>Failed to load the user guide.</p>
-            <p className="mt-1 text-sm text-gray-500">{error}</p>
-          </div>
-        ) : content === null ? (
-          <div className="p-6 text-center text-gray-500">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-            <p className="mt-3 text-sm">Loading guide...</p>
-          </div>
-        ) : (
-          <div className="markdown-content scroll-smooth p-6">
+      {error ? (
+        <div className="card p-6 text-center text-red-500">
+          <p>Failed to load the user guide.</p>
+          <p className="mt-1 text-sm text-gray-500">{error}</p>
+        </div>
+      ) : content === null ? (
+        <div className="card p-6 text-center text-gray-500">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+          <p className="mt-3 text-sm">Loading guide...</p>
+        </div>
+      ) : (
+        <div className="flex gap-8">
+          <div className="card markdown-content scroll-smooth flex-1 overflow-hidden p-6">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -98,8 +147,40 @@ export function UserGuide() {
               {content}
             </ReactMarkdown>
           </div>
-        )}
-      </div>
+
+          {toc.length > 0 && (
+            <nav className="hidden w-64 shrink-0 lg:block">
+              <div className="sticky top-20 rounded-xl border border-gray-200 bg-white/50 p-4 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                  <ListTree className="h-3.5 w-3.5" />
+                  On this page
+                </div>
+                <ul className="max-h-[calc(100vh-12rem)] space-y-0.5 overflow-y-auto">
+                  {toc.map(({ level, text, id }) => (
+                    <li key={id}>
+                      <button
+                        onClick={() => handleTocClick(id)}
+                        className={clsx(
+                          'block w-full truncate rounded px-2 py-1 text-left text-sm transition-colors',
+                          level === 1 && 'font-medium',
+                          level === 2 && 'pl-4',
+                          level === 3 && 'pl-6 text-xs',
+                          level === 4 && 'pl-8 text-xs',
+                          activeId === id
+                            ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        )}
+                      >
+                        {text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+          )}
+        </div>
+      )}
     </div>
   );
 }

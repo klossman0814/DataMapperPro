@@ -56,16 +56,25 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  const [fileCount, setFileCount] = useState(0);
+  const [profileCount, setProfileCount] = useState(0);
+  const [allJobsCount, setAllJobsCount] = useState(0);
+
   const loadData = () => {
     setLoading(true);
     setError(false);
     Promise.all([
       jobsService.list(1, 5),
       jobsService.list(1, 200),
+      filesService.list(1, 1).catch(() => ({ total: 0, data: [] })),
+      profilesService.list(1, 1).catch(() => ({ total: 0, data: [] })),
     ])
-      .then(([recent, all]) => {
+      .then(([recent, all, filesRes, profilesRes]) => {
         setRecentJobs(recent.data);
         setChartData(computeChartData(all.data));
+        setFileCount(filesRes.total ?? filesRes.data.length);
+        setProfileCount(profilesRes.total ?? profilesRes.data.length);
+        setAllJobsCount(all.total ?? all.data.length);
       })
       .catch(() => {
         setError(true);
@@ -87,21 +96,21 @@ export function Dashboard() {
   const stats = [
     {
       label: 'Total Files',
-      value: totalJobs,
+      value: fileCount,
       icon: HardDrive,
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-100 dark:bg-blue-500/10',
     },
     {
       label: 'Total Mappings',
-      value: totalJobs,
+      value: profileCount,
       icon: SplitSquareHorizontal,
       color: 'text-purple-600 dark:text-purple-400',
       bg: 'bg-purple-100 dark:bg-purple-500/10',
     },
     {
       label: 'Total Jobs',
-      value: totalJobs,
+      value: allJobsCount,
       icon: Activity,
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-100 dark:bg-amber-500/10',
@@ -168,7 +177,7 @@ export function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="card">
+          <div key={label} className="card transition-all duration-150 hover:shadow-md hover:border-gray-300 dark:hover:border-slate-600">
             <div className="flex items-center justify-between">
               <div className={`rounded-lg ${bg} p-2.5`}>
                 <Icon className={`h-5 w-5 ${color}`} />
@@ -199,11 +208,12 @@ export function Dashboard() {
                 <YAxis stroke="#64748b" fontSize={12} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '8px',
-                    color: '#e2e8f0',
+                    color: '#0f172a',
                   }}
+                  itemStyle={{ color: '#0f172a' }}
                 />
                 <Area
                   type="monotone"
@@ -267,10 +277,10 @@ export function Dashboard() {
                     key={job.id}
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-slate-800/50"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       {statusIcon(job.status)}
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-slate-200">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-900 dark:text-slate-200">
                           {job.uploadedFile?.originalName || `Job ${job.id.slice(0, 8)}`}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-slate-400">
@@ -278,7 +288,7 @@ export function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <span className={`badge-${job.status === 'COMPLETED' ? 'success' : job.status === 'FAILED' ? 'error' : job.status === 'PROCESSING' ? 'warning' : 'neutral'}`}>
+                    <span className={`shrink-0 badge badge-${job.status === 'COMPLETED' ? 'success' : job.status === 'FAILED' ? 'error' : job.status === 'PROCESSING' ? 'warning' : 'neutral'}`}>
                       {job.status}
                     </span>
                   </div>
