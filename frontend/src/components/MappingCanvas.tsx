@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, GripVertical, Wand2, Columns, XCircle } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Wand2, Columns, XCircle, ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import type { ColumnInfo, FieldMapping } from '../types';
 
@@ -41,8 +41,26 @@ const transformOptions = [
 export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: MappingCanvasProps) {
   const [destinationField, setDestinationField] = useState('');
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set(mappings.map((_, i) => i)));
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  const toggleRow = (index: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  };
+
+  const allExpanded = mappings.length > 0 && expandedRows.size === mappings.length;
+  const toggleAll = () => {
+    if (allExpanded) {
+      setExpandedRows(new Set());
+    } else {
+      setExpandedRows(new Set(mappings.map((_, i) => i)));
+    }
+  };
 
   const handleAddMapping = () => {
     if (!destinationField.trim()) return;
@@ -136,29 +154,38 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
 
       <div className="min-w-0 flex-1">
         <div className="card">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
-              Field Mappings ({mappings.length})
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAutoMap}
-                className="btn-secondary text-xs"
-              >
-                <Wand2 className="h-3.5 w-3.5" />
-                Auto-Map
-              </button>
-              {mappings.length > 0 && (
+            <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
+                Field Mappings ({mappings.length})
+              </h3>
+              <div className="flex gap-2">
+                {mappings.length > 1 && (
+                  <button
+                    onClick={toggleAll}
+                    className="btn-secondary text-xs"
+                  >
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                    {allExpanded ? 'Collapse All' : 'Expand All'}
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowClearDialog(true)}
-                  className="btn-danger text-xs"
+                  onClick={handleAutoMap}
+                  className="btn-secondary text-xs"
                 >
-                  <XCircle className="h-3.5 w-3.5" />
-                  Clear All
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Auto-Map
                 </button>
-              )}
+                {mappings.length > 0 && (
+                  <button
+                    onClick={() => setShowClearDialog(true)}
+                    className="btn-danger text-xs"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Clear All
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
           <div className="mb-4 flex gap-2">
             <input
@@ -183,98 +210,140 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
               <p className="text-sm">No mappings yet. Add a destination field or use Auto-Map.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {mappings.map((mapping, index) => (
-                <div
-                  key={index}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragEnter={() => handleDragEnter(index)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <button className="cursor-grab text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300">
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-                    <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Destination</label>
-                        <input
-                          type="text"
-                          value={mapping.destinationField}
-                          onChange={(e) => handleUpdateMapping(index, { destinationField: e.target.value })}
-                          className="input-field text-sm"
-                        />
-                      </div>
-                      <div
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          const colName = e.dataTransfer.getData('text/plain');
-                          if (colName) handleDropOnMapping(colName, index);
-                        }}
+            <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+              {mappings.map((mapping, index) => {
+                const isExpanded = expandedRows.has(index);
+                const sourceName = mapping.sourceField || '(not set)';
+                const hasTransform = !!mapping.transformation;
+                return (
+                  <div
+                    key={index}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragEnter={() => handleDragEnter(index)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    className={`rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/50 ${isExpanded ? 'p-4' : 'p-2.5'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleRow(index)}
+                        className="rounded p-0.5 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
                       >
-                        <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Source Field</label>
-                        <select
-                          value={mapping.sourceField || ''}
-                          onChange={(e) => handleUpdateMapping(index, { sourceField: e.target.value })}
-                          className="input-field text-sm"
-                        >
-                          <option value="">Select source...</option>
-                          {sourceColumns.map((col) => (
-                            <option key={col.name} value={col.name}>
-                              {col.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </button>
+                      <button className="cursor-grab text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300">
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+
+                      {isExpanded ? (
+                        <>
+                          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Destination</label>
+                              <input
+                                type="text"
+                                value={mapping.destinationField}
+                                onChange={(e) => handleUpdateMapping(index, { destinationField: e.target.value })}
+                                className="input-field text-sm"
+                              />
+                            </div>
+                            <div
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                const colName = e.dataTransfer.getData('text/plain');
+                                if (colName) handleDropOnMapping(colName, index);
+                              }}
+                            >
+                              <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Source Field</label>
+                              <select
+                                value={mapping.sourceField || ''}
+                                onChange={(e) => handleUpdateMapping(index, { sourceField: e.target.value })}
+                                className="input-field text-sm"
+                              >
+                                <option value="">Select source...</option>
+                                {sourceColumns.map((col) => (
+                                  <option key={col.name} value={col.name}>
+                                    {col.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveMapping(index)}
+                            className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex flex-1 items-center gap-2 min-w-0">
+                            <span className="truncate text-sm font-medium text-gray-800 dark:text-slate-200">
+                              {mapping.destinationField}
+                            </span>
+                            <span className="text-gray-300 dark:text-slate-600 shrink-0">&larr;</span>
+                            <span className="truncate text-sm text-gray-500 dark:text-slate-400">
+                              {sourceName}
+                            </span>
+                            {hasTransform && (
+                              <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
+                                {mapping.transformation}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleRemoveMapping(index)}
+                            className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleRemoveMapping(index)}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Transformation</label>
-                      <select
-                        value={mapping.transformation || ''}
-                        onChange={(e) => handleUpdateMapping(index, { transformation: e.target.value || undefined })}
-                        className="input-field text-sm"
-                      >
-                        <option value="">None</option>
-                        {transformOptions.map((group) => (
-                          <optgroup key={group.category} label={group.category}>
-                            {group.options.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
+
+                    {isExpanded && (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Transformation</label>
+                          <select
+                            value={mapping.transformation || ''}
+                            onChange={(e) => handleUpdateMapping(index, { transformation: e.target.value || undefined })}
+                            className="input-field text-sm"
+                          >
+                            <option value="">None</option>
+                            {transformOptions.map((group) => (
+                              <optgroup key={group.category} label={group.category}>
+                                {group.options.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </optgroup>
                             ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Expression / Constant</label>
-                      <input
-                        type="text"
-                        value={mapping.expression || mapping.constant || ''}
-                        onChange={(e) =>
-                          handleUpdateMapping(index, {
-                            expression: e.target.value,
-                            constant: e.target.value,
-                          })
-                        }
-                        className="input-field text-sm"
-                        placeholder="e.g., {{row.field_name}}"
-                      />
-                    </div>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Expression / Constant</label>
+                          <input
+                            type="text"
+                            value={mapping.expression || mapping.constant || ''}
+                            onChange={(e) =>
+                              handleUpdateMapping(index, {
+                                expression: e.target.value,
+                                constant: e.target.value,
+                              })
+                            }
+                            className="input-field text-sm"
+                            placeholder="e.g., {{row.field_name}}"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
