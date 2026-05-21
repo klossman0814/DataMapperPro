@@ -256,6 +256,7 @@ export function TemplateEditorPage() {
       { name: 'if', syntax: 'if(condition, val, else)', description: 'Conditional' },
       { name: 'case', syntax: 'case(val, match, out, ...)', description: 'Match cases' },
       { name: 'switch', syntax: 'switch(val, obj, default?)', description: 'Switch map' },
+      { name: 'join', syntax: 'join(sep, field, ...)', description: 'Join non-empty values' },
     ]},
   ];
 

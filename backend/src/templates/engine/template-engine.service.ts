@@ -7,7 +7,7 @@ const TRANSFORM_NAMES = [
   'padstart', 'padend', 'concat',
   'formatdate', 'parsedate',
   'round', 'formatnumber', 'parseint', 'parsefloat',
-  'coalesce', 'if', 'case', 'switch',
+  'coalesce', 'if', 'case', 'switch', 'join',
 ];
 
 @Injectable()

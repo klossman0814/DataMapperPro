@@ -276,7 +276,7 @@ The Template Editor lets you create and test Handlebars-style output templates. 
 
 ### 4.1 Template Syntax Reference
 
-The editor supports four syntax constructs:
+The editor supports the following syntax constructs:
 
 | Syntax | Description | Example |
 |---|---|---|
@@ -286,13 +286,382 @@ The editor supports four syntax constructs:
 | `{{#if field}}...{{else}}...{{/if}}` | Conditional with else branch | `{{#if active}}{{name}}{{else}}Inactive{{/if}}` |
 | `{{#each list}}{{field}}{{/each}}` | Iterate over an array | `{{#each items}}{{name}}{{/each}}` |
 | `{{index}}` | Current row index (0-based in preview, 1-based in output) | `Record #{{index}}` |
+| `{{func(args)}}` | Apply a transformation function to a field | `{{upper(first_name)}}` |
 
 **Token reference** — Click the helper buttons above the editor to insert syntax templates:
 - **`{{field}}`** — Inserts `{{}}` for field reference
+- **`Text`** — Inserts a literal text placeholder
 - **`{{#if}}`** — Inserts an if/endif block
 - **`{{#each}}`** — Inserts an each/endeach block
+- **`Transforms`** — Opens a dropdown of 18 transformation functions to wrap selected text
 
-### 4.2 Creating a Template
+---
+
+#### How Data Maps to Template Fields
+
+When you upload a CSV or Excel file and select it as the **Import Data Source** in the Template Editor, every column in that file becomes a field available in your template. Each row of data is a flat record — a single object where each column name maps to a single cell value.
+
+**Example CSV data:**
+
+| first_name | last_name | email | phone | status |
+|---|---|---|---|---|
+| John | Smith | john@example.com | 555-0100 | Active |
+| Jane | Doe | | | Inactive |
+
+For row 1, the template sees this data:
+```json
+{
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "john@example.com",
+  "phone": "555-0100",
+  "status": "Active"
+}
+```
+
+For row 2, the template sees:
+```json
+{
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "",
+  "phone": "",
+  "status": "Inactive"
+}
+```
+
+Every cell value is a simple string or number. There are **no nested objects, no arrays, no complex structures** in standard CSV/Excel files — each field is just a single value per row.
+
+---
+
+#### How `{{#if}}` Works with Imported Data
+
+`{{#if}}` checks the value of a single column. If that cell has **any content** (a non-empty string, a number), the condition is truthy and the block renders. If the cell is **empty** or missing, the condition is falsy and the block is skipped.
+
+**With the data above:**
+
+| Template | Row 1 Output | Row 2 Output |
+|---|---|---|
+| `{{#if email}}{{email}}{{else}}No email{{/if}}` | `john@example.com` | `No email` |
+| `{{#if phone}}Contactable{{/if}}` | `Contactable` | *(nothing)* |
+
+Row 1 has values in all columns, so all `{{#if}}` checks pass.
+Row 2 has empty `email` and `phone` cells, so those `{{#if}}` blocks are skipped.
+
+This means **you do not need to structure your data any special way** — a standard CSV with populated columns is all `{{#if}}` needs. Just check for the column name and the template engine handles the rest.
+
+---
+
+#### How `{{#each}}` Works with Imported Data
+
+`{{#each}}` requires an **array** — a list of items, where each item is an object with its own fields. Standard CSV/Excel files **do not produce arrays** because every row is flat. Each row has one value per column, and the template processes one row at a time.
+
+**What this means in practice:**
+- `{{#each next_of_kin}}` will **not work** with data imported from a CSV file, because `next_of_kin` would just be a single cell value like `"Jane Smith"`, not an array of objects.
+- The `{{#each}}` examples in this guide (NK1 segments, allergy entries) demonstrate what the template engine *can* do when given array data, but that data must come from sources that support structured records — such as the pre-seeded demo data in the database.
+
+**Alternatives for repeating data in CSV:**
+
+If your source file has repeating groups (e.g., multiple phone numbers, multiple diagnosis codes), you have two options:
+
+**Option 1 — Multiple columns per item:** Add separate columns for each occurrence:
+| patient_id | phone_1 | phone_2 | phone_3 |
+|---|---|---|---|
+| 1001 | 555-0100 | 555-0101 | |
+
+Then reference each one individually in the template:
+```
+{{phone_1}}{{#if phone_2}}, {{phone_2}}{{/if}}{{#if phone_3}}, {{phone_3}}{{/if}}
+```
+
+This is the most common approach for CSV-based ETL — you explicitly list each column rather than looping.
+
+**Option 2 — Use the Mapping Engine to produce arrays:** If you have a more advanced setup where multiple rows are grouped into a single record (e.g., via a preprocessing script before import), those records could contain array fields. The demo seed data includes such records to showcase `{{#each}}` capabilities for users working with JSON APIs or database extracts that naturally include arrays.
+
+---
+
+#### `{{#if}}` — Conditional Blocks in Detail
+
+The `{{#if}}` directive controls whether a section of the template is included in the output. It evaluates the named field and renders the block only when the value is **truthy** (non-null, non-undefined, non-empty string, not `false`, and not `0`).
+
+**Basic conditional — include content only when a field has a value:**
+
+```
+{{#if field_name}}
+  Content here appears only when field_name has a value
+{{/if}}
+```
+
+**Example — include a phone number only if one exists:**
+
+```
+{{#if phone}}PHONE: {{phone}}{{/if}}
+```
+
+If `phone` is `"555-0123"` → output: `PHONE: 555-0123`
+If `phone` is empty/null → output: *(nothing)*
+
+**Conditional with else branch:**
+
+```
+{{#if field_name}}
+  Rendered when field_name is truthy
+{{else}}
+  Rendered when field_name is falsy (empty, null, etc.)
+{{/if}}
+```
+
+**Example — show status label with fallback:**
+
+```
+{{#if status}}{{status}}{{else}}Unknown{{/if}}
+```
+
+If `status` is `"Active"` → output: `Active`
+If `status` is empty/null → output: `Unknown`
+
+**Real-world HL7 example — conditionally include a segment based on patient gender:**
+
+```
+{{#if gender_male}}PID|||{{mrn}}||{{last_name}}^{{first_name}}||{{dob}}|M{{/if}}
+{{#if gender_female}}PID|||{{mrn}}||{{last_name}}^{{first_name}}||{{dob}}|F{{/if}}
+```
+
+The source data contains two boolean fields (`gender_male`, `gender_female`). Only the matching gender segment renders, allowing different segment content per gender without writing separate templates. If both are false (data missing), neither segment appears.
+
+**Real-world HL7 example — conditionally append an OBX segment when a lab value is present:**
+
+```
+OBX|1|NM|GLU||{{glucose}}
+{{#if cholesterol}}OBX|2|NM|CHOL||{{cholesterol}}{{/if}}
+{{#if hdl}}OBX|3|NM|HDL||{{hdl}}{{/if}}
+```
+
+This builds an HL7 message where the basic OBX segment for `glucose` is always present, and the `cholesterol` and `hdl` OBX segments only appear when those source fields have values. If a patient has no cholesterol data, that OBX line is omitted entirely — producing a clean, compact message.
+
+**Real-world fixed-width example — conditionally include a status suffix:**
+
+```
+{{employee_id}}{{#if manager}} (Manager){{/if}}
+```
+
+Output: `1001` when `manager` is empty, `1001 (Manager)` when `manager` has a value.
+
+---
+
+#### `{{#each}}` — Looping Over Arrays in Detail
+
+The `{{#each}}` directive iterates over an array field, rendering the inner template once per element. Within the loop, each element's properties are available as direct tokens. The `{{index}}` variable tracks the current iteration (0-based in preview, 1-based in final output).
+
+**Basic syntax — iterate over a list of items:**
+
+```
+{{#each items}}{{field_name}}{{/each}}
+```
+
+Each iteration renders the inner content with the current element as the context. If `items` is `[{name: "A"}, {name: "B"}]`, the output would be `AB`.
+
+**Example — create a comma-separated list from an array:**
+
+```
+{{#each phone_numbers}}{{number}}, {{/each}}
+```
+
+**Example — generate multiple HL7 NK1 (next of kin) segments from an array:**
+
+```
+{{#each next_of_kin}}NK1|{{index}}|{{name}}|{{relationship}}|{{phone}}
+{{/each}}
+```
+
+With source data:
+```json
+{
+  "next_of_kin": [
+    { "name": "Jane Smith", "relationship": "SPO", "phone": "555-0101" },
+    { "name": "Bob Smith", "relationship": "BRO", "phone": "555-0102" }
+  ]
+}
+```
+
+Output:
+```
+NK1|1|Jane Smith|SPO|555-0101
+NK1|2|Bob Smith|BRO|555-0102
+```
+
+The `{{index}}` starts at 1 in the output and increments per iteration, producing sequential NK1 segment numbers. Without `{{#each}}`, you would need to reference each NK1 field separately (`{{nk1_name}}`, `{{nk2_name}}`, etc.) — impractical when the number of entries is unknown.
+
+**Real-world HL7 example — generating AL1 (allergy) segments from a repeating group:**
+
+```
+{{#if has_allergies}}
+{{#each allergies}}AL1|{{index}}||{{type}}^{{allergen}}||{{severity}}
+{{/each}}
+{{/if}}
+```
+
+This combines `{{#if}}` and `{{#each}}`: the allergies section is wrapped in a conditional, so if the patient has no allergies (the `has_allergies` field is falsy), the entire block is skipped. When allergies exist, the `{{#each}}` generates one AL1 segment per entry:
+
+Source data:
+```json
+{
+  "has_allergies": true,
+  "allergies": [
+    { "type": "DA", "allergen": "Penicillin", "severity": "SEVERE" },
+    { "type": "DA", "allergen": "Sulfa", "severity": "MODERATE" },
+    { "type": "FA", "allergen": "Peanuts", "severity": "MILD" }
+  ]
+}
+```
+
+Output:
+```
+AL1|1|DA|Penicillin||SEVERE
+AL1|2|DA|Sulfa||MODERATE
+AL1|3|FA|Peanuts||MILD
+```
+
+---
+
+#### Real-World HL7 Flat File Example
+
+The following complete template combines all constructs to produce a full HL7 ADT^A04 (patient registration) message:
+
+```
+MSH|^~\&|{{sending_app}}|{{sending_facility}}|{{receiving_app}}|{{receiving_facility}}|{{timestamp}}||ADT^A04|{{message_id}}|P|2.3
+PID|1|{{mrn}}|{{account_id}}||{{last_name}}^{{first_name}}^{{middle_init}}||{{dob}}|{{gender}}||{{address}}^^{{city}}^{{state}}^{{zip}}||{{phone}}|||{{marital_status}}||{{religion}}
+{{#if next_of_kin.length}}
+{{#each next_of_kin}}NK1|{{index}}|{{name}}|{{relationship}}|{{phone}}
+{{/each}}
+{{/if}}
+{{#if has_allergies}}
+{{#each allergies}}AL1|{{index}}||{{type}}^{{allergen}}||{{severity}}
+{{/each}}
+{{/if}}
+{{#if diagnosis}}DG1|1||{{diagnosis_code}}^{{diagnosis}}||{{diagnosis_date}}{{/if}}
+```
+
+With source data:
+```json
+{
+  "sending_app": "ER",
+  "sending_facility": "HOSPITAL",
+  "receiving_app": "LAB",
+  "receiving_facility": "MAIN",
+  "timestamp": "2025-05-21T14:30:00",
+  "message_id": "MSG-001",
+  "mrn": "P-1001",
+  "account_id": "A-5001",
+  "last_name": "Smith",
+  "first_name": "John",
+  "middle_init": "",
+  "dob": "19800315",
+  "gender": "M",
+  "address": "123 Main St",
+  "city": "Springfield",
+  "state": "IL",
+  "zip": "62701",
+  "phone": "555-0100",
+  "marital_status": "M",
+  "religion": "",
+  "next_of_kin": [
+    { "name": "Jane Smith", "relationship": "SPO", "phone": "555-0101" }
+  ],
+  "has_allergies": true,
+  "allergies": [
+    { "type": "DA", "allergen": "Penicillin", "severity": "SEVERE" }
+  ],
+  "diagnosis": "Chest pain",
+  "diagnosis_code": "R07.9",
+  "diagnosis_date": "20250521"
+}
+```
+
+Generated output:
+```
+MSH|^~\&|ER|HOSPITAL|LAB|MAIN|2025-05-21T14:30:00||ADT^A04|MSG-001|P|2.3
+PID|1|P-1001|A-5001||Smith^John^||19800315|M||123 Main St^^Springfield^IL^62701||555-0100|||M||
+NK1|1|Jane Smith|SPO|555-0101
+AL1|1|DA|Penicillin||SEVERE
+DG1|1||R07.9^Chest pain||20250521
+```
+
+Key observations from this example:
+
+- **`{{#if next_of_kin.length}}`** — The condition checks the array's `.length` property. If the array is empty, the entire NK1 block (including the `{{#each}}`) is skipped. This prevents generating an empty `NK1` segment.
+- **`{{#each next_of_kin}}`** — Generates one `NK1` segment per entry, with `{{index}}` auto-incrementing. If there were 5 next-of-kin entries, you'd get 5 NK1 segments without changing the template.
+- **`{{#if diagnosis}}`** — The `DG1` segment only appears when a diagnosis value exists. If the patient had no diagnosis on file, that line is omitted.
+- **Empty fields like `{{middle_init}}`** — When a field is empty, it renders as an empty string, producing the correct HL7 empty field between the carets (`Smith^^` not `Smith^ ^`).
+
+---
+
+#### HL7 Repeating Fields and Separators
+
+In HL7 flat file format, sub-fields within a segment are separated by `^` (caret), and repeating components within a sub-field use `&`. When you have multiple related fields (e.g., multiple phone numbers, address components, diagnosis codes), you need to join them with the appropriate separator.
+
+**Example PID segment with name components:**
+
+In HL7, the patient name field (PID-5) uses `^` to separate last name, first name, middle initial, and suffix:
+```
+PID|||{{mrn}}||{{last_name}}^{{first_name}}^{{middle_init}}^{{suffix}}|
+```
+
+With data: `last_name=Smith, first_name=John, middle_init=J, suffix=Jr` → `Smith^John^J^Jr`
+With data: `last_name=Smith, first_name=John, middle_init=, suffix=` → `Smith^John^^`
+
+The empty fields produce empty slots between carets. This is correct HL7 — each position has meaning.
+
+**Method 1 — Manual `{{#if}}` chaining (prevents empty slots):**
+
+If you want to skip empty components entirely, use `{{#if}}` to conditionally insert the separator:
+
+```
+PID|||{{mrn}}||{{last_name}}{{#if first_name}}^{{first_name}}{{/if}}{{#if middle_init}}^{{middle_init}}{{/if}}
+```
+
+With data: `last_name=Smith, first_name=John, middle_init=` → `Smith^John` (no trailing empty slot)
+With data: `last_name=Smith, first_name=, middle_init=` → `Smith`
+
+**Method 2 — `join()` function (cleaner syntax):**
+
+The `join` transformation function does the same thing more concisely:
+
+```
+PID|||{{mrn}}||{{join('^', last_name, first_name, middle_init, suffix)}}|
+```
+
+`join` takes a separator as the first argument, then any number of field names. It filters out empty/null values and joins the rest with the separator.
+
+**Examples:**
+
+| Template | Data | Output |
+|---|---|---|
+| `{{join('^', last, first, mid)}}` | last=Smith, first=John, mid=J | `Smith^John^J` |
+| `{{join('^', last, first, mid)}}` | last=Smith, first=John, mid= | `Smith^John` |
+| `{{join('^', phone_1, phone_2, phone_3)}}` | phone_1=555-0100, phone_2=, phone_3=555-0102 | `555-0100^555-0102` |
+| `{{join('^', dx_1, dx_2, dx_3)}}` | dx_1=R07.9, dx_2=, dx_3=I10 | `R07.9^I10` |
+| `{{join('^', street, city, state, zip)}}` | Full address | `123 Main St^Springfield^IL^62701` |
+| `{{join(' & ', phone_1, phone_2)}}` | Two phones | `555-0100 & 555-0101` |
+
+**Real HL7 PID segment with `join()`:**
+
+```
+MSH|^~\&|{{sending_app}}|{{sending_facility}}|{{receiving_app}}|{{receiving_facility}}|{{timestamp}}||ADT^A04|{{message_id}}|P|2.3
+PID|||{{mrn}}||{{join('^', last_name, first_name, middle_init, suffix)}}||{{dob}}|{{gender}}||{{join('^', street, city, state, zip)}}||{{phone}}|||{{marital_status}}
+```
+
+Compare this to the equivalent manual `{{#if}}` version — `join()` eliminates dozens of repeated `{{#if}}{{/if}}` blocks.
+
+**Using `join()` with `{{#each}}` arrays:**
+
+When iterating over an array with `{{#each}}`, each item's fields are available individually. You can use `join()` within the loop body:
+
+```
+{{#each phone_numbers}}NK1|{{index}}|{{name}}|{{relationship}}|{{join('^', area, number, ext)}}{{/each}}
+```
+
+This is particularly useful for HL7 segments that have compound fields with multiple sub-components. In the NK1 example above, if each phone entry has `area`, `number`, and `ext`, the `join()` call produces `555^0100^101` rather than requiring separate `{{area}}^{{number}}^{{ext}}` templates.
 
 1. Select a template from the **Template** dropdown, or leave it blank to create a new one
 2. Enter a **Template Name**
@@ -592,6 +961,7 @@ This configuration:
 | 16 | `if` | `if(condition, trueVal, falseVal)` | Returns `trueVal` if `condition` is truthy, else `falseVal` | `if(status, "Active", "Inactive")` |
 | 17 | `case` | `case(value, match1, out1, match2, out2, ..., default?)` | Sequential pattern matching — compares `value` against pairs, returns matching output or default | `case(type, "A", "Type A", "B", "Type B", "Unknown")` |
 | 18 | `switch` | `switch(value, object, default?)` | Object-lookup dispatch — uses `value` as key in an object, returns matched value or default | `switch(dept, {"HR": "Human Resources"}, "Other")` |
+| 19 | `join` | `join(separator, ...fields)` | Joins non-empty field values with a separator | `join('^', last, first, mid)` | `Smith^John^J` |
 
 ### Real-World Expression Examples from Seed Data
 

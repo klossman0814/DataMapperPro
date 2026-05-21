@@ -89,6 +89,7 @@ export class TransformationEngineService {
       case 'coalesce': return this.fnCoalesce(args);
       case 'if': return this.fnIf(args, row);
       case 'case': return this.fnCase(args);
+      case 'join': return this.fnJoin(args);
       case 'switch': return this.fnSwitch(args);
       default: return args[0];
     }
@@ -214,5 +215,13 @@ export class TransformationEngineService {
       return cases[value] !== undefined ? cases[value] : defaultVal;
     }
     return defaultVal;
+  }
+
+  private fnJoin(args: any[]): string {
+    const separator = args.length > 0 ? String(args[0]) : '';
+    const values = args.slice(1).filter(
+      v => v !== null && v !== undefined && v !== '',
+    );
+    return values.join(separator);
   }
 }
