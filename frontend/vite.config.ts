@@ -18,7 +18,7 @@ export default defineConfig({
     host: true,
     proxy: apiUrl ? undefined : {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3002',
         changeOrigin: true,
       },
     },

@@ -27,7 +27,7 @@ services:
       dockerfile: ../Dockerfile.backend
       target: production
     ports:
-      - "3001:3001"
+      - "3002:3001"
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/datamapperpro
       REDIS_URL: redis://redis:6379

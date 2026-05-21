@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5438:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6382:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -33,7 +33,7 @@ services:
     command: >
       sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
     ports:
-      - "3001:3001"
+      - "3002:3001"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/datamapperpro
       REDIS_URL: redis://redis:6379
@@ -42,7 +42,7 @@ services:
       PORT: 3001
       UPLOAD_DIR: /app/uploads
       OUTPUT_DIR: /app/output
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: http://localhost:5175
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,9 +65,9 @@ services:
       dockerfile: ../Dockerfile.frontend
       target: development
     ports:
-      - "5173:5173"
+      - "5175:5173"
     environment:
-      VITE_API_URL: http://localhost:3001
+      VITE_API_URL: http://localhost:3002
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend

@@ -60,15 +60,15 @@ The application is split into two tiers — a NestJS API backend and a React fro
 ```
 ┌─────────────────────┐      ┌──────────────────────────────────────┐
 │   Browser           │      │   Docker Compose                     │
-│   localhost:5173    │      │                                      │
+│   localhost:5175    │      │                                      │
 │         │           │      │   ┌──────────┐  ┌───────────────┐   │
 │         ▼           │      │   │ Frontend │  │   Backend     │   │
-│   Axios  │          │      │   │  Vite    │──│  NestJS :3001 │   │
-│   ────────────────  │──────┼──▶│ :5173    │  │               │   │
+│   Axios  │          │      │   │  Vite    │──│   NestJS :3002 │   │
+│   ────────────────  │──────┼──▶│ :5175    │  │               │   │
 │         │           │      │   └──────────┘  └───────┬───────┘   │
 │         ▼           │      │                          │          │
 │   http://localhost  │      │              ┌────────────┴──────┐  │
-│   :3001/api/...     │      │              │  PostgreSQL 16    │  │
+│   :3002/api/...     │      │              │  PostgreSQL 16    │  │
 │                     │      │              └─────────────────┘  │
 └─────────────────────┘      └──────────────────────────────────────┘
 ```
@@ -122,10 +122,10 @@ The services will be available at:
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:3001 |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
+| Frontend | http://localhost:5175 |
+| Backend API | http://localhost:3002 |
+| PostgreSQL | localhost:5438 |
+| Redis | localhost:6382 |
 
 > [!NOTE]
 > The demo credentials are `admin@datamapperpro.com` / `admin123`.
@@ -138,7 +138,7 @@ docker run -d --name datamapper-pg \
   -e POSTGRES_DB=datamapperpro \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 postgres:16-alpine
+  -p 5438:5432 postgres:16-alpine
 
 # Terminal 2 — Backend
 cd backend
@@ -174,7 +174,7 @@ All endpoints are prefixed with `/api` and protected by JWT authentication (exce
 ### Authentication
 
 ```bash
-curl -X POST http://localhost:3001/api/auth/login \
+curl -X POST http://localhost:3002/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@datamapperpro.com","password":"admin123"}'
 ```
@@ -183,12 +183,12 @@ curl -X POST http://localhost:3001/api/auth/login \
 
 ```bash
 # Upload a CSV file
-curl -X POST http://localhost:3001/api/files/upload \
+curl -X POST http://localhost:3002/api/files/upload \
   -H "Authorization: Bearer <token>" \
   -F "file=@data.csv"
 
 # View file preview
-curl http://localhost:3001/api/files/<id>/preview?page=1&limit=50 \
+curl http://localhost:3002/api/files/<id>/preview?page=1&limit=50 \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -196,7 +196,7 @@ curl http://localhost:3001/api/files/<id>/preview?page=1&limit=50 \
 
 ```bash
 # Create and start a processing job
-curl -X POST http://localhost:3001/api/jobs \
+curl -X POST http://localhost:3002/api/jobs \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -206,7 +206,7 @@ curl -X POST http://localhost:3001/api/jobs \
   }'
 
 # Download completed output
-curl http://localhost:3001/api/jobs/<id>/download \
+curl http://localhost:3002/api/jobs/<id>/download \
   -H "Authorization: Bearer <token>" \
   -o output.csv
 ```
@@ -246,12 +246,12 @@ Key environment variables (`.env`):
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/datamapperpro` | PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5438/datamapperpro` | PostgreSQL connection string |
 | `JWT_SECRET` | — | **Required in production.** JWT signing key |
 | `JWT_EXPIRATION` | `24h` | Token lifetime |
-| `PORT` | `3001` | Backend listen port |
+| `PORT` | `3002` | Backend listen port |
 | `MAX_FILE_SIZE` | `500mb` | Maximum upload file size |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
+| `CORS_ORIGIN` | `http://localhost:5175` | Allowed CORS origin |
 
 ### Transformation function reference
 
@@ -305,10 +305,10 @@ DataMapperPro/
 The seed command must be run after the backend is fully started. Run `docker compose exec backend npx ts-node prisma/seed.ts` and confirm the output shows "Demo user created".
 
 **Frontend cannot reach the backend in Docker.**
-The frontend calls the backend directly at `localhost:3001` (not through a Vite proxy) when `VITE_API_URL` is set in the Docker environment. Ensure the backend container port `3001` is not already in use on the host.
+The frontend calls the backend directly at `localhost:3002` (not through a Vite proxy) when `VITE_API_URL` is set in the Docker environment. Ensure the backend container port `3002` is not already in use on the host.
 
 **"ECONNREFUSED" errors in frontend logs during development.**
-This indicates the Vite proxy cannot reach the backend. The development compose file sets `VITE_API_URL=http://localhost:3001` which makes the browser call the backend directly — this requires the backend container port to be mapped to the host.
+This indicates the Vite proxy cannot reach the backend. The development compose file sets `VITE_API_URL=http://localhost:3002` which makes the browser call the backend directly — this requires the backend container port to be mapped to the host.
 
 **File uploads fail with files over 500 MB.**
 Adjust the `MAX_FILE_SIZE` environment variable in `docker-compose.yml` or `.env`.

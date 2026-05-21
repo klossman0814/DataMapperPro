@@ -49,7 +49,7 @@
 
 ### 1.1 Logging In
 
-Open the application in your browser. If running locally with Docker, go to `http://localhost:5173`.
+Open the application in your browser. If running locally with Docker, go to `http://localhost:5175`.
 
 The login screen shows the DataMapper Pro logo and a sign-in form:
 

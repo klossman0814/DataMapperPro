@@ -16,7 +16,7 @@ DataMapper Pro is a self-hosted ETL pipeline builder for structured data transfo
 
 ```
 DataMapperPro/
-├── backend/                     # NestJS API server (port 3001)
+├── backend/                     # NestJS API server (port 3002)
 │   ├── prisma/
 │   │   ├── schema.prisma        # 4 models: User, MappingProfile, UploadedFile, ProcessingJob
 │   │   └── seed.ts              # Seeds demo user: admin@datamapperpro.com / admin123
@@ -34,7 +34,7 @@ DataMapperPro/
 │       ├── profiles/            # Full profile lifecycle (CRUD, clone, export/import JSON)
 │       ├── export/              # 4 serializer services: CSV, JSON, XML, flat-file
 │       └── jobs/                # Job CRUD + FileProcessorService (streaming row-by-row pipeline)
-├── frontend/                    # React SPA (port 5173 dev, port 80 prod via nginx)
+├── frontend/                    # React SPA (port 5175 dev, port 80 prod via nginx)
 │   └── src/
 │       ├── main.tsx             # Entry — React.StrictMode + BrowserRouter
 │       ├── App.tsx              # Routes: /login, /, /upload, /mapping/:fileId?, /template/:profileId?,
@@ -95,10 +95,10 @@ docker compose down
 Services after `docker compose up`:
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:3001 |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
+| Frontend | http://localhost:5175 |
+| Backend API | http://localhost:3002 |
+| PostgreSQL | localhost:5438 |
+| Redis | localhost:6382 |
 
 **Demo credentials**: `admin@datamapperpro.com` / `admin123`
 
@@ -147,7 +147,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Vite dev server with HMR on port 5173 |
+| `npm run dev` | Vite dev server with HMR on port 5175 |
 | `npm run build` | TypeScript check + Vite production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | Run ESLint on all files |
@@ -230,7 +230,7 @@ npx prisma db push     # Push schema changes to dev DB
 
 ## API Overview
 
-All endpoints prefixed with `/api`. Full path: `http://localhost:3001/api/<route>`.
+All endpoints prefixed with `/api`. Full path: `http://localhost:3002/api/<route>`.
 
 ### Auth (no JWT required for register/login)
 
@@ -288,21 +288,21 @@ All endpoints prefixed with `/api`. Full path: `http://localhost:3001/api/<route
 
 | Variable | Default (dev) | Notes |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/datamapperpro` | Prisma connection string |
-| `REDIS_URL` | `redis://localhost:6379` | Bull queue backend |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5438/datamapperpro` | Prisma connection string |
+| `REDIS_URL` | `redis://localhost:6382` | Bull queue backend |
 | `JWT_SECRET` | `datamapper-pro-secret-change-in-prod` | **Must be changed in production** |
 | `JWT_EXPIRATION` | `24h` | Token expiry |
-| `PORT` | `3001` | Listen port |
+| `PORT` | `3002` | Listen port |
 | `UPLOAD_DIR` | `./uploads` | File upload storage |
 | `OUTPUT_DIR` | `./output` | Job output storage |
 | `MAX_FILE_SIZE` | `500mb` | Upload size limit |
-| `CORS_ORIGIN` | `http://localhost:5173` | CORS allowed origin |
+| `CORS_ORIGIN` | `http://localhost:5175` | CORS allowed origin |
 
 ### Frontend
 
 | Variable | Default | Notes |
 |---|---|---|
-| `VITE_API_URL` | (uses Vite proxy) | Set to `http://localhost:3001` in Docker |
+| `VITE_API_URL` | (uses Vite proxy) | Set to `http://localhost:3002` in Docker |
 
 ## Common Tasks
 
@@ -338,7 +338,7 @@ All endpoints prefixed with `/api`. Full path: `http://localhost:3001/api/<route
 | Backend logs "ECONNREFUSED" for Postgres/Redis | Containers not healthy yet | Docker healthcheck retries; wait 10s or check `docker compose logs postgres redis` |
 | Login returns "Invalid credentials" | Demo user not seeded | Run `docker compose exec backend npx ts-node prisma/seed.ts` |
 | Prisma client errors after schema change | Outdated client | Run `npx prisma generate` in backend directory |
-| Frontend can't reach backend | Wrong `VITE_API_URL` | In Docker it's set to `http://localhost:3001`; outside Docker, remove it to use Vite proxy |
+| Frontend can't reach backend | Wrong `VITE_API_URL` | In Docker it's set to `http://localhost:3002`; outside Docker, remove it to use Vite proxy |
 | File upload fails with large files | Default limit 500 MB | Set `MAX_FILE_SIZE` env var |
 | "Cannot find module '@prisma/client'" | Prisma client not generated | Run `npx prisma generate` |
 | Docker build fails with npm errors | package-lock.json out of sync | Use `docker compose build --no-cache backend` |
