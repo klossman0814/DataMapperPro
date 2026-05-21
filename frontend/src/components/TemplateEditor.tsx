@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import { Code, Eye, FileCode, Braces, Variable, List, FileInput, X, Sparkles, GripVertical, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight } from 'lucide-react';
+import { Code, Eye, FileCode, Braces, Variable, List, FileInput, X, Sparkles, GripVertical, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
 import type { ColumnInfo } from '../types';
+import { FieldBuilder } from './FieldBuilder';
 
 interface SavedTemplate {
   id: string;
@@ -158,6 +159,7 @@ export function TemplateEditor({
   };
 
   const [showTransforms, setShowTransforms] = useState(false);
+  const [showFieldBuilder, setShowFieldBuilder] = useState(false);
 
   const transformGroups = [
     { category: 'Text', items: [
@@ -295,6 +297,13 @@ export function TemplateEditor({
               >
                 <FileInput className="h-3 w-3" />
                 From Sample
+              </button>
+              <button
+                onClick={() => setShowFieldBuilder(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              >
+                <Wand2 className="h-3 w-3" />
+                Field Builder
               </button>
               <button
                 onClick={() => setShowTransforms(!showTransforms)}
@@ -593,6 +602,25 @@ export function TemplateEditor({
           </div>
         </div>
       )}
+
+      <FieldBuilder
+        open={showFieldBuilder}
+        sourceColumns={sourceColumns || []}
+        onInsert={(expression) => {
+          const editor = editorRef.current;
+          if (editor) {
+            const pos = editor.getPosition();
+            editor.executeEdits('field-builder', [{
+              range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+              text: expression,
+            }]);
+            editor.focus();
+          } else {
+            onChange(value + expression);
+          }
+        }}
+        onClose={() => setShowFieldBuilder(false)}
+      />
     </>
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List, GripVertical, PanelLeftClose, PanelLeft, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List, GripVertical, PanelLeftClose, PanelLeft, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FieldBuilder } from '../components/FieldBuilder';
 import { templatesService, Template } from '../services/templates.service';
 import { filesService } from '../services/files.service';
 import { profilesService } from '../services/profiles.service';
@@ -33,6 +34,7 @@ export function TemplateEditorPage() {
   const [showLibraryConfirm, setShowLibraryConfirm] = useState(false);
   const [pendingLibraryContent, setPendingLibraryContent] = useState('');
   const [pendingLibraryName, setPendingLibraryName] = useState('');
+  const [showFieldBuilder, setShowFieldBuilder] = useState(false);
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileInfo[]>([]);
   const [selectedFileId, setSelectedFileId] = useState(localStorage.getItem('templateEditorFileId') || '');
@@ -544,6 +546,13 @@ export function TemplateEditorPage() {
                 Text
               </button>
               <button
+                onClick={() => setShowFieldBuilder(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              >
+                <Wand2 className="h-3 w-3" />
+                Field Builder
+              </button>
+              <button
                 onClick={() => setShowTransforms(!showTransforms)}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                   showTransforms
@@ -745,6 +754,24 @@ export function TemplateEditorPage() {
           setShowLibraryConfirm(false);
         }}
         onCancel={() => setShowLibraryConfirm(false)}
+      />
+      <FieldBuilder
+        open={showFieldBuilder}
+        sourceColumns={previewColumns}
+        onInsert={(expression) => {
+          const editor = editorRef.current;
+          if (editor) {
+            const pos = editor.getPosition();
+            editor.executeEdits('field-builder', [{
+              range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+              text: expression,
+            }]);
+            editor.focus();
+          } else {
+            setTemplateContent((prev) => prev + expression);
+          }
+        }}
+        onClose={() => setShowFieldBuilder(false)}
       />
     </div>
   );
