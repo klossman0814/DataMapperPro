@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { join } from 'path';
-import { createReadStream, existsSync, mkdirSync } from 'fs';
+import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import * as csvParse from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
@@ -182,5 +182,40 @@ export class FilesService {
       throw new NotFoundException('File not found on disk');
     }
     return createReadStream(filePath);
+  }
+
+  async deleteFile(fileId: string, userId: string) {
+    const file = await this.prisma.uploadedFile.findFirst({
+      where: { id: fileId, uploadedById: userId },
+      include: { processingJobs: true },
+    });
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const activeJobs = file.processingJobs.filter(
+      (j) => j.status === 'PENDING' || j.status === 'PROCESSING',
+    );
+    if (activeJobs.length > 0) {
+      throw new ConflictException(
+        'Cannot delete file with active processing jobs. Cancel or wait for them to complete.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.processingJob.updateMany({
+        where: { uploadedFileId: fileId },
+        data: { uploadedFileId: null },
+      });
+
+      const filePath = join(this.uploadDir, file.filename);
+      if (existsSync(filePath)) {
+        unlinkSync(filePath);
+      }
+
+      await tx.uploadedFile.delete({ where: { id: fileId } });
+    });
+
+    return { message: 'File deleted successfully' };
   }
 }

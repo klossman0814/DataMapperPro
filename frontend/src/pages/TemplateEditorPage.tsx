@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Save, Play, FileCode, Eye, BookTemplate, Variable, Braces, List } from 'lucide-react';
+import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List } from 'lucide-react';
 import { templatesService, Template } from '../services/templates.service';
 import { profilesService } from '../services/profiles.service';
 import toast from 'react-hot-toast';
@@ -25,6 +25,7 @@ export function TemplateEditorPage() {
   const [showPreview, setShowPreview] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -77,6 +78,25 @@ export function TemplateEditorPage() {
       toast.error('Failed to save template');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedTemplateId) return;
+    if (!window.confirm(`Delete template "${templateName}"? This action cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await templatesService.delete(selectedTemplateId);
+      setTemplates((prev) => prev.filter((t) => t.id !== selectedTemplateId));
+      setSelectedTemplateId('');
+      setTemplateName('');
+      setTemplateContent(defaultTemplate);
+      setPreviewOutput('');
+      toast.success('Template deleted');
+    } catch {
+      toast.error('Failed to delete template');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -141,6 +161,12 @@ export function TemplateEditorPage() {
             <Save className="h-4 w-4" />
             {saving ? 'Saving...' : 'Save'}
           </button>
+          {selectedTemplateId && (
+            <button onClick={handleDelete} disabled={deleting} className="btn-danger">
+              <Trash2 className="h-4 w-4" />
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          )}
         </div>
       </div>
 

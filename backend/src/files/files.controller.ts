@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Param,
   Query,
   UseGuards,
@@ -67,5 +68,10 @@ export class FilesController {
     @Query('limit') limit?: number,
   ) {
     return this.filesService.getPreview(id, page || 1, limit || 20);
+  }
+
+  @Delete(':id')
+  deleteFile(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.filesService.deleteFile(id, userId);
   }
 }
