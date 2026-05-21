@@ -47,6 +47,12 @@
 9. [Appendix A: Transformation Functions](#9-appendix-a-transformation-functions)
 10. [Appendix B: Output Formats](#10-appendix-b-output-formats)
 11. [Appendix C: Seed Data Examples](#11-appendix-c-seed-data-examples)
+12. [API Reference](#12-api-reference)
+    - [Base URL and Authentication](#121-base-url-and-authentication)
+    - [Endpoints](#122-endpoints)
+    - [Request and Response Schemas](#123-request-and-response-schemas)
+    - [Common Patterns](#124-common-patterns)
+    - [Rate Limiting](#125-rate-limiting)
 
 ---
 
@@ -432,10 +438,48 @@ Change your password:
 
 ### 7.3 API Keys
 
-Generate and manage API keys for programmatic access:
-- Click **Generate New** to create a new API key (prefixed with `dmp_`)
-- Click **Copy** to copy the key to your clipboard
-- The key is displayed masked by default; generated keys are shown in plain text
+API keys allow programmatic access to the DataMapper Pro API for automation, CI/CD integration, and custom scripting.
+
+#### Key Format
+
+Generated keys use the format: `dmp_` followed by 32 random lowercase alphanumeric characters.
+
+```
+dmp_a3k8fj2m9xq7r5b1v4n6w0c8p3y6e1t
+```
+
+#### Key Lifecycle
+
+1. **Generate** — Click **Generate New** in the API Access card. The key is generated in your browser using `crypto.randomBytes`.
+2. **Copy immediately** — Click **Copy** to save the key. Once you navigate away or regenerate, the key **cannot be retrieved** again — it is never stored on the server in plain text.
+3. **Use** — Include the key in the `Authorization` header of API requests (see [Section 12 — API Reference](#12-api-reference)).
+4. **Regenerate** — If a key is compromised or lost, generate a new one. This invalidates the previous key.
+
+#### Usage
+
+```bash
+# cURL
+curl -X GET http://localhost:3002/api/jobs \
+  -H "Authorization: Bearer dmp_a3k8fj2m9xq7r5b1v4n6w0c8p3y6e1t" \
+  -H "Content-Type: application/json"
+
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:3002/api/jobs" `
+  -Headers @{ Authorization = "Bearer dmp_a3k8fj2m9xq7r5b1v4n6w0c8p3y6e1t" }
+
+# Python (requests)
+import requests
+headers = {"Authorization": "Bearer dmp_a3k8fj2m9xq7r5b1v4n6w0c8p3y6e1t"}
+response = requests.get("http://localhost:3002/api/jobs", headers=headers)
+```
+
+#### Security Best Practices
+
+- Treat your API key like a password. **Never share it** in logs, screenshots, or version control.
+- If you suspect a key has been exposed, **generate a new one immediately**.
+- Store the key in a **secrets manager** (e.g., HashiCorp Vault, AWS Secrets Manager, .env files, GitHub Secrets) rather than hard-coding it in scripts.
+- Rotate keys periodically as part of your security policy.
+- The API key is currently **generated and stored client-side only**. Server-side key validation and role-based scoping are not yet implemented. The key serves as a bearer token for the current session.
 
 ### 7.4 Export Defaults
 
@@ -761,3 +805,341 @@ The Conditional Mapping job failed with 3 validation errors:
 ```
 
 This demonstrates how validation rules catch data quality issues during processing.
+
+---
+
+## 12. API Reference
+
+### 12.1 Base URL and Authentication
+
+**Base URL**: `http://localhost:3002/api`
+
+All endpoints (except `/api/auth/register` and `/api/auth/login`) require authentication via a **Bearer token** or **API key**:
+
+```
+Authorization: Bearer <jwt_token_or_api_key>
+```
+
+**Authentication Flow:**
+1. Call `POST /api/auth/login` with valid credentials to receive an `access_token`
+2. Include the token in the `Authorization` header of subsequent requests
+3. The token expires after 7 days (`JWT_EXPIRATION` configurable via environment variable)
+4. On a 401 response, re-authenticate and obtain a new token
+
+**Content-Type**: `application/json` for all request bodies (except file uploads which use `multipart/form-data`)
+
+### 12.2 Endpoints
+
+#### Auth (No JWT required for register/login)
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/auth/register` | `{ email, password, name }` | `{ access_token, user }` | Create account |
+| `POST` | `/api/auth/login` | `{ email, password }` | `{ access_token, user }` | Obtain JWT |
+| `GET` | `/api/auth/profile` | — | `User` | Current user (JWT required) |
+
+#### Files
+
+| Method | Path | Params / Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/files/upload` | `multipart/form-data` with `file`, optional `sheetName`, `delimiter`, `hasHeader` | `UploadedFileInfo` | CSV/XLSX only, max 500 MB |
+| `GET` | `/api/files` | `?page=1, limit=20` | `PaginatedResponse<UploadedFileInfo>` | List uploaded files |
+| `GET` | `/api/files/:id` | — | `UploadedFileInfo` | File metadata |
+| `GET` | `/api/files/:id/preview` | `?page=1, limit=20` | `{ columns, rows, totalRows }` | Paginated row preview |
+
+#### Jobs
+
+| Method | Path | Request Body / Params | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/jobs` | `CreateJobDto` | `ProcessingJob` | Start processing |
+| `GET` | `/api/jobs` | `?status=COMPLETED, page=1, limit=20` | `PaginatedResponse<ProcessingJob>` | Filterable list |
+| `GET` | `/api/jobs/:id` | — | `ProcessingJob` (with file + profile) | Job details |
+| `GET` | `/api/jobs/:id/progress` | — | `{ status, totalRows, processedRows, failedRows, progress }` | Progress % |
+| `POST` | `/api/jobs/:id/cancel` | — | `ProcessingJob` | Cancel pending/processing |
+| `GET` | `/api/jobs/:id/download` | — | Binary file stream | Download output |
+
+#### Mappings (Mapping Profiles)
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/mappings` | `CreateMappingDto` | `MappingProfile` | Create |
+| `GET` | `/api/mappings` | — | `MappingProfile[]` | List all for user |
+| `GET` | `/api/mappings/:id` | — | `MappingProfile` | Get by ID |
+| `PUT` | `/api/mappings/:id` | `Partial<CreateMappingDto>` | `MappingProfile` | Update |
+| `DELETE` | `/api/mappings/:id` | — | — | Delete |
+| `POST` | `/api/mappings/:id/clone` | — | `MappingProfile` | Clone with version++ |
+
+#### Profiles (Full Lifecycle)
+
+| Method | Path | Request Body / Params | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/profiles` | Profile object | `MappingProfile` | Save (create/upsert) |
+| `GET` | `/api/profiles` | `?search=&page=1, limit=20` | `PaginatedResponse<MappingProfile>` | Searchable list |
+| `GET` | `/api/profiles/:id` | — | `MappingProfile` | Get |
+| `PUT` | `/api/profiles/:id` | Profile object | `MappingProfile` | Update |
+| `DELETE` | `/api/profiles/:id` | — | — | Delete |
+| `POST` | `/api/profiles/:id/clone` | — | `MappingProfile` | Clone |
+| `GET` | `/api/profiles/:id/export` | — | `MappingProfile` | Export as JSON |
+| `POST` | `/api/profiles/import` | Profile JSON | `MappingProfile` | Import from JSON |
+
+#### Templates
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/templates` | `{ name, template, description? }` | `Template` | Create |
+| `GET` | `/api/templates` | — | `Template[]` | List |
+| `GET` | `/api/templates/:id` | — | `Template` | Get |
+| `PUT` | `/api/templates/:id` | `{ name?, template?, description? }` | `Template` | Update |
+| `DELETE` | `/api/templates/:id` | — | — | Delete |
+| `POST` | `/api/templates/:id/render` | `{ row, index?, ... }` | `{ output }` | Test-render with data |
+
+#### Transformations
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/transformations/apply` | `{ expression, row }` | `{ result }` | Single expression test |
+| `POST` | `/api/transformations/apply-row` | `{ mappings, row }` | `{ row }` | Apply multiple mappings |
+
+#### Validation
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/validation/row` | `{ row, rules }` | `{ valid, errors, fieldErrors }` | Validate one row |
+| `POST` | `/api/validation/rows` | `{ rows, rules }` | `{ results: [...], summary }` | Validate batch |
+
+#### Export
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/export` | `{ rows, format, options? }` | `{ content, format, rowCount }` | Render data to format |
+
+#### Notifications
+
+| Method | Path | Request Body | Response | Notes |
+|---|---|---|---|---|
+| `GET` | `/api/notifications/preferences` | — | `NotificationPreferences` | Get prefs |
+| `PUT` | `/api/notifications/preferences` | `Partial<NotificationPreferences>` | `NotificationPreferences` | Update prefs |
+
+### 12.3 Request and Response Schemas
+
+#### User
+
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "User Name",
+  "notificationPreferences": {
+    "jobCompleted": true,
+    "jobFailed": true,
+    "weeklySummary": false,
+    "weeklySummaryDay": "monday",
+    "weeklySummaryTime": "09:00"
+  }
+}
+```
+
+#### CreateJobDto
+
+```json
+{
+  "fileId": "uuid (required)",
+  "profileId": "uuid (optional)",
+  "outputFormat": "csv | json | xml | hl7 | pipe | tab | fixedwidth | txt",
+  "template": "string (optional, overrides profile template)",
+  "mappings": [
+    {
+      "destinationField": "output_name",
+      "sourceField": "source_col",
+      "transformation": "upper",
+      "expression": "concat({{a}}, ' ', {{b}})",
+      "condition": {
+        "field": "status",
+        "operator": "equals",
+        "value": "Active"
+      }
+    }
+  ],
+  "outputOptions": {
+    "delimiter": ",",
+    "includeHeader": true,
+    "pretty": true,
+    "rootElement": "root",
+    "itemElement": "item",
+    "fixedWidthConfig": [
+      { "field": "id", "width": 10, "align": "left", "padChar": " " }
+    ]
+  }
+}
+```
+
+#### FieldMapping
+
+```typescript
+{
+  destinationField: string;   // Required — output column name
+  sourceField?: string;      // Source column from uploaded file
+  constant?: string;         // Static value (supports {{token}} replacement)
+  expression?: string;       // Expression like `concat({{first}}, ' ', {{last}})`
+  transformation?: string;   // Function like `upper`, `formatDate(yyyyMMdd)`
+  condition?: {              // Conditional — skip mapping if condition fails
+    field: string;
+    operator: 'equals' | 'notEquals' | 'contains' | 'greaterThan'
+             | 'lessThan' | 'isEmpty' | 'isNotEmpty';
+    value?: any;
+  }
+}
+```
+
+#### PaginatedResponse
+
+```json
+{
+  "data": [ ... ],
+  "total": 42,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 3
+}
+```
+
+#### ProcessingJob
+
+```json
+{
+  "id": "uuid",
+  "status": "PENDING | PROCESSING | COMPLETED | FAILED",
+  "startedAt": "2025-05-15T08:00:00Z",
+  "completedAt": "2025-05-15T08:05:00Z",
+  "totalRows": 100,
+  "processedRows": 95,
+  "failedRows": 5,
+  "errorLog": [
+    { "row": 12, "errors": ["Email validation failed"], "fieldErrors": { "email": "Invalid format" } }
+  ],
+  "outputFormat": "csv",
+  "outputFile": "output-2025-05-15.csv",
+  "createdAt": "2025-05-15T07:59:00Z",
+  "uploadedFile": { "id": "uuid", "originalName": "data.csv" },
+  "profile": { "id": "uuid", "name": "My Profile" }
+}
+```
+
+#### ValidationRule
+
+```json
+{
+  "field": "email",
+  "type": "required | maxLength | minLength | regex | date | email | number | lookup | enum",
+  "value": "50",
+  "message": "Custom error message (optional)"
+}
+```
+
+#### NotificationPreferences
+
+```json
+{
+  "jobCompleted": true,
+  "jobFailed": true,
+  "weeklySummary": false,
+  "weeklySummaryDay": "monday",
+  "weeklySummaryTime": "09:00"
+}
+```
+
+#### Error Response
+
+```json
+{
+  "message": "Job not found",
+  "error": "Not Found",
+  "statusCode": 404
+}
+```
+
+Validation errors include a `messages` array:
+
+```json
+{
+  "message": [
+    "fileId must be a UUID",
+    "outputFormat must be a string"
+  ],
+  "error": "Bad Request",
+  "statusCode": 400
+}
+```
+
+### 12.4 Common Patterns
+
+#### Pagination
+
+All list endpoints support the same pagination pattern:
+
+```
+GET /api/jobs?page=2&limit=20
+```
+
+Query parameters:
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `page` | integer | 1 | Page number (1-indexed) |
+| `limit` | integer | 20 | Items per page (max 100) |
+
+Response includes pagination metadata alongside the `data` array.
+
+#### Status Filtering
+
+The `GET /api/jobs` endpoint supports optional `?status=` filtering:
+
+```
+GET /api/jobs?status=COMPLETED
+GET /api/jobs?status=FAILED
+GET /api/jobs?status=PROCESSING
+GET /api/jobs?status=PENDING
+```
+
+#### Profile Search
+
+The `GET /api/profiles` endpoint supports full-text search:
+
+```
+GET /api/profiles?search=customer
+GET /api/profiles?search=HL7
+```
+
+#### Date Format
+
+All date-time fields use **ISO 8601** format: `2025-05-15T08:00:00.000Z`
+
+#### File Upload
+
+File uploads use `multipart/form-data` with the following fields:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `file` | File | Yes | CSV or XLSX file (max 500 MB) |
+| `sheetName` | string | No | Specific Excel sheet (XLSX only) |
+| `delimiter` | string | No | Custom delimiter for CSV (default `,`) |
+| `hasHeader` | boolean | No | Whether first row is a header (default `true`) |
+
+### 12.5 Rate Limiting
+
+The API is protected by a global rate limiter:
+
+| Limit | Window | Scope |
+|---|---|---|
+| 100 requests | 60 seconds | Per IP address |
+
+When the limit is exceeded, the API returns:
+
+```json
+{
+  "statusCode": 429,
+  "message": "ThrottlerException: Too Many Requests",
+  "error": "Too Many Requests"
+}
+```
+
+The response includes a `Retry-After` header indicating the number of seconds to wait before retrying. Rate limits are configured via the `@nestjs/throttler` package and can be adjusted in `backend/src/app.module.ts`.
