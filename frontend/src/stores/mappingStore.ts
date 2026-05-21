@@ -8,8 +8,11 @@ interface MappingState {
   template: string;
   outputPreview: string;
   profileName: string;
+  profileDescription: string;
   outputFormat: OutputFormat;
   outputExtension: string;
+  savedProfileId: string | null;
+  savedProfileVersion: number;
   setUploadedFile: (file: UploadedFileInfo) => void;
   setSourceColumns: (columns: ColumnInfo[]) => void;
   addMapping: (mapping: FieldMapping) => void;
@@ -20,8 +23,11 @@ interface MappingState {
   setTemplate: (template: string) => void;
   setOutputPreview: (preview: string) => void;
   setProfileName: (name: string) => void;
+  setProfileDescription: (desc: string) => void;
   setOutputFormat: (format: OutputFormat) => void;
   setOutputExtension: (ext: string) => void;
+  setSavedProfileId: (id: string | null) => void;
+  setSavedProfileVersion: (v: number) => void;
   reset: () => void;
 }
 
@@ -32,8 +38,11 @@ const initialState = {
   template: '',
   outputPreview: '',
   profileName: '',
+  profileDescription: '',
   outputFormat: 'txt' as OutputFormat,
   outputExtension: '',
+  savedProfileId: null,
+  savedProfileVersion: 0,
 };
 
 export const useMappingStore = create<MappingState>((set) => ({
@@ -69,7 +78,10 @@ export const useMappingStore = create<MappingState>((set) => ({
   setTemplate: (template) => set({ template }),
   setOutputPreview: (preview) => set({ outputPreview: preview }),
   setProfileName: (name) => set({ profileName: name }),
+  setProfileDescription: (desc) => set({ profileDescription: desc }),
   setOutputFormat: (format) => set({ outputFormat: format }),
   setOutputExtension: (ext) => set({ outputExtension: ext }),
+  setSavedProfileId: (id) => set({ savedProfileId: id }),
+  setSavedProfileVersion: (v) => set({ savedProfileVersion: v }),
   reset: () => set(initialState),
 }));

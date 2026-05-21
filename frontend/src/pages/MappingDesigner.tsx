@@ -50,6 +50,9 @@ export function MappingDesigner() {
         store.setMappings(profile.configurationJson.mappings || []);
         store.setTemplate(profile.template || '');
         store.setProfileName(profile.name);
+        store.setProfileDescription(profile.description || '');
+        store.setSavedProfileId(profile.id);
+        store.setSavedProfileVersion(profile.version);
         if (profile.configurationJson.outputFormat) {
           store.setOutputFormat(profile.configurationJson.outputFormat);
         }
@@ -85,15 +88,22 @@ export function MappingDesigner() {
       if (store.outputExtension.trim()) {
         opts.fileExtension = store.outputExtension.trim();
       }
-      await profilesService.save({
+      const payload: any = {
         name: store.profileName,
+        description: store.profileDescription || undefined,
         configurationJson: {
           mappings: store.mappings,
           outputFormat: store.outputFormat,
           outputOptions: Object.keys(opts).length ? opts : undefined,
         },
         template: store.template,
-      });
+      };
+      if (store.savedProfileId) {
+        payload.id = store.savedProfileId;
+      }
+      const saved = await profilesService.save(payload);
+      store.setSavedProfileId(saved.id);
+      store.setSavedProfileVersion(saved.version);
       toast.success('Profile saved successfully');
     } catch {
       toast.error('Failed to save profile');
@@ -318,13 +328,28 @@ export function MappingDesigner() {
 
           <div className="card">
             <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-slate-300">Profile Name</h3>
-            <input
-              type="text"
-              value={store.profileName}
-              onChange={(e) => store.setProfileName(e.target.value)}
-              className="input-field"
-              placeholder="My Mapping Profile"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={store.profileName}
+                onChange={(e) => store.setProfileName(e.target.value)}
+                className="input-field flex-1"
+                placeholder="My Mapping Profile"
+              />
+              {store.savedProfileVersion > 0 && (
+                <span className="badge badge-neutral shrink-0">v{store.savedProfileVersion}</span>
+              )}
+            </div>
+            <div className="mt-3">
+              <label className="text-xs text-gray-500 dark:text-slate-400">Description (optional)</label>
+              <textarea
+                value={store.profileDescription}
+                onChange={(e) => store.setProfileDescription(e.target.value)}
+                className="input-field mt-1 resize-none"
+                rows={2}
+                placeholder="Brief description of this profile..."
+              />
+            </div>
           </div>
 
           {store.sourceColumns.length > 0 && (
