@@ -27,4 +27,6 @@ export const jobsService = {
 
   download: (id: string) =>
     api.get(`/jobs/${id}/download`, { responseType: 'blob' }).then(r => r.data),
+
+  delete: (id: string) => api.delete(`/jobs/${id}`).then(r => r.data),
 };

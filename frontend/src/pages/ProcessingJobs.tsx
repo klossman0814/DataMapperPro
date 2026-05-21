@@ -12,7 +12,9 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { jobsService } from '../services/jobs.service';
 import { useJobStore } from '../stores/jobStore';
 import { JobProgress } from '../components/JobProgress';
@@ -32,6 +34,8 @@ export function ProcessingJobs() {
   const { jobs, setJobs, updateJob } = useJobStore();
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,6 +126,19 @@ export function ProcessingJobs() {
       toast.success('Job cancelled');
     } catch {
       toast.error('Failed to cancel job');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      await jobsService.delete(id);
+      setJobs(jobs.filter((j) => j.id !== id));
+      toast.success('Job deleted');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete job');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -279,6 +296,16 @@ export function ProcessingJobs() {
                         <XCircle className="h-3 w-3" />
                       </button>
                     )}
+                    {(job.status === 'COMPLETED' || job.status === 'FAILED') && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: job.id, name: job.uploadedFile?.originalName || job.id.slice(0, 12) }); }}
+                        disabled={deleting === job.id}
+                        className="btn-danger text-xs px-2 py-1"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </button>
                 {isExpanded && (
@@ -291,6 +318,18 @@ export function ProcessingJobs() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Job"
+        message={`Delete job "${deleteTarget?.name}"? This action cannot be undone.`}
+        loading={deleting === deleteTarget?.id}
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

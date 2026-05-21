@@ -83,4 +83,12 @@
   .badge-neutral {
     @apply bg-gray-100 text-gray-600 dark:bg-slate-500/10 dark:text-slate-400;
   }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4;
+  }
+
+  .modal-content {
+    @apply w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-slate-800;
+  }
 }

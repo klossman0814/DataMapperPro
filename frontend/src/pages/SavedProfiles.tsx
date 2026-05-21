@@ -10,6 +10,7 @@ import {
   Copy,
   Search,
 } from 'lucide-react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { profilesService } from '../services/profiles.service';
 import type { MappingProfile } from '../types';
 import toast from 'react-hot-toast';
@@ -19,6 +20,7 @@ export function SavedProfiles() {
   const [profiles, setProfiles] = useState<MappingProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [cloningId, setCloningId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -29,7 +31,6 @@ export function SavedProfiles() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this profile?')) return;
     try {
       await profilesService.delete(id);
       setProfiles((prev) => prev.filter((p) => p.id !== id));
@@ -195,7 +196,7 @@ export function SavedProfiles() {
                   <Download className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(profile.id)}
+                  onClick={() => setDeleteTarget({ id: profile.id, name: profile.name })}
                   className="btn-danger text-xs px-2"
                   title="Delete"
                 >
@@ -206,6 +207,17 @@ export function SavedProfiles() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Profile"
+        message={`Delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List } from 'lucide-react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { templatesService, Template } from '../services/templates.service';
 import { profilesService } from '../services/profiles.service';
 import toast from 'react-hot-toast';
@@ -26,6 +27,7 @@ export function TemplateEditorPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -83,7 +85,6 @@ export function TemplateEditorPage() {
 
   const handleDelete = async () => {
     if (!selectedTemplateId) return;
-    if (!window.confirm(`Delete template "${templateName}"? This action cannot be undone.`)) return;
     setDeleting(true);
     try {
       await templatesService.delete(selectedTemplateId);
@@ -162,7 +163,7 @@ export function TemplateEditorPage() {
             {saving ? 'Saving...' : 'Save'}
           </button>
           {selectedTemplateId && (
-            <button onClick={handleDelete} disabled={deleting} className="btn-danger">
+            <button onClick={() => setShowDeleteDialog(true)} disabled={deleting} className="btn-danger">
               <Trash2 className="h-4 w-4" />
               {deleting ? 'Deleting...' : 'Delete'}
             </button>
@@ -290,6 +291,18 @@ export function TemplateEditorPage() {
           ))}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="Delete Template"
+        message={`Delete template "${templateName}"? This action cannot be undone.`}
+        loading={deleting}
+        onConfirm={() => {
+          handleDelete();
+          setShowDeleteDialog(false);
+        }}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
     </div>
   );
 }

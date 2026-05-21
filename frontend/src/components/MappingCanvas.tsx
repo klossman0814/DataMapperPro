@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Plus, Trash2, GripVertical, Wand2, Columns, XCircle } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { ColumnInfo, FieldMapping } from '../types';
 
 interface MappingCanvasProps {
@@ -39,7 +40,7 @@ const transformOptions = [
 
 export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: MappingCanvasProps) {
   const [destinationField, setDestinationField] = useState('');
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
@@ -148,31 +149,13 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
                 Auto-Map
               </button>
               {mappings.length > 0 && (
-                !confirmClear ? (
-                  <button
-                    onClick={() => setConfirmClear(true)}
-                    className="btn-danger text-xs"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />
-                    Clear All
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-1 text-xs">
-                    <span className="text-red-600 dark:text-red-400">Remove all?</span>
-                    <button
-                      onClick={() => { onMappingsChange([]); setConfirmClear(false); }}
-                      className="rounded bg-red-600 px-2 py-1 text-white hover:bg-red-700"
-                    >
-                      Yes
-                    </button>
-                    <button
-                      onClick={() => setConfirmClear(false)}
-                      className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
-                    >
-                      No
-                    </button>
-                  </div>
-                )
+                <button
+                  onClick={() => setShowClearDialog(true)}
+                  className="btn-danger text-xs"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Clear All
+                </button>
               )}
             </div>
           </div>
@@ -296,6 +279,19 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showClearDialog}
+        title="Clear All Mappings"
+        message="Are you sure you want to remove all field mappings? This action cannot be undone."
+        confirmLabel="Clear All"
+        variant="warning"
+        onConfirm={() => {
+          onMappingsChange([]);
+          setShowClearDialog(false);
+        }}
+        onCancel={() => setShowClearDialog(false)}
+      />
     </div>
   );
 }

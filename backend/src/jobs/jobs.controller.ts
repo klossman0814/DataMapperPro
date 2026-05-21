@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Query,
   Body,
@@ -51,6 +52,11 @@ export class JobsController {
   @Post(':id/cancel')
   cancel(@Param('id') id: string) {
     return this.jobsService.cancel(id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.jobsService.delete(id);
   }
 
   @Get(':id/download')

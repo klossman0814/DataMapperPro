@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileProcessorService } from './processors/file-processor.service';
@@ -118,6 +118,14 @@ export class JobsService {
       throw new NotFoundException('No output file available');
     }
     return job.outputFile;
+  }
+
+  async delete(id: string) {
+    const job = await this.findOne(id);
+    if (job.status === 'PROCESSING' || job.status === 'PENDING') {
+      throw new BadRequestException('Cannot delete a job that is still processing');
+    }
+    return this.prisma.processingJob.delete({ where: { id } });
   }
 
   async getErrors(id: string) {
