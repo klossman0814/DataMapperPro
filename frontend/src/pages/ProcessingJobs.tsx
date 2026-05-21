@@ -202,12 +202,12 @@ export function ProcessingJobs() {
             const StatusIcon = statusConfig[job.status].icon;
             const isExpanded = expandedId === job.id;
             return (
-              <div key={job.id} className="card p-0">
+              <div key={job.id} className="card p-0 overflow-hidden">
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : job.id)}
-                  className="w-full lg:grid lg:grid-cols-7 gap-4 items-center px-4 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/30"
+                  className="w-full lg:grid lg:grid-cols-7 gap-4 items-center px-4 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/30 min-w-0"
                 >
-                  <div className="flex items-center gap-3 col-span-2">
+                    <div className="flex items-center gap-3 col-span-2 min-w-0">
                     <div className={clsx(
                       'rounded-lg p-2',
                       job.status === 'COMPLETED' ? 'bg-emerald-100 dark:bg-emerald-500/10' :
