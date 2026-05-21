@@ -8,7 +8,7 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
-import { jobsService } from '../services/jobs.service';
+import { jobsService, getDownloadFilename } from '../services/jobs.service';
 import type { ProcessingJob } from '../types';
 import toast from 'react-hot-toast';
 
@@ -91,7 +91,7 @@ export function JobProgress({ job }: JobProgressProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `output-${localJob.id.slice(0, 8)}.${localJob.outputFormat}`;
+      a.download = getDownloadFilename(localJob);
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Download started');

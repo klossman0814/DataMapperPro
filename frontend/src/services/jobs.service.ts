@@ -1,6 +1,23 @@
 import api from './api';
 import type { ProcessingJob } from '../types';
 
+function getOutputExtension(job: ProcessingJob): string {
+  if (job.outputFile) {
+    const dot = job.outputFile.lastIndexOf('.');
+    if (dot !== -1) return job.outputFile.slice(dot + 1);
+  }
+  if (job.config?.fileExtension) return job.config.fileExtension;
+  const map: Record<string, string> = {
+    csv: 'csv', json: 'json', xml: 'xml', txt: 'txt', hl7: 'hl7',
+    pipe: 'txt', tab: 'tsv', fixedwidth: 'txt', freeform: 'txt',
+  };
+  return map[job.outputFormat] || 'txt';
+}
+
+export function getDownloadFilename(job: ProcessingJob): string {
+  return `output-${job.id.slice(0, 8)}.${getOutputExtension(job)}`;
+}
+
 export const jobsService = {
   create: (data: {
     fileId: string;

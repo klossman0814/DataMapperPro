@@ -92,6 +92,8 @@ export interface ProcessingJob {
   failedRows: number;
   errorLog: any;
   outputFormat: string;
+  outputFile?: string;
+  config?: Record<string, any>;
   createdAt: string;
   completedAt?: string;
   uploadedFile?: FilePreview;

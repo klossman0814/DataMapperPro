@@ -382,6 +382,20 @@ export function TemplateEditor({
                     key={col.name}
                     draggable
                     onDragStart={(e) => handleDragStart(e, col.name)}
+                    onDoubleClick={() => {
+                      const editor = editorRef.current;
+                      const token = `{{${col.name}}}`;
+                      if (editor) {
+                        const pos = editor.getPosition();
+                        editor.executeEdits('insert-field', [{
+                          range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                          text: token,
+                        }]);
+                        editor.focus();
+                      } else {
+                        onChange(value + token);
+                      }
+                    }}
                     className="inline-flex cursor-grab items-center gap-1 rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 transition-colors hover:bg-primary-100 active:cursor-grabbing dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20"
                     title={col.sampleValue !== undefined ? `Sample: ${col.sampleValue}` : col.type}
                   >

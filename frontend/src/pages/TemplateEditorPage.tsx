@@ -429,6 +429,20 @@ export function TemplateEditorPage() {
                         e.dataTransfer.setData('text/plain', `{{${col.name}}}`);
                         e.dataTransfer.effectAllowed = 'copy';
                       }}
+                      onDoubleClick={() => {
+                        const editor = editorRef.current;
+                        const token = `{{${col.name}}}`;
+                        if (editor) {
+                          const pos = editor.getPosition();
+                          editor.executeEdits('insert-field', [{
+                            range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                            text: token,
+                          }]);
+                          editor.focus();
+                        } else {
+                          setTemplateContent((prev) => prev + token);
+                        }
+                      }}
                       className="group cursor-grab rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-primary-50 active:cursor-grabbing dark:hover:bg-primary-500/10"
                     >
                       <div className="flex items-center gap-1">

@@ -15,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { jobsService } from '../services/jobs.service';
+import { jobsService, getDownloadFilename } from '../services/jobs.service';
 import { useJobStore } from '../stores/jobStore';
 import { JobProgress } from '../components/JobProgress';
 import type { ProcessingJob } from '../types';
@@ -108,7 +108,7 @@ export function ProcessingJobs() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `output-${job.id.slice(0, 8)}.${job.outputFormat}`;
+      a.download = getDownloadFilename(job);
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Download started');
