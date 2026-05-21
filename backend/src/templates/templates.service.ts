@@ -13,7 +13,8 @@ export class TemplatesService {
 
   async renderInline(dto: RenderInlineDto) {
     const row = dto.context?.row || {};
-    const output = this.templateEngine.renderPreview(dto.template, row);
+    const index = dto.context?.index ?? 0;
+    const output = this.templateEngine.renderPreview(dto.template, row, index);
     return { output };
   }
 
@@ -98,8 +99,9 @@ export class TemplatesService {
       throw new NotFoundException('Template not found');
     }
     const row = context.row || {};
+    const index = context.index ?? 0;
     const mappings = (profile.configurationJson as any)?.mappings || [];
-    const output = this.templateEngine.processTemplate(profile.template, row, mappings);
+    const output = this.templateEngine.processTemplate(profile.template, row, mappings, index);
     return { output };
   }
 }

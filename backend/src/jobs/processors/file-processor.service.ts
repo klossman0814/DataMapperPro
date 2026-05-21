@@ -70,17 +70,19 @@ export class FileProcessorService {
       const processedRows: Record<string, any>[] = [];
       const errors: { row: number; message: string }[] = [];
 
+      const startIndex = config.startIndex ?? 1;
       for (let i = 0; i < rows.length; i++) {
         if (await this.isCancelled(jobId)) {
           errors.push({ row: i + 1, message: 'Job cancelled by user' });
           break;
         }
         try {
+          const rowIndex = startIndex + i;
           const mapped = this.mappingEngine.executeMapping(rows[i], mappings);
           const transformed = this.applyTransformations(mapped, config.transformations);
           const output = template
-            ? { output: this.templateEngine.processTemplate(template, transformed, mappings) as string }
-            : transformed;
+            ? { output: this.templateEngine.processTemplate(template, transformed, mappings, rowIndex) as string }
+            : { ...transformed, index: rowIndex };
 
           const validation = this.validationEngine.validateRow(output, config.validationRules || []);
           if (!validation.valid) {

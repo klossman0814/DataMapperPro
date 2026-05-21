@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { BookOpen, ListTree } from 'lucide-react';
+import { BookOpen, ListTree, Search, X } from 'lucide-react';
 import clsx from 'clsx';
 
 function extractText(children: ReactNode): string {
@@ -47,7 +47,15 @@ export function UserGuide() {
   const [error, setError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string>('');
 
+  const [searchQuery, setSearchQuery] = useState('');
   const toc = useMemo(() => content ? parseToc(content) : [], [content]);
+
+  const filteredContent = useMemo(() => {
+    if (!content || !searchQuery.trim()) return content;
+    const q = searchQuery.toLowerCase();
+    const sections = content.split(/(?=^#{1,4}\s+)/m);
+    return sections.filter((s) => s.toLowerCase().includes(q)).join('');
+  }, [content, searchQuery]);
 
   useEffect(() => {
     fetch('/USER_GUIDE.md')
@@ -110,8 +118,32 @@ export function UserGuide() {
         </div>
       ) : (
         <div className="flex gap-8">
-          <div className="card markdown-content scroll-smooth flex-1 overflow-hidden p-6">
-            <ReactMarkdown
+          <div className="markdown-content scroll-smooth flex-1 overflow-hidden">
+            <div className="relative mb-4">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-field w-full pl-9 pr-8"
+                placeholder="Search the user guide..."
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searchQuery && filteredContent === '' ? (
+              <div className="card p-6 text-center text-gray-500">
+                <p>No results found for "<strong>{searchQuery}</strong>".</p>
+              </div>
+            ) : (
+              <div className="card markdown-content p-6">
+                <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => <h1 id={slugify(extractText(children))} className="mb-4 mt-8 scroll-mt-20 text-2xl font-bold text-gray-900 first:mt-0 dark:text-white">{children}</h1>,
@@ -144,9 +176,11 @@ export function UserGuide() {
                 em: ({ children }) => <em className="italic text-gray-800 dark:text-slate-200">{children}</em>,
               }}
             >
-              {content}
+              {filteredContent}
             </ReactMarkdown>
           </div>
+          )}
+        </div>
 
           {toc.length > 0 && (
             <nav className="hidden w-64 shrink-0 lg:block">

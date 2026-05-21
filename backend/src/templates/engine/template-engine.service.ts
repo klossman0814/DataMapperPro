@@ -16,7 +16,7 @@ export class TemplateEngineService {
     private transformationEngine: TransformationEngineService,
   ) {}
 
-  processTemplate(template: string, row: Record<string, any>, mappings: Mapping[]): string {
+  processTemplate(template: string, row: Record<string, any>, mappings: Mapping[], index = 0): string {
     const mappingResult: Record<string, any> = {};
     for (const m of mappings) {
       if (m.sourceField) {
@@ -28,15 +28,15 @@ export class TemplateEngineService {
       }
     }
 
-    return this.processRow(template, row, mappingResult);
+    return this.processRow(template, row, mappingResult, index);
   }
 
-  renderPreview(template: string, row: Record<string, any>): string {
-    return this.processRow(template, row, {});
+  renderPreview(template: string, row: Record<string, any>, index = 0): string {
+    return this.processRow(template, row, {}, index);
   }
 
-  private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>): string {
-    const merged = { ...row, ...mappings };
+  private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>, index = 0): string {
+    const merged = { ...row, ...mappings, index };
     const lines = template.split('\n');
     const resultLines: string[] = [];
     const skipStack: number[] = [];

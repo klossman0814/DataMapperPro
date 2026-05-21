@@ -4,7 +4,6 @@ import {
   FileSpreadsheet, CheckCircle2, ArrowRight, Trash2, Settings2, Layers,
   HardDrive, Calendar, Rows3, Columns3,
 } from 'lucide-react';
-import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FileDropzone } from '../components/FileDropzone';
 import { DataPreviewGrid } from '../components/DataPreviewGrid';
 import { filesService } from '../services/files.service';
@@ -19,7 +18,6 @@ export function Upload() {
   const [prevFiles, setPrevFiles] = useState<UploadedFileInfo[]>([]);
   const [prevLoading, setPrevLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [sheetName, setSheetName] = useState('');
   const [delimiter, setDelimiter] = useState(',');
   const [hasHeader, setHasHeader] = useState(true);
@@ -48,11 +46,15 @@ export function Upload() {
   const handleDelete = async (fileId: string) => {
     setDeleting(fileId);
     try {
-      await filesService.delete(fileId);
+      const result = await filesService.delete(fileId);
+      console.log('Delete result:', result);
       setPrevFiles((prev) => prev.filter((f) => f.id !== fileId));
+      await loadPrevFiles();
       toast.success('File deleted');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to delete file');
+      console.error('Delete error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Failed to delete file';
+      toast.error(msg);
     } finally {
       setDeleting(null);
     }
@@ -245,7 +247,11 @@ export function Upload() {
                         Map
                       </button>
                       <button
-                        onClick={() => setDeleteTarget({ id: f.id, name: f.originalName })}
+                        onClick={() => {
+                          if (window.confirm(`Delete "${f.originalName}"? This action cannot be undone.`)) {
+                            handleDelete(f.id);
+                          }
+                        }}
                         disabled={deleting === f.id}
                         className="btn-danger text-xs"
                       >
@@ -261,17 +267,6 @@ export function Upload() {
         </>
       )}
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="Delete File"
-        message={`Delete "${deleteTarget?.name}"? This action cannot be undone.`}
-        loading={deleting === deleteTarget?.id}
-        onConfirm={() => {
-          if (deleteTarget) handleDelete(deleteTarget.id);
-          setDeleteTarget(null);
-        }}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </div>
   );
 }

@@ -21,22 +21,25 @@ const libraryTemplates = [
 export function TemplateEditorPage() {
   const { profileId } = useParams();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(profileId || '');
-  const [templateName, setTemplateName] = useState('');
-  const [templateContent, setTemplateContent] = useState(defaultTemplate);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(profileId || localStorage.getItem('templateEditorTemplateId') || '');
+  const [templateName, setTemplateName] = useState(localStorage.getItem('templateEditorName') || '');
+  const [templateContent, setTemplateContent] = useState(localStorage.getItem('templateEditorContent') || defaultTemplate);
   const [previewOutput, setPreviewOutput] = useState('');
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(() => localStorage.getItem('templateEditorShowPreview') !== 'false');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showLibraryConfirm, setShowLibraryConfirm] = useState(false);
+  const [pendingLibraryContent, setPendingLibraryContent] = useState('');
+  const [pendingLibraryName, setPendingLibraryName] = useState('');
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileInfo[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState('');
+  const [selectedFileId, setSelectedFileId] = useState(localStorage.getItem('templateEditorFileId') || '');
   const [previewColumns, setPreviewColumns] = useState<ColumnInfo[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, any>[]>([]);
-  const [showSourcePanel, setShowSourcePanel] = useState(false);
-  const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
+  const [showSourcePanel, setShowSourcePanel] = useState(() => localStorage.getItem('templateEditorShowSourcePanel') === 'true');
+  const [livePreviewEnabled, setLivePreviewEnabled] = useState(() => localStorage.getItem('templateEditorLivePreview') === 'true');
   const [liveOutput, setLiveOutput] = useState('');
   const [filesLoading, setFilesLoading] = useState(false);
   const editorRef = useRef<any>(null);
@@ -126,6 +129,37 @@ export function TemplateEditorPage() {
       .catch(() => toast.error('Failed to load file data'))
       .finally(() => setFilesLoading(false));
   }, [selectedFileId]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorName', templateName);
+  }, [templateName]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorTemplateId', selectedTemplateId);
+  }, [selectedTemplateId]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorFileId', selectedFileId);
+  }, [selectedFileId]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorShowPreview', String(showPreview));
+  }, [showPreview]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorShowSourcePanel', String(showSourcePanel));
+  }, [showSourcePanel]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorLivePreview', String(livePreviewEnabled));
+  }, [livePreviewEnabled]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('templateEditorContent', templateContent);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [templateContent]);
 
   const doLiveRender = useCallback(async (template: string) => {
     if (!template.trim() || previewRows.length === 0) return;
@@ -654,7 +688,11 @@ export function TemplateEditorPage() {
             {libraryTemplates.map((tpl) => (
               <button
                 key={tpl.name}
-                onClick={() => loadFromLibrary(tpl.content)}
+                onClick={() => {
+                  setPendingLibraryContent(tpl.content);
+                  setPendingLibraryName(tpl.name);
+                  setShowLibraryConfirm(true);
+                }}
                 className="rounded-lg border border-gray-200 bg-white p-3 text-left transition-colors hover:border-primary-300 hover:bg-primary-50 dark:border-slate-600 dark:bg-slate-800/50 dark:hover:border-primary-500 dark:hover:bg-primary-500/10"
               >
                 <p className="text-sm font-medium text-gray-900 dark:text-slate-200">{tpl.name}</p>
@@ -695,6 +733,18 @@ export function TemplateEditorPage() {
           setShowDeleteDialog(false);
         }}
         onCancel={() => setShowDeleteDialog(false)}
+      />
+      <ConfirmDialog
+        open={showLibraryConfirm}
+        title="Load Template Library Preset"
+        message={`Load "${pendingLibraryName}"? This will replace your current template content.`}
+        confirmLabel="Load"
+        variant="warning"
+        onConfirm={() => {
+          loadFromLibrary(pendingLibraryContent);
+          setShowLibraryConfirm(false);
+        }}
+        onCancel={() => setShowLibraryConfirm(false)}
       />
     </div>
   );
