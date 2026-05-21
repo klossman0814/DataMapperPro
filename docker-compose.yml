@@ -42,7 +42,7 @@ services:
       PORT: 3001
       UPLOAD_DIR: /app/uploads
       OUTPUT_DIR: /app/output
-      CORS_ORIGIN: http://localhost:5175
+      CORS_ORIGIN: http://localhost:5175,http://192.168.2.22:5175
     depends_on:
       postgres:
         condition: service_healthy

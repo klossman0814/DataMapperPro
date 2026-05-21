@@ -9,8 +9,21 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5175')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5175',
+    origin: (origin, callback) => {
+      if (!origin || corsOrigins.includes('*')) {
+        callback(null, true);
+      } else if (corsOrigins.some(o => origin.startsWith(o) || origin === o)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   });
 
