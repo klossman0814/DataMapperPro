@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import { Code, Eye, FileCode, Braces, Variable, List, FileInput, Wand2, X, Sparkles } from 'lucide-react';
+import { Code, Eye, FileCode, Braces, Variable, List, FileInput, X, Sparkles, GripVertical, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight } from 'lucide-react';
 import type { ColumnInfo } from '../types';
 
 interface SavedTemplate {
@@ -9,12 +9,22 @@ interface SavedTemplate {
   content: string;
 }
 
+interface DraggableColumn {
+  name: string;
+  type: string;
+  sampleValue?: any;
+}
+
 interface TemplateEditorProps {
   value: string;
   onChange: (value: string) => void;
   preview?: string;
   sourceColumns?: ColumnInfo[];
   templates?: SavedTemplate[];
+  draggableColumns?: DraggableColumn[];
+  liveOutput?: string;
+  livePreviewEnabled?: boolean;
+  onToggleLivePreview?: () => void;
 }
 
 const syntaxHelpers = [
@@ -23,13 +33,22 @@ const syntaxHelpers = [
   { label: '{{#each}}', insert: '{{#each }}\n\n{{/each}}', description: 'Loop' },
 ];
 
-export function TemplateEditor({ value, onChange, preview, sourceColumns, templates }: TemplateEditorProps) {
+export function TemplateEditor({
+  value, onChange, preview, sourceColumns, templates,
+  draggableColumns, liveOutput, livePreviewEnabled, onToggleLivePreview,
+}: TemplateEditorProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
   const [sampleText, setSampleText] = useState('');
   const [fieldName, setFieldName] = useState('');
   const sampleAreaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleEditorMount = useCallback((editor: any) => {
+    editorRef.current = editor;
+  }, []);
 
   const handleEditorChange = useCallback(
     (val: string | undefined) => {
@@ -112,6 +131,92 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
     setSampleText(tokenized.join(''));
   };
 
+  const handleDragStart = (e: React.DragEvent, columnName: string) => {
+    e.dataTransfer.setData('text/plain', `{{${columnName}}}`);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleContainerDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleContainerDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const token = e.dataTransfer.getData('text/plain');
+    if (!token) return;
+    const editor = editorRef.current;
+    if (!editor) {
+      insertAtCursor(token);
+      return;
+    }
+    const position = editor.getPosition();
+    editor.executeEdits('drop-field', [
+      { range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column }, text: token },
+    ]);
+    editor.focus();
+  };
+
+  const [showTransforms, setShowTransforms] = useState(false);
+
+  const transformGroups = [
+    { category: 'Text', items: [
+      { name: 'trim', syntax: 'trim(field)', description: 'Remove whitespace' },
+      { name: 'upper', syntax: 'upper(field)', description: 'Convert to uppercase' },
+      { name: 'lower', syntax: 'lower(field)', description: 'Convert to lowercase' },
+      { name: 'substring', syntax: 'substring(field, start, end?)', description: 'Extract substring' },
+      { name: 'replace', syntax: 'replace(field, search, replace)', description: 'Replace text' },
+      { name: 'padStart', syntax: 'padStart(field, len, char?)', description: 'Pad start' },
+      { name: 'padEnd', syntax: 'padEnd(field, len, char?)', description: 'Pad end' },
+      { name: 'concat', syntax: 'concat(field, ...)', description: 'Concatenate values' },
+    ]},
+    { category: 'Date', items: [
+      { name: 'formatDate', syntax: 'formatDate(field, pattern)', description: 'Format date (yyyyMMdd)' },
+      { name: 'parseDate', syntax: 'parseDate(field)', description: 'Parse date string' },
+    ]},
+    { category: 'Number', items: [
+      { name: 'round', syntax: 'round(field, decimals?)', description: 'Round number' },
+      { name: 'formatNumber', syntax: 'formatNumber(field, format?)', description: 'Format number (0,0.00)' },
+      { name: 'parseInt', syntax: 'parseInt(field)', description: 'Parse as integer' },
+      { name: 'parseFloat', syntax: 'parseFloat(field)', description: 'Parse as float' },
+    ]},
+    { category: 'Logic', items: [
+      { name: 'coalesce', syntax: 'coalesce(field, ...)', description: 'First non-null value' },
+      { name: 'if', syntax: 'if(condition, val, else)', description: 'Conditional' },
+      { name: 'case', syntax: 'case(val, match, out, ...)', description: 'Match cases' },
+      { name: 'switch', syntax: 'switch(val, obj, default?)', description: 'Switch map' },
+    ]},
+  ];
+
+  const applyTransform = (funcName: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = editor.getSelection();
+    const model = editor.getModel();
+    if (!model) return;
+    let selectedText = model.getValueInRange(selection);
+    if (selectedText) {
+      selectedText = selectedText.replace(/^\{\{/, '').replace(/\}\}$/, '');
+      const replacement = `{{${funcName}(${selectedText})}}`;
+      editor.executeEdits('transform', [{ range: selection, text: replacement }]);
+      editor.focus();
+    } else {
+      const pos = editor.getPosition();
+      const text = `{{${funcName}()}}`;
+      editor.executeEdits('transform', [{
+        range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+        text,
+      }]);
+      editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + funcName.length + 3 });
+      editor.focus();
+    }
+  };
+
+  const hasLivePreview = livePreviewEnabled !== undefined && onToggleLivePreview !== undefined;
+  const effectivePreview = (livePreviewEnabled && liveOutput) ? liveOutput : preview;
+
+  const columns = draggableColumns || sourceColumns?.map(c => ({ name: c.name, type: c.type, sampleValue: (c.sampleValues?.[0]) })) || [];
+
   return (
     <>
       <div className="grid gap-6" style={{ gridTemplateColumns: showPreview ? '1fr 1fr' : '1fr' }}>
@@ -158,6 +263,31 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
               From Sample
             </button>
             <button
+              onClick={() => setShowTransforms(!showTransforms)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                showTransforms
+                  ? 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
+                  : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              <FunctionSquare className="h-3 w-3" />
+              Transforms
+              {showTransforms ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </button>
+            {hasLivePreview && (
+              <button
+                onClick={onToggleLivePreview}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  livePreviewEnabled
+                    ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-500/10 dark:text-primary-400'
+                    : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                {livePreviewEnabled ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}
+                Live Preview
+              </button>
+            )}
+            <button
               onClick={() => setShowPreview(!showPreview)}
               className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
             >
@@ -166,23 +296,84 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
             </button>
           </div>
 
+          {showTransforms && (
+            <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                {transformGroups.map((group) => (
+                  <div key={group.category}>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                      {group.category}
+                    </p>
+                    <div className="space-y-1">
+                      {group.items.map((fn) => (
+                        <button
+                          key={fn.name}
+                          onClick={() => applyTransform(fn.name)}
+                          className="group block w-full rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-purple-50 dark:hover:bg-purple-500/10"
+                          title={fn.description}
+                        >
+                          <span className="font-mono font-medium text-gray-800 group-hover:text-purple-700 dark:text-slate-200 dark:group-hover:text-purple-400">
+                            {fn.name}
+                          </span>
+                          <span className="ml-1 text-[10px] text-gray-400 dark:text-slate-500">{fn.syntax}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
+                Select text in the editor and click a transform to wrap it. Example: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{upper(first_name)}}'}</code>
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
               {error}
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700">
+          {columns.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+              <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-slate-400">
+                Drag columns into the template:
+              </p>
+              <div className="flex max-h-20 flex-wrap gap-1.5 overflow-y-auto">
+                {columns.map((col) => (
+                  <div
+                    key={col.name}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, col.name)}
+                    className="inline-flex cursor-grab items-center gap-1 rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 transition-colors hover:bg-primary-100 active:cursor-grabbing dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20"
+                    title={col.sampleValue !== undefined ? `Sample: ${col.sampleValue}` : col.type}
+                  >
+                    <GripVertical className="h-2.5 w-2.5 text-primary-400" />
+                    {col.name}
+                    <span className="text-[10px] text-gray-400 dark:text-slate-500">{col.type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div
+            ref={editorContainerRef}
+            className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700"
+            onDragOver={handleContainerDragOver}
+            onDrop={handleContainerDrop}
+          >
             <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
               <FileCode className="h-4 w-4 text-gray-400 dark:text-slate-400" />
               <span className="text-sm text-gray-500 dark:text-slate-400">Template Content</span>
             </div>
             <Editor
-              height="400px"
+              height="500px"
               defaultLanguage="handlebars"
               theme="vs-dark"
               value={value}
               onChange={handleEditorChange}
+              onMount={handleEditorMount}
               options={{
                 minimap: { enabled: false },
                 fontSize: 13,
@@ -202,9 +393,15 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
               <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
                 <Code className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                 <span className="text-sm text-gray-500 dark:text-slate-400">Output Preview</span>
+                {hasLivePreview && livePreviewEnabled && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                    Live
+                  </span>
+                )}
               </div>
-              <pre className="max-h-[460px] overflow-auto bg-white p-4 text-sm text-gray-800 dark:bg-slate-900 dark:text-slate-300 font-mono whitespace-pre-wrap">
-                {preview || 'No preview available. Render the template to see output.'}
+              <pre className="overflow-auto bg-white p-4 text-sm text-gray-800 dark:bg-slate-900 dark:text-slate-300 font-mono whitespace-pre-wrap" style={{ minHeight: '400px', maxHeight: '600px' }}>
+                {effectivePreview || (hasLivePreview && livePreviewEnabled ? (value ? 'Rendering...' : 'Enter a template to see output') : 'No preview available. Render the template to see output.')}
               </pre>
             </div>
 
@@ -236,7 +433,7 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
           <div className="mx-4 flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl dark:bg-slate-800">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-slate-700">
               <div className="flex items-center gap-2">
-                <Wand2 className="h-5 w-5 text-primary-500" />
+                <Sparkles className="h-5 w-5 text-primary-500" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Generate Template from Sample</h2>
               </div>
               <button
@@ -299,7 +496,7 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns, templa
                   disabled={!fieldName.trim()}
                   className="btn-primary mb-0.5"
                 >
-                  <Wand2 className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                   Replace
                 </button>
               </div>

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TemplateEngineService } from './engine/template-engine.service';
+import { RenderInlineDto } from './dto/render-inline.dto';
 
 @Injectable()
 export class TemplatesService {
@@ -9,6 +10,12 @@ export class TemplatesService {
     private prisma: PrismaService,
     private templateEngine: TemplateEngineService,
   ) {}
+
+  async renderInline(dto: RenderInlineDto) {
+    const row = dto.context?.row || {};
+    const output = this.templateEngine.renderPreview(dto.template, row);
+    return { output };
+  }
 
   async findAll(userId: string) {
     const profiles = await this.prisma.mappingProfile.findMany({

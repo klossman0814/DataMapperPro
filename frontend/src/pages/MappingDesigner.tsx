@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Save, Play, Eye, SplitSquareHorizontal, Upload } from 'lucide-react';
+import { Save, Play, Eye, SplitSquareHorizontal, Upload, ToggleLeft, ToggleRight } from 'lucide-react';
 import { filesService } from '../services/files.service';
 import { jobsService } from '../services/jobs.service';
 import { profilesService } from '../services/profiles.service';
@@ -40,6 +40,10 @@ export function MappingDesigner() {
   const [running, setRunning] = useState(false);
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<Template[]>([]);
+  const [previewRows, setPreviewRows] = useState<Record<string, any>[]>([]);
+  const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
+  const [liveOutput, setLiveOutput] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
@@ -71,15 +75,40 @@ export function MappingDesigner() {
   useEffect(() => {
     if (selectedFileId && selectedFileId !== store.uploadedFile?.id) {
       setLoading(true);
-      filesService.getFile(selectedFileId)
-        .then((file) => {
+      Promise.all([
+        filesService.getFile(selectedFileId),
+        filesService.getPreview(selectedFileId, 1, 10),
+      ])
+        .then(([file, preview]) => {
           store.setUploadedFile(file);
           store.setSourceColumns(file.columns);
+          setPreviewRows(preview.rows || []);
         })
         .catch(() => toast.error('Failed to load file'))
         .finally(() => setLoading(false));
     }
   }, [selectedFileId, store]);
+
+  const doLiveRender = useCallback(async (template: string) => {
+    if (!template.trim() || previewRows.length === 0) return;
+    try {
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 0 });
+      setLiveOutput(res.output);
+    } catch {
+      // silent fail for live preview
+    }
+  }, [previewRows]);
+
+  useEffect(() => {
+    if (!livePreviewEnabled || !store.template.trim() || previewRows.length === 0) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      doLiveRender(store.template);
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [store.template, livePreviewEnabled, previewRows, doLiveRender]);
 
   const handleSaveProfile = async () => {
     if (!store.profileName.trim()) {
@@ -195,7 +224,7 @@ export function MappingDesigner() {
         case 'hl7': {
           const segFields = fields.map((f, i) => `${f}|{{${f}}}`).join('|');
           const firstField = fields[0] || 'name';
-          preview = `MSH|^~\\&|DataMapperPro|||||RSP^K22|||2.5.1\nPID|||{{id}}||{{${firstField}}}^^^^^^||${segFields}`;
+          preview = `MSH|^~\\&|DataMapperPro|||||RSP^K22|||2.5.1\nPID|||{{id}}||${firstField}^^^^^^||${segFields}`;
           break;
         }
         case 'freeform': {
@@ -222,6 +251,12 @@ export function MappingDesigner() {
     }
   };
 
+  const dragColumns = store.sourceColumns.map((c) => ({
+    name: c.name,
+    type: c.type,
+    sampleValue: previewRows.length > 0 ? previewRows[0][c.name] : c.sampleValues?.[0],
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -230,6 +265,15 @@ export function MappingDesigner() {
           <p className="mt-1 text-gray-500 dark:text-slate-400">Map source fields to destination fields</p>
         </div>
         <div className="flex gap-3">
+          {previewRows.length > 0 && (
+            <button
+              onClick={() => setLivePreviewEnabled(!livePreviewEnabled)}
+              className={`btn-secondary ${livePreviewEnabled ? 'ring-2 ring-primary-500' : ''}`}
+            >
+              {livePreviewEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+              {livePreviewEnabled ? 'Live: On' : 'Live: Off'}
+            </button>
+          )}
           <button onClick={handleGeneratePreview} disabled={generatingPreview} className="btn-secondary">
             {generatingPreview ? <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg> : <Eye className="h-4 w-4" />}
             {generatingPreview ? 'Generating...' : 'Preview'}
@@ -266,6 +310,10 @@ export function MappingDesigner() {
               onChange={store.setTemplate}
               sourceColumns={store.sourceColumns}
               templates={savedTemplates}
+              draggableColumns={dragColumns}
+              liveOutput={liveOutput}
+              livePreviewEnabled={livePreviewEnabled}
+              onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
             />
           </div>
 

@@ -1,8 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { Mapping } from '../../mappings/engine/mapping-engine.service';
+import { TransformationEngineService } from '../../transformations/engine/transformation-engine.service';
+
+const TRANSFORM_NAMES = [
+  'trim', 'upper', 'lower', 'substring', 'replace',
+  'padstart', 'padend', 'concat',
+  'formatdate', 'parsedate',
+  'round', 'formatnumber', 'parseint', 'parsefloat',
+  'coalesce', 'if', 'case', 'switch',
+];
 
 @Injectable()
 export class TemplateEngineService {
+  constructor(
+    private transformationEngine: TransformationEngineService,
+  ) {}
+
   processTemplate(template: string, row: Record<string, any>, mappings: Mapping[]): string {
     const mappingResult: Record<string, any> = {};
     for (const m of mappings) {
@@ -18,11 +31,15 @@ export class TemplateEngineService {
     return this.processRow(template, row, mappingResult);
   }
 
+  renderPreview(template: string, row: Record<string, any>): string {
+    return this.processRow(template, row, {});
+  }
+
   private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>): string {
     const merged = { ...row, ...mappings };
     const lines = template.split('\n');
     const resultLines: string[] = [];
-    let skipStack: number[] = [];
+    const skipStack: number[] = [];
     let elseMode = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -88,6 +105,12 @@ export class TemplateEngineService {
   private replaceTokens(text: string, context: Record<string, any>): string {
     return text.replace(/\{\{(.+?)\}\}/g, (_, key) => {
       const trimmed = key.trim();
+      const funcMatch = trimmed.match(/^(\w+)\((.+)\)$/);
+      if (funcMatch && TRANSFORM_NAMES.includes(funcMatch[1].toLowerCase())) {
+        const result = this.transformationEngine.apply(trimmed, context);
+        if (result === null || result === undefined) return '';
+        return String(result);
+      }
       const value = this.resolveValue(trimmed, context);
       if (value === null || value === undefined) return '';
       return String(value);

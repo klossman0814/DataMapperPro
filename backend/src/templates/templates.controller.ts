@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nes
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TemplatesService } from './templates.service';
+import { RenderInlineDto } from './dto/render-inline.dto';
 
 @Controller('templates')
 @UseGuards(JwtAuthGuard)
@@ -34,6 +35,11 @@ export class TemplatesController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.templatesService.delete(id);
+  }
+
+  @Post('render-inline')
+  renderInline(@Body() dto: RenderInlineDto) {
+    return this.templatesService.renderInline(dto);
   }
 
   @Post(':id/render')
