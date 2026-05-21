@@ -41,13 +41,13 @@ Each step is decoupled and independently configurable. Mappings, transformations
 | | Feature | Description |
 |---|---|---|
 | 📥 | **File Ingestion** | CSV and Excel (.xlsx/.xls) with column type detection, multi-sheet support, drag-and-drop upload |
-| 🗺️ | **Mapping Designer** | Visual split-screen interface with drag-and-drop field mapping, auto-suggest by name similarity, and four mapping types (direct, constant, expression, conditional) |
-| 🔄 | **Transformation Functions** | 16 built-in functions across string, date, numeric, and logic categories — all accessible via safe expression syntax (no eval) |
-| 📝 | **Template Engine** | Handlebars-like syntax (`{{token}}`, `{{#if}}`/`{{else}}`/`{{/if}}`, `{{#each}}`) with Monaco code editor and live preview |
+| 🗺️ | **Mapping Designer** | Visual split-screen with drag-and-drop mapping, auto-suggest by name similarity, collapsible mapping rows with Expand/Collapse All, and four mapping types (direct, constant, expression, conditional) |
+| 🔄 | **Transformation Functions** | 19 built-in functions across string, date, numeric, and logic categories — including `join(separator, ...fields)` for HL7 repeating fields — all accessible via safe expression syntax (no eval) |
+| 📝 | **Template Editor** | Handlebars-like syntax (`{{token}}`, `{{#if}}`/`{{else}}`/`{{/if}}`, `{{#each}}`, `{{func(args)}}`) with Monaco code editor, file-backed real-time live preview, drag-and-drop column insertion, transform function palette, and resizable split-pane preview |
 | ✅ | **Validation Engine** | Rule-based validation (required, regex, maxLength, date, lookup) with per-row error collection |
 | 📤 | **Export Formats** | CSV, JSON, XML, flat-file (fixed-width), pipe/tab delimited, HL7-style, plain text |
 | 💾 | **Profile Management** | Save, load, clone, version, export, and import mapping profiles as JSON |
-| 📊 | **Job Processing** | Background processing with real-time progress tracking, error logging, and output download |
+| 📊 | **Job Processing** | Background processing with real-time progress tracking, error logging, and output download (correct extension preserved) |
 | 🌙 | **Dark Mode** | Full dark/light theme support persisted to localStorage |
 | 🐳 | **Dockerized** | Multi-stage Docker builds with hot-reload development and production-optimized deployment |
 
@@ -78,12 +78,12 @@ The application is split into two tiers — a NestJS API backend and a React fro
 The NestJS backend is organized into self-contained feature modules:
 
 | Module | Responsibility |
-|---|---|
+|---|---|---|
 | **Auth** | JWT-based registration, login, profile |
 | **Files** | CSV/Excel upload, parsing, column type detection, preview |
 | **Mappings** | CRUD for mapping profiles, auto-mapping suggestions |
-| **Transformations** | Expression parser and 16 function handlers |
-| **Templates** | Handlebars-like template engine with conditionals and loops |
+| **Transformations** | Expression parser and 19 function handlers including `join()` |
+| **Templates** | Handlebars-like template engine with conditionals, loops, function calls, and inline render endpoint for unsaved templates |
 | **Validation** | Rule-based row validation (5 rule types) |
 | **Export** | Format serializers for 8 output formats |
 | **Jobs** | Processing job orchestration with progress tracking |
@@ -230,7 +230,8 @@ curl http://localhost:3002/api/jobs/<id>/download \
 | GET | `/api/jobs/:id` | Job details |
 | GET | `/api/jobs/:id/progress` | Progress counter |
 | GET | `/api/jobs/:id/download` | Download output file |
-| POST | `/api/templates/:id/render` | Test-render a template |
+| POST | `/api/templates/render-inline` | Test-render a template without saving |
+| POST | `/api/templates/:id/render` | Test-render a saved template |
 | POST | `/api/profiles` | Save profile |
 | GET / PUT / DELETE | `/api/profiles/:id` | Profile CRUD |
 | POST | `/api/profiles/:id/clone` | Clone profile |
@@ -260,7 +261,7 @@ Key environment variables (`.env`):
 | **String** | `trim`, `upper`, `lower`, `substring`, `replace`, `padStart`, `padEnd`, `concat` |
 | **Date** | `formatDate(date, 'yyyyMMdd')`, `parseDate(str, pattern)` |
 | **Numeric** | `round`, `formatNumber`, `parseInt`, `parseFloat` |
-| **Logic** | `coalesce(...)` (first non-null), `if(cond, trueVal, falseVal)`, `case(val, pairs...)`, `switch(val, map, default?)` |
+| **Logic** | `coalesce(...)` (first non-null), `if(cond, trueVal, falseVal)`, `case(val, pairs...)`, `switch(val, map, default?)`, `join(sep, ...fields)` |
 
 ## Project structure
 
@@ -279,15 +280,20 @@ DataMapperPro/
 │       ├── auth/               # JWT + Passport authentication
 │       ├── files/              # CSV/XLSX parsing with type detection
 │       ├── mappings/engine/    # Field mapping logic
-│       ├── templates/engine/   # Handlebars-like template parser
-│       ├── transformations/    # Safe expression evaluator with 16 functions
+│       ├── templates/          # Template CRUD + engine (Handlebars-like parser
+│       │   ├── engine/         #   with {{#if}}, {{#each}}, function calls)
+│       │   └── dto/            # DTOs (inline render support)
+│       ├── transformations/    # Safe expression evaluator with 19 functions
 │       ├── validation/engine/  # Rule-based row validation
 │       ├── export/engines/     # 8 format serializers (strategy pattern)
 │       └── jobs/processors/    # Pipeline orchestrator (streaming row-by-row)
+├── USER_GUIDE.md               # Comprehensive user guide with HL7 examples
 └── frontend/
     └── src/
-        ├── pages/              # 8 pages (Dashboard, Upload, MappingDesigner, etc.)
-        ├── components/         # 11 reusable components (DataPreviewGrid, MappingCanvas, etc.)
+        ├── pages/              # 8 pages (Dashboard, Upload, MappingDesigner,
+        │                       #   TemplateEditor, ProcessingJobs, SavedProfiles, etc.)
+        ├── components/         # 15+ reusable components (MappingCanvas, TemplateEditor,
+        │                       #   JobProgress, OutputPreview, ConfirmDialog, etc.)
         ├── stores/             # 3 Zustand stores (app, mapping, job)
         └── services/           # 6 API service modules
 ```
