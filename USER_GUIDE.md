@@ -17,35 +17,42 @@
    - [Drag-and-Drop Mapping](#34-drag-and-drop-mapping)
    - [Transformations](#35-transformations)
    - [Expressions and Constants](#36-expressions-and-constants)
-   - [Output Format](#37-output-format)
-   - [Saving and Running](#38-saving-and-running)
+   - [Conditions](#37-conditions)
+   - [Output Format](#38-output-format)
+   - [Saving, Previewing, and Running](#39-saving-previewing-and-running)
 4. [Template Editor](#4-template-editor)
    - [Template Syntax Reference](#41-template-syntax-reference)
    - [Creating a Template](#42-creating-a-template)
    - [Testing with Sample Data](#43-testing-with-sample-data)
    - [Template Library](#44-template-library)
+   - [From Sample Generator](#45-from-sample-generator)
 5. [Processing Jobs](#5-processing-jobs)
    - [Job Lifecycle](#51-job-lifecycle)
    - [Monitoring Progress](#52-monitoring-progress)
    - [Downloading Results](#53-downloading-results)
    - [Cancelling Jobs](#54-cancelling-jobs)
+   - [Filtering and Searching](#55-filtering-and-searching)
 6. [Saved Profiles](#6-saved-profiles)
-   - [Saving a Profile](#61-saving-a-profile)
-   - [Loading a Profile](#62-loading-a-profile)
-   - [Cloning, Exporting, and Importing](#63-cloning-exporting-and-importing)
+   - [Saving and Loading Profiles](#61-saving-and-loading-profiles)
+   - [Cloning, Exporting, and Importing](#62-cloning-exporting-and-importing)
+   - [Searching Profiles](#63-searching-profiles)
 7. [Settings](#7-settings)
    - [Profile Settings](#71-profile-settings)
    - [Security](#72-security)
    - [API Keys](#73-api-keys)
    - [Export Defaults](#74-export-defaults)
    - [Appearance](#75-appearance)
-8. [Appendix: Transformation Functions](#8-appendix-transformation-functions)
-9. [Appendix: Output Formats](#9-appendix-output-formats)
-10. [Appendix: Validation Rules](#10-appendix-validation-rules)
+   - [Notification Preferences](#76-notification-preferences)
+8. [Validation Rules](#8-validation-rules)
+9. [Appendix A: Transformation Functions](#9-appendix-a-transformation-functions)
+10. [Appendix B: Output Formats](#10-appendix-b-output-formats)
+11. [Appendix C: Seed Data Examples](#11-appendix-c-seed-data-examples)
 
 ---
 
 ## 1. Getting Started
+
+DataMapper Pro is a self-hosted ETL (Extract, Transform, Load) pipeline builder for structured data transformation. Upload CSV or Excel files, visually map source fields to destination fields, apply transformation functions, define output templates, validate rows, and export in 8 formats.
 
 ### 1.1 Logging In
 
@@ -60,6 +67,13 @@ The login screen shows the DataMapper Pro logo and a sign-in form:
 
 Enter the credentials and click **Sign In**.
 
+A second demo account is also available:
+
+| Field | Value (Demo) |
+|---|---|
+| Email | `demo@datamapperpro.com` |
+| Password | `admin123` |
+
 ### 1.2 Creating an Account
 
 On the login screen, click **"Don't have an account? Create one"** to switch to the registration form. Fill in your name, email, and password (minimum 6 characters), then click **Create Account**.
@@ -71,9 +85,9 @@ After registration, you are automatically signed in and redirected to the Dashbo
 The Dashboard provides an overview of your data mapping activity. It contains:
 
 - **Stat cards** at the top showing total files, mappings, jobs, and success rate
-- **Jobs Over Time** chart showing processing activity across the week
+- **Jobs Over Time** chart — a Recharts area chart showing processing activity across the last 7 days
 - **Quick action buttons** to upload a file, create a mapping, or start a new job
-- **Recent Jobs** list showing the most recent 5 jobs with their status
+- **Recent Jobs** list showing the most recent 5 jobs with their status (Completed/Processing/Failed/Pending)
 
 Click the **Refresh** button (in the toolbar) or the **Retry** button on error to reload dashboard data.
 
@@ -91,7 +105,7 @@ The upload page shows a drop zone in the center of the screen. To upload:
 2. **Click** the drop zone to open a file browser dialog
 
 Supported file types:
-- `.csv` — Comma-separated values
+- `.csv` — Comma-separated values (auto-detects delimiter)
 - `.xlsx`, `.xls` — Excel workbooks (multi-sheet supported)
 - `.txt`, `.tsv` — Text files
 
@@ -119,7 +133,7 @@ After a successful upload, the following sections appear:
 
 The **Data Preview Grid** shows a paginated view of your data with:
 
-- **Column type badges** — Each column shows its detected type, name, and null percentage. Columns with >10% null are highlighted in red.
+- **Column type badges** — Each column shows its detected type (`string`, `number`, `date`), name, and null percentage. Columns with >10% null are highlighted in red.
 - **Sortable columns** — Click any column header to sort ascending/descending. Click again to cycle through sort states.
 - **Search** — Type in the search box to filter rows across all columns (global filter).
 - **Pagination** — Choose rows per page (10, 25, 50, 100) and navigate pages with the arrow buttons.
@@ -141,22 +155,28 @@ The page header has three action buttons:
 
 On the right sidebar, the **Source File** panel shows a dropdown of all your uploaded files. Select the file you want to use. If no files exist, a button links to the Upload page.
 
+The **Output Format** dropdown lets you choose the format for the generated output file. See [Appendix B](#10-appendix-b-output-formats) for all available formats.
+
 ### 3.2 Adding Mappings
 
 Type a destination field name into the input at the top of the **Field Mappings** section and click **Add Mapping** (or press Enter). Each mapping row has:
 
-- **Destination Field**: The output field name (editable)
+- **Destination Field**: The output field name (editable text input)
 - **Source Field**: A dropdown of your source columns, or drag a column from the left panel onto this field
-- **Transformation**: An optional dropdown of transformation functions
-- **Expression / Constant**: An optional text field for fixed values or token expressions
+- **Transformation**: An optional dropdown of transformation functions (see [Section 3.5](#35-transformations))
+- **Expression / Constant**: An optional text field for fixed values or token expressions (see [Section 3.6](#36-expressions-and-constants))
 
-Each mapping row is **draggable** (grab the grip icon on the left) to reorder mappings.
+Each mapping row is **draggable** (grab the grip icon on the left) to reorder mappings. The order of mappings determines the order of fields in the output.
+
+**Clear All** — The button at the top of the mappings panel removes all mappings at once. A confirmation prompt ("Yes" / "No") prevents accidental deletion.
 
 ### 3.3 Auto-Mapping
 
-Click the **Auto-Map** button to open the auto-mapping dialog. Enter your desired destination fields as a comma-separated list (e.g., `first_name, last_name, email, phone`). The system automatically matches each destination field to its best source column using fuzzy name matching (case-insensitive Levenshtein distance ≤ 2).
+Click the **Auto-Map** button to open the auto-mapping dialog. Enter your desired destination fields as a comma-separated list (e.g., `first_name, last_name, email, phone`). The system automatically matches each destination field to its best source column using fuzzy name matching with Levenshtein distance scoring (threshold <= 0.4).
 
 Click **Map** to apply the suggestions, or **Cancel** to dismiss.
+
+**Example**: If you type `full_name` and your source has `first_name` and `last_name`, the auto-mapper will suggest the closest match. For exact matches like `email` → `email`, it maps directly.
 
 ### 3.4 Drag-and-Drop Mapping
 
@@ -171,47 +191,82 @@ This sets the source field for that mapping to the dropped column.
 
 Each mapping can apply an optional transformation function. Select from the dropdown, which is grouped by category:
 
-- **String**: Trim, Uppercase, Lowercase, Substring, Replace, Pad Start, Pad End, Concat
-- **Date**: Format Date, Parse Date
-- **Numeric**: Round, Format Number, Parse Int, Parse Float
-- **Logic**: Coalesce, If/Else, Case, Switch
+- **String** (8): Trim, Uppercase, Lowercase, Substring, Replace, Pad Start, Pad End, Concat
+- **Date** (2): Format Date, Parse Date
+- **Numeric** (4): Round, Format Number, Parse Int, Parse Float
+- **Logic** (4): Coalesce, If/Else, Case, Switch
 
-When a transformation is selected, the engine applies it to the source value before writing to the destination field.
+When a transformation is selected, the engine applies it to the source value before writing to the destination field. See [Appendix A](#9-appendix-a-transformation-functions) for the complete reference with examples.
 
 ### 3.6 Expressions and Constants
 
 The **Expression / Constant** field serves two purposes:
 
 - **Constant value**: Enter a static string like `"Active"` or `N/A` to use a fixed value for every row
-- **Expression**: Use `{{field_name}}` syntax to reference source fields in a template expression, e.g., `{{first_name}} {{last_name}}`
+- **Expression**: Use `{{field_name}}` syntax to reference source fields in a template expression, e.g., `{{first_name}} {{last_name}}` or `concat({{first_name}}, ' ', {{last_name}})`
 
-This field is most useful when no source field is selected, or when you need to combine multiple source values.
+This field is most useful when:
+- No source field is selected (you want to compute the value from multiple fields)
+- You need to combine multiple source values into one output field
+- You want a literal constant value for every row (e.g., `"DataMapper Pro"` as a source system identifier)
 
-### 3.7 Output Format
+**Example expressions**:
+- `{{first_name}} {{last_name}}` — Combines first and last name
+- `upper({{city}})` — City name in uppercase
+- `{{quantity}} * {{unit_price}}` — Computes total price
+- `coalesce({{phone}}, {{email}}, 'No contact')` — First non-empty value
 
-On the right sidebar, the **Output Format** dropdown lets you choose the format for the generated output file:
+### 3.7 Conditions
 
-| Format | File Extension |
+Each mapping can optionally have a **condition** that controls whether the mapping is applied. Conditions use this structure:
+
+| Operator | Behavior |
 |---|---|
-| Text | `.txt` |
-| CSV | `.csv` |
-| JSON | `.json` |
-| XML | `.xml` |
-| HL7 | `.hl7` |
-| Pipe-Delimited | `.txt` |
-| Tab-Delimited | `.tsv` |
-| Fixed-Width | `.txt` |
+| `equals` | Apply mapping only if field equals value |
+| `notEquals` | Apply mapping only if field does not equal value |
+| `contains` | Apply mapping only if field contains value |
+| `greaterThan` | Apply mapping only if field value > numeric value |
+| `lessThan` | Apply mapping only if field value < numeric value |
+| `isEmpty` | Apply mapping only if field is null or empty |
+| `isNotEmpty` | Apply mapping only if field is non-empty |
 
-### 3.8 Saving and Running
+**Example**: You can map `employment_status` to `"Inactive"` only when the source `status` field is not `"Active"`:
+
+```
+Destination: employment_status
+Source: status
+Condition: status notEquals Active
+```
+
+### 3.8 Output Format
+
+On the right sidebar, the **Output Format** dropdown lets you choose the format for the generated output file. Each format has specific configuration options:
+
+| Format | Extension | Config Options |
+|---|---|---|
+| Text | `.txt` | — |
+| CSV | `.csv` | Delimiter (comma/tab/pipe/semicolon), include header |
+| JSON | `.json` | Pretty print (indented) vs compact, NDJSON mode |
+| XML | `.xml` | Root element name, item element name |
+| HL7 | `.hl7` | — |
+| Pipe-Delimited | `.txt` | Include header |
+| Tab-Delimited | `.tsv` | Include header |
+| Fixed-Width | `.txt` | Per-field width, alignment, pad character |
+| Free Form | `.txt` | — |
+
+See [Appendix B](#10-appendix-b-output-formats) for detailed descriptions.
+
+### 3.9 Saving, Previewing, and Running
 
 - **Save Profile**: Enter a profile name in the right sidebar, then click **Save Profile**. The profile is saved and appears on the Saved Profiles page.
+- **Preview**: Click **Preview** to generate a sample of the output using the current mappings and template. The preview appears in the Output Preview panel.
 - **Run Job**: Click **Run Job** to immediately start processing. A job must have at least one mapping and a selected file.
 
 ---
 
 ## 4. Template Editor
 
-The Template Editor lets you create and test Handlebars-style output templates. Navigate to it via the sidebar.
+The Template Editor lets you create and test Handlebars-style output templates. Navigate to it via the sidebar, or access it inline from the Mapping Designer.
 
 ### 4.1 Template Syntax Reference
 
@@ -257,6 +312,18 @@ The **Template Library** section at the bottom provides starter templates for co
 
 Click any library template to load its content into the editor.
 
+### 4.5 From Sample Generator
+
+A modal dialog accessed from the Template Editor that helps you create templates from existing sample output:
+
+1. Paste a sample output line into the textarea
+2. Click **Smart Tokenize** — auto-detects delimiters (`,`, `|`, `\t`) and wraps non-delimiter parts in `{{}}`
+3. Edit field names using the **Field Name** input + **Replace** button to replace selected text
+4. Click clickable **Source Columns** tokens to insert at cursor position
+5. Use **Use as Template** to load the result into the Monaco editor
+
+This is especially useful when you have an existing output format and want to create a matching template quickly.
+
 ---
 
 ## 5. Processing Jobs
@@ -277,7 +344,7 @@ PENDING → PROCESSING → COMPLETED
 The job list shows:
 
 - **File name** — The source file being processed
-- **Status badge** — Color-coded: Pending (gray), Processing (amber), Completed (green), Failed (red)
+- **Status badge** — Color-coded: Pending (gray), Processing (amber), Completed (green), Failed (red) with appropriate icons
 - **Format** — The output format
 - **Progress bar** — Visual indicator with row counts (`processed / total`)
 - **Created date** — When the job was started
@@ -285,9 +352,9 @@ The job list shows:
 Click any job row to expand it and see detailed progress metrics:
 - **Total Rows**, **Processed**, **Failed**, and **Speed** (rows/second)
 - A larger progress bar with percentage
-- Error logs (for failed jobs, shown in a red panel)
+- Error logs (for failed jobs, shown in a red panel with JSON-formatted error details)
 
-Active jobs auto-poll every 3 seconds for progress updates. Completed and failed jobs stop polling.
+Active jobs (PROCESSING, PENDING) auto-poll every 3 seconds for progress updates. Completed and failed jobs stop polling.
 
 ### 5.3 Downloading Results
 
@@ -297,9 +364,9 @@ For completed jobs, click the download icon (or the **Download** button in the e
 
 Active jobs (PENDING or PROCESSING) show a cancel button (X icon). Click it to cancel the job. Cancelled jobs are marked as FAILED.
 
-### Filtering and Searching
+### 5.5 Filtering and Searching
 
-Use the **search box** to filter jobs by file name or job ID. Use the **status filter** dropdown to show only jobs with a specific status (all, pending, processing, completed, failed).
+Use the **search box** to filter jobs by file name or job ID. Use the **status filter** dropdown to show only jobs with a specific status (All, Pending, Processing, Completed, Failed).
 
 ---
 
@@ -307,33 +374,31 @@ Use the **search box** to filter jobs by file name or job ID. Use the **status f
 
 The Saved Profiles page stores reusable mapping configurations. Navigate to it via the sidebar.
 
-### 6.1 Saving a Profile
+### 6.1 Saving and Loading Profiles
 
 To save a profile:
 1. Go to the **Mapping Designer**
-2. Configure your mappings and template
+2. Configure your mappings, template, and output format
 3. Enter a **Profile Name** in the right sidebar
 4. Click **Save Profile**
-
-### 6.2 Loading a Profile
 
 On the Saved Profiles page, each profile card shows:
 - **Profile name**
 - **Description** (if set)
-- **Version number**
+- **Version number** (incremented on each save)
 - **Mapping count**
 - **Last updated date**
 
-Click **Load** to open the profile in the Mapping Designer.
+Click **Load** to open the profile in the Mapping Designer with all settings restored.
 
-### 6.3 Cloning, Exporting, and Importing
+### 6.2 Cloning, Exporting, and Importing
 
 Each profile card has action buttons:
 
 | Action | Description |
 |---|---|
-| **Clone** (Copy icon) | Creates a copy of the profile with an incremented version number |
-| **Export** (Download icon) | Downloads the profile as a `.json` file |
+| **Clone** (Copy icon) | Creates a copy of the profile with a "(Copy)" suffix and incremented version |
+| **Export** (Download icon) | Downloads the profile as a `.json` file for backup or sharing |
 | **Delete** (Trash icon) | Permanently deletes the profile (requires confirmation) |
 
 The page header has two additional buttons:
@@ -342,6 +407,8 @@ The page header has two additional buttons:
 |---|---|
 | **Import** | Opens a file picker for `.json` profile files. Imports the profile into your account. |
 | **Create New Profile** | Navigates to the Mapping Designer to create a fresh profile |
+
+### 6.3 Searching Profiles
 
 Use the **search box** to filter profiles by name or description.
 
@@ -382,7 +449,7 @@ Toggle between **Dark Mode** and **Light Mode**. The selected theme is saved to 
 
 The **About** card shows the application version (`1.0.0`) and the current environment mode.
 
-### Notification Preferences
+### 7.6 Notification Preferences
 
 Toggle notification settings:
 - **Job completion notifications**
@@ -391,77 +458,306 @@ Toggle notification settings:
 
 ---
 
-## 8. Appendix: Transformation Functions
+## 8. Validation Rules
+
+Validation rules enforce data quality constraints on your output. Rules are configured per profile and run during job processing. When a row fails validation, it is **skipped** in the output but processing continues. Failed rows are collected in the job's error log with descriptive messages.
+
+| # | Rule | Value Type | Behavior |
+|---|---|---|---|
+| 1 | `required` | — | Fails if the field value is null, undefined, or empty string |
+| 2 | `maxLength` | Number | Fails if the string length exceeds the given value |
+| 3 | `minLength` | Number | Fails if the string length is below the given value |
+| 4 | `regex` | String (pattern) | Tests the field value against a JavaScript RegExp pattern |
+| 5 | `date` | — | Fails if the value cannot be parsed as a valid Date |
+| 6 | `email` | — | Fails if the value does not match `^[^\s@]+@[^\s@]+\.[^\s@]+$` |
+| 7 | `number` | — | Fails if the value is not a valid number |
+| 8 | `lookup` | String[] | Fails if the field value is not in the allowed list |
+| 9 | `enum` | String[] or comma-separated | Same behavior as `lookup` |
+
+**Example validation configuration** (from the Fixed-Width Employee Export seed profile):
+
+```json
+{
+  "validationRules": [
+    { "field": "email", "type": "required" },
+    { "field": "email", "type": "email" },
+    { "field": "employee_id", "type": "required" },
+    { "field": "full_name", "type": "maxLength", "value": "50" },
+    { "field": "salary", "type": "number" },
+    { "field": "status", "type": "enum", "value": "Active,Inactive,Leave,Terminated" }
+  ]
+}
+```
+
+This configuration:
+- Ensures `employee_id` and `email` are never empty
+- Validates that `email` has a valid format
+- Limits `full_name` to 50 characters
+- Confirms `salary` is numeric
+- Restricts `status` to one of four allowed values
+
+**Validation output** (sample from the seed data):
+```json
+{
+  "row": 6,
+  "errors": ["Email validation failed: diana.martinez@example.com"],
+  "fieldErrors": { "email": "Invalid email format" }
+}
+```
+
+---
+
+## 9. Appendix A: Transformation Functions
 
 ### String Functions
 
-| Function | Syntax | Description | Example Input | Output |
-|---|---|---|---|---|
-| `trim` | `trim(field)` | Removes leading/trailing whitespace | `trim("  hello  ")` | `hello` |
-| `upper` | `upper(field)` | Converts to uppercase | `upper("hello")` | `HELLO` |
-| `lower` | `lower(field)` | Converts to lowercase | `lower("HELLO")` | `hello` |
-| `substring` | `substring(field, start, end?)` | Extracts substring from `start` to `end` (exclusive) | `substring("hello", 0, 2)` | `he` |
-| `replace` | `replace(field, search, replacement)` | Replaces all occurrences of `search` with `replacement` | `replace("1-2-3", "-", "")` | `123` |
-| `padStart` | `padStart(field, length, char?)` | Pads the start of a string to reach `length` using `char` (default: space) | `padStart("42", 5, "0")` | `00042` |
-| `padEnd` | `padEnd(field, length, char?)` | Pads the end of a string to reach `length` using `char` (default: space) | `padEnd("42", 5, "0")` | `42000` |
-| `concat` | `concat(...fields)` | Concatenates multiple values into one string | `concat("John", " ", "Doe")` | `John Doe` |
+| # | Function | Syntax | Description | Example Input | Output |
+|---|---|---|---|---|---|
+| 1 | `trim` | `trim(field)` | Removes leading/trailing whitespace | `trim("  hello  ")` | `hello` |
+| 2 | `upper` | `upper(field)` | Converts to uppercase | `upper("hello")` | `HELLO` |
+| 3 | `lower` | `lower(field)` | Converts to lowercase | `lower("HELLO")` | `hello` |
+| 4 | `substring` | `substring(field, start, end?)` | Extracts substring from `start` to `end` (exclusive, default end is end of string) | `substring("hello", 0, 2)` | `he` |
+| 5 | `replace` | `replace(field, search, replacement)` | Replaces all occurrences of `search` with `replacement` | `replace("1-2-3", "-", "")` | `123` |
+| 6 | `padStart` | `padStart(field, length, char?)` | Pads the start of a string to reach `length` using `char` (default: space) | `padStart("42", 5, "0")` | `00042` |
+| 7 | `padEnd` | `padEnd(field, length, char?)` | Pads the end of a string to reach `length` using `char` (default: space) | `padEnd("42", 5, "0")` | `42000` |
+| 8 | `concat` | `concat(...fields)` | Concatenates multiple values into one string | `concat("John", " ", "Doe")` | `John Doe` |
 
 ### Date Functions
 
-| Function | Syntax | Description | Example Input | Output |
-|---|---|---|---|---|
-| `formatDate` | `formatDate(field, pattern)` | Formats a date value according to a pattern | `formatDate(dob, "yyyyMMdd")` | `19900115` |
-| `parseDate` | `parseDate(field)` | Parses a date string and returns ISO format | `parseDate("01/15/1990")` | `1990-01-15T...` |
+| # | Function | Syntax | Description | Example Input | Output |
+|---|---|---|---|---|---|
+| 9 | `formatDate` | `formatDate(field, pattern)` | Formats a date value according to a pattern | `formatDate("1990-01-15", "yyyyMMdd")` | `19900115` |
+| 10 | `parseDate` | `parseDate(field)` | Parses a date string and returns ISO format | `parseDate("01/15/1990")` | `1990-01-15T05:00:00.000Z` |
 
-**Date format patterns**: `yyyy` (year), `MM` (month, 2-digit), `dd` (day, 2-digit), `HH` (hours, 2-digit), `mm` (minutes, 2-digit), `ss` (seconds, 2-digit).
+**Date format patterns**: `yyyy` (4-digit year), `MM` (2-digit month), `dd` (2-digit day), `HH` (2-digit hours), `mm` (2-digit minutes), `ss` (2-digit seconds).
 
 ### Numeric Functions
 
-| Function | Syntax | Description | Example Input | Output |
-|---|---|---|---|---|
-| `round` | `round(field, decimals?)` | Rounds a number to the given decimal places | `round(3.14159, 2)` | `3.14` |
-| `formatNumber` | `formatNumber(field, format?)` | Formats a number with locale-aware formatting | `formatNumber(1234.5, "0,0.00")` | `1,234.50` |
-| `parseInt` | `parseInt(field)` | Parses a string as an integer | `parseInt("42")` | `42` |
-| `parseFloat` | `parseFloat(field)` | Parses a string as a float | `parseFloat("3.14")` | `3.14` |
+| # | Function | Syntax | Description | Example Input | Output |
+|---|---|---|---|---|---|
+| 11 | `round` | `round(field, decimals?)` | Rounds a number to the given decimal places | `round(3.14159, 2)` | `3.14` |
+| 12 | `formatNumber` | `formatNumber(field, format?)` | Formats a number with locale-aware formatting | `formatNumber(1234.5, "0,0.00")` | `1,234.50` |
+| 13 | `parseInt` | `parseInt(field)` | Parses a string as an integer | `parseInt("42")` | `42` |
+| 14 | `parseFloat` | `parseFloat(field)` | Parses a string as a float | `parseFloat("3.14")` | `3.14` |
 
 ### Logic Functions
 
-| Function | Syntax | Description | Example |
-|---|---|---|---|
-| `coalesce` | `coalesce(...fields)` | Returns the first non-null, non-empty value | `coalesce(phone, email, "N/A")` |
-| `if` | `if(condition, trueVal, falseVal)` | Returns `trueVal` if `condition` is truthy, else `falseVal` | `if(status, "Active", "Inactive")` |
-| `case` | `case(value, match1, out1, match2, out2, ..., default?)` | Sequential pattern matching | `case(type, "A", "Type A", "B", "Type B", "Unknown")` |
-| `switch` | `switch(value, object, default?)` | Object-lookup dispatch | `switch(dept, {"HR": "Human Resources"}, "Other")` |
+| # | Function | Syntax | Description | Example |
+|---|---|---|---|---|
+| 15 | `coalesce` | `coalesce(...fields)` | Returns the first non-null, non-empty value | `coalesce(phone, email, "N/A")` → first found |
+| 16 | `if` | `if(condition, trueVal, falseVal)` | Returns `trueVal` if `condition` is truthy, else `falseVal` | `if(status, "Active", "Inactive")` |
+| 17 | `case` | `case(value, match1, out1, match2, out2, ..., default?)` | Sequential pattern matching — compares `value` against pairs, returns matching output or default | `case(type, "A", "Type A", "B", "Type B", "Unknown")` |
+| 18 | `switch` | `switch(value, object, default?)` | Object-lookup dispatch — uses `value` as key in an object, returns matched value or default | `switch(dept, {"HR": "Human Resources"}, "Other")` |
+
+### Real-World Expression Examples from Seed Data
+
+The following examples are taken from the pre-seeded mapping profiles:
+
+**Full name concatenation:**
+```
+concat({{first_name}}, ' ', {{last_name}})
+```
+Input: `first_name: "John"`, `last_name: "Smith"` → Output: `"John Smith"`
+
+**Nested function calls (transformations within expressions):**
+```
+upper(concat({{customer_name}}, ' <', {{customer_email}}, '>'))
+```
+Input: `customer_name: "Alice Johnson"`, `customer_email: "alice.j@email.com"`
+Output: `ALICE JOHNSON <ALICE.J@EMAIL.COM>`
+
+**Conditional salary banding using nested `if`:**
+```
+if({{salary}} > 100000, 'Senior', if({{salary}} > 75000, 'Mid', 'Junior'))
+```
+- `salary: 105000` → `"Senior"`
+- `salary: 85000` → `"Mid"`
+- `salary: 65000` → `"Junior"`
+
+**BMI calculation with rounding:**
+```
+round({{weight_kg}} / ({{height_cm}} / 100 * {{height_cm}} / 100), 1)
+```
+Input: `weight_kg: 82`, `height_cm: 178` → `82 / (1.78 * 1.78)` → `25.9`
+
+**Performance rating label using `case`:**
+```
+case({{performance_rating}}, 5, 'Excellent', 4, 'Good', 3, 'Average', 2, 'Below Average', 1, 'Poor', 'Not Rated')
+```
+
+**Insurance name lookup using `switch`:**
+```
+switch({{insurance}}, {"BlueCross":"BlueCross BlueShield","Kaiser":"Kaiser Permanente","Aetna":"Aetna Inc.","Cigna":"Cigna Corp"}, "Self-Pay")
+```
+
+**Computed total with discount:**
+```
+({{unit_price}} * {{quantity}}) * (1 - {{discount}} / 100)
+```
+Input: `unit_price: 29.99`, `quantity: 2`, `discount: 10`
+Output: `(29.99 * 2) * (1 - 0.10)` → `53.982`
+
+**Contact info fallback chain:**
+```
+coalesce({{phone}}, {{email}}, 'No contact')
+```
+Returns the first non-empty value from `phone`, then `email`, then the literal `"No contact"`.
+
+### Expression Syntax Reference
+
+- `{{field_name}}` — References a source field value
+- `'literal string'` — Use single quotes for string literals
+- `123`, `3.14` — Numeric literals
+- `true`, `false` — Boolean literals
+- `null` — Null literal
+- Functions can be **nested**: `upper(concat({{first}}, ' ', {{last}}))` is valid
+- Operators: `+`, `-`, `*`, `/`, `>`, `<`, `>=`, `<=`, `==`, `!=`, `&&`, `||`
+- Parentheses for grouping: `({{a}} + {{b}}) * {{c}}`
 
 ---
 
-## 9. Appendix: Output Formats
+## 10. Appendix B: Output Formats
 
-| Format | Config Options | Extension | Use Case |
-|---|---|---|---|
-| **CSV** | `delimiter` (comma/tab/pipe/semicolon), `includeHeader` | `.csv` | Universal data interchange |
-| **JSON** | `pretty` (indented vs compact), `delimiter` (array vs NDJSON) | `.json` | Web APIs, programmatic consumption |
-| **XML** | `rootElement`, `itemElement` | `.xml` | Legacy system integration, SOAP |
-| **Fixed-width** | `fields: [{ name, width, align, padChar }]` | `.txt` | Mainframe, legacy systems |
-| **Pipe-delimited** | — | `.txt` | Healthcare, mainframe |
-| **Tab-delimited** | — | `.tsv` | Spreadsheet interchange |
-| **Plain text** | — | `.txt` | Simple flat file output |
-| **HL7-style** | Uses `\|` field delimiter, `^` component delimiter, `\r` line endings | `.hl7` | Healthcare data exchange |
+### CSV (Comma-Separated Values)
+- **Extension**: `.csv`
+- **Config**: `delimiter` (comma, tab, pipe, semicolon), `includeHeader` (boolean)
+- **Use case**: Universal data interchange, spreadsheet import
 
----
+### JSON
+- **Extension**: `.json`
+- **Config**: `pretty` (boolean — indented vs compact), `jsonLines` (boolean — NDJSON mode, one JSON object per line)
+- **Use case**: Web APIs, programmatic consumption
 
-## 10. Appendix: Validation Rules
+### XML
+- **Extension**: `.xml`
+- **Config**: `rootElement` (outer wrapper name), `itemElement` (per-record element name)
+- **Use case**: Legacy system integration, SOAP web services
+- **Default**: `<root><item>...</item></root>`
 
-| Rule | Value | Behavior |
+### HL7 v2.3
+- **Extension**: `.hl7`
+- **Config**: None
+- **Use case**: Healthcare data interchange
+- **Format**: Pipe-delimited (`|`) fields, caret (`^`) component separators, carriage return (`\r`) segment terminators
+- **Example segments**: MSH (message header), PID (patient identification), NK1 (next of kin), OBX (observation)
+
+### Pipe-Delimited
+- **Extension**: `.txt`
+- **Config**: `includeHeader` (boolean)
+- **Use case**: Healthcare, mainframe systems
+
+### Tab-Delimited
+- **Extension**: `.tsv`
+- **Config**: `includeHeader` (boolean)
+- **Use case**: Spreadsheet interchange, database exports
+
+### Fixed-Width
+- **Extension**: `.txt`
+- **Config**: Per-field configuration array:
+  ```json
+  {
+    "fixedWidthConfig": [
+      { "field": "employee_id", "width": 10, "align": "left", "padChar": " " },
+      { "field": "full_name", "width": 25, "align": "left", "padChar": " " },
+      { "field": "salary", "width": 12, "align": "right", "padChar": " " }
+    ]
+  }
+  ```
+- **Use case**: Mainframe, legacy systems, COBOL-style reports
+
+### Plain Text (Free Form)
+- **Extension**: `.txt`
+- **Config**: None
+- **Use case**: Simple flat file output, raw template rendering
+
+### Output Format Mapping
+
+| Format | MIME Type | Extension |
 |---|---|---|
-| `required` | — | Fails if the field value is null, undefined, or empty string |
-| `maxLength` | Number | Fails if the string length exceeds the given value |
-| `minLength` | Number | Fails if the string length is below the given value |
-| `regex` | String (pattern) | Tests the field value against a JavaScript RegExp pattern |
-| `date` | — | Fails if the value cannot be parsed as a valid Date |
-| `email` | — | Fails if the value does not match a basic email regex |
-| `number` | — | Fails if the value is not a valid number |
-| `lookup` | String[] | Fails if the field value is not in the allowed list |
-| `enum` | String[] | Same behavior as `lookup` |
+| CSV | `text/csv` | `.csv` |
+| JSON | `application/json` | `.json` |
+| XML | `application/xml` | `.xml` |
+| HL7 | `text/plain` | `.hl7` |
+| Pipe | `text/plain` | `.txt` |
+| Tab | `text/tab-separated-values` | `.tsv` |
+| Fixed-Width | `text/plain` | `.txt` |
+| Free Form | `text/plain` | `.txt` |
 
-When a row fails validation, it is skipped in the output but processing continues. Failed rows are collected in the job's error log with descriptive messages.
+---
+
+## 11. Appendix C: Seed Data Examples
+
+The demo environment includes pre-seeded data that demonstrates all major features. Here is a summary:
+
+### Uploaded Files
+
+| File Name | Rows | Columns | Owner | Description |
+|---|---|---|---|---|
+| Patient Records.csv | 25 | 24 | Admin User | Patient demographics, diagnoses, medications, vitals |
+| Employee Directory.csv | 30 | 16 | Admin User | Employee profiles, salaries, departments, performance |
+| Order History.csv | 25 | 17 | Demo User | E-commerce orders, pricing, shipping, discounts |
+| Financial Transactions.csv | 20 | 10 | Admin User | Accounting entries, debits/credits, vendor data |
+
+### Mapping Profiles
+
+| Profile Name | Creator | Key Features Demonstrated |
+|---|---|---|
+| All 16 Transformation Functions | Admin | Every string, date, numeric, and logic function applied to patient data |
+| Complex Template Engine | Admin | `{{#if}}...{{else}}...{{/if}}` with XML output, computed fields |
+| Conditional Mapping & Logic | Admin | Nested `if`, `case`, `switch`, `coalesce`, conditional field mapping |
+| Fixed-Width Employee Export | Demo | Fixed-width output format with 6 validation rules |
+| HL7 Patient Export | Admin | Healthcare HL7 v2.3 format with PID/NK1/OBX segments |
+| Financial JSON Report | Admin | Pretty-printed JSON with constants, computed fields, `coalesce` |
+| Orders Tab-Delimited | Demo | Tab-separated format with constants and expressions |
+| Patient Summary (Pipe-Delimited) | Demo | Pipe-delimited text with string transformations and BMI calculation |
+
+### Processing Jobs
+
+| Job | Status | Format | Rows | Profile |
+|---|---|---|---|---|
+| All 16 Functions | COMPLETED | CSV | 25/25 | All 16 Transformation Functions |
+| Complex Template | COMPLETED | XML | 25/25 | Complex Template Engine |
+| Conditional Mapping | FAILED (3 errors) | CSV | 18/30 | Conditional Mapping & Logic |
+| HL7 Export | PROCESSING | HL7 | 10/25 | HL7 Patient Export |
+| Financial Report | COMPLETED | JSON | 20/20 | Financial JSON Report |
+| Fixed-Width Export | PENDING | Fixed-Width | 0/30 | Fixed-Width Employee Export |
+| Orders Tab-Delimited | COMPLETED | Tab | 25/25 | Orders Tab-Delimited |
+| Patient Summary | COMPLETED | Pipe | 25/25 | Patient Summary (Pipe-Delimited) |
+| 5 Historical Jobs | COMPLETED | CSV | 25/25 | All 16 Functions (reused) |
+
+### Sample HL7 Message Output
+
+The HL7 Patient Export profile generates messages like:
+
+```
+MSH|^~\&|DATAMAPPER|HOSPITAL|RECEIVER|FACILITY|2025-01-15T08:30:00||ADT^A04|MSG-P-001|P|2.3
+PID|1|P-001||SMITH^JOHN||19850315|M||A+|123 Main St^^Springfield^IL^62701||555-0201|john.smith@email.com
+NK1|1|Jane Smith|SPO|555-0301
+OBX|1|TX|SMOKING||Former
+```
+
+### Sample Fixed-Width Output
+
+The Fixed-Width Employee Export profile produces records like:
+
+```
+1001      John Smith             Engineering           105000     Active    
+1002      Jane Doe               Marketing              95000     Active    
+1003      Bob Johnson            Engineering             75000     Active    
+```
+
+Each field has a specified width (10, 25, 20, 12, 10 characters), alignment, and pad character.
+
+### Sample Failed Job Error Log
+
+The Conditional Mapping job failed with 3 validation errors:
+
+```json
+[
+  { "row": 6, "errors": ["Email validation failed: diana.martinez@example.com"] },
+  { "row": 19, "errors": ["Status validation failed: Leave"] },
+  { "row": 24, "errors": ["Salary validation failed"] }
+]
+```
+
+This demonstrates how validation rules catch data quality issues during processing.
