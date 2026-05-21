@@ -23,6 +23,7 @@ interface TemplateEditorProps {
   sourceColumns?: ColumnInfo[];
   templates?: SavedTemplate[];
   draggableColumns?: DraggableColumn[];
+  previewRow?: Record<string, any>;
   liveOutput?: string;
   livePreviewEnabled?: boolean;
   onToggleLivePreview?: () => void;
@@ -36,7 +37,7 @@ const syntaxHelpers = [
 
 export function TemplateEditor({
   value, onChange, preview, sourceColumns, templates,
-  draggableColumns, liveOutput, livePreviewEnabled, onToggleLivePreview,
+  draggableColumns, previewRow, liveOutput, livePreviewEnabled, onToggleLivePreview,
 }: TemplateEditorProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -606,6 +607,7 @@ export function TemplateEditor({
       <FieldBuilder
         open={showFieldBuilder}
         sourceColumns={sourceColumns || []}
+        previewRow={previewRow}
         onInsert={(expression) => {
           const editor = editorRef.current;
           if (editor) {

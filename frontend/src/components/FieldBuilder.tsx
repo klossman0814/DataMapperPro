@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
-import { X, Wand2 } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { X, Wand2, Eye } from 'lucide-react';
 import type { ColumnInfo } from '../types';
+import { templatesService } from '../services/templates.service';
 
 interface FieldBuilderProps {
   open: boolean;
   sourceColumns: ColumnInfo[];
+  previewRow?: Record<string, any>;
   onInsert: (expression: string) => void;
   onClose: () => void;
 }
@@ -58,7 +60,7 @@ const transformOptions: TransformDef[] = [
   ]},
 ];
 
-export function FieldBuilder({ open, sourceColumns, onInsert, onClose }: FieldBuilderProps) {
+export function FieldBuilder({ open, sourceColumns, previewRow, onInsert, onClose }: FieldBuilderProps) {
   const [valueType, setValueType] = useState<'field' | 'literal'>('field');
   const [selectedField, setSelectedField] = useState(sourceColumns[0]?.name || '');
   const [literalText, setLiteralText] = useState('');
@@ -66,6 +68,9 @@ export function FieldBuilder({ open, sourceColumns, onInsert, onClose }: FieldBu
   const [conditionField, setConditionField] = useState(selectedField || '');
   const [selectedTransform, setSelectedTransform] = useState('');
   const [transformParams, setTransformParams] = useState<Record<string, string>>({});
+  const [renderedValue, setRenderedValue] = useState('');
+  const [rendering, setRendering] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const selectedTransformDef = useMemo(
     () => transformOptions.find((t) => t.name === selectedTransform),
@@ -100,6 +105,26 @@ export function FieldBuilder({ open, sourceColumns, onInsert, onClose }: FieldBu
 
     return token;
   }, [valueType, selectedField, literalText, wrapType, conditionField, selectedTransform, selectedTransformDef, transformParams]);
+
+  useEffect(() => {
+    if (!builtExpression || !previewRow || wrapType !== 'none') {
+      setRenderedValue('');
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setRendering(true);
+      try {
+        const res = await templatesService.renderInline(builtExpression, { row: previewRow, index: 0 });
+        setRenderedValue(res.output);
+      } catch {
+        setRenderedValue('');
+      } finally {
+        setRendering(false);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [builtExpression, previewRow, wrapType]);
 
   const handleParamChange = (key: string, value: string) => {
     setTransformParams((prev) => ({ ...prev, [key]: value }));
@@ -289,11 +314,38 @@ export function FieldBuilder({ open, sourceColumns, onInsert, onClose }: FieldBu
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Preview</label>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-              <code className="whitespace-pre-wrap break-all text-sm text-gray-800 dark:text-slate-200">
-                {builtExpression || <span className="text-gray-400">Configure the field above to see a preview...</span>}
-              </code>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">
+              Preview
+              {rendering && <span className="ml-2 text-xs text-gray-400">rendering...</span>}
+            </label>
+            <div className="space-y-2">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Expression</p>
+                <code className="whitespace-pre-wrap break-all text-sm text-gray-800 dark:text-slate-200">
+                  {builtExpression || <span className="text-gray-400">Configure the field above to see a preview...</span>}
+                </code>
+              </div>
+              {previewRow && builtExpression && wrapType === 'none' && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+                  <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">
+                    <Eye className="h-3 w-3" />
+                    Rendered Value
+                  </p>
+                  <code className="whitespace-pre-wrap break-all text-sm font-medium text-green-800 dark:text-green-200">
+                    {renderedValue || (rendering ? '...' : '(empty)')}
+                  </code>
+                </div>
+              )}
+              {previewRow && builtExpression && wrapType !== 'none' && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Live Preview Not Available
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Conditional and each-wrapped expressions can be previewed in the main Template Editor.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

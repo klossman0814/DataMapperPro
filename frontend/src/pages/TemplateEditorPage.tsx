@@ -758,6 +758,7 @@ export function TemplateEditorPage() {
       <FieldBuilder
         open={showFieldBuilder}
         sourceColumns={previewColumns}
+        previewRow={previewRows[0]}
         onInsert={(expression) => {
           const editor = editorRef.current;
           if (editor) {

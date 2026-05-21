@@ -311,6 +311,7 @@ export function MappingDesigner() {
               sourceColumns={store.sourceColumns}
               templates={savedTemplates}
               draggableColumns={dragColumns}
+              previewRow={previewRows[0]}
               liveOutput={liveOutput}
               livePreviewEnabled={livePreviewEnabled}
               onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
