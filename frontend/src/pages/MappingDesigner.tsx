@@ -34,8 +34,6 @@ export function MappingDesigner() {
   const [selectedFileId, setSelectedFileId] = useState(fileId || store.uploadedFile?.id || '');
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('txt');
-  const [outputExtension, setOutputExtension] = useState('');
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [generatingPreview, setGeneratingPreview] = useState(false);
@@ -52,6 +50,12 @@ export function MappingDesigner() {
         store.setMappings(profile.configurationJson.mappings || []);
         store.setTemplate(profile.template || '');
         store.setProfileName(profile.name);
+        if (profile.configurationJson.outputFormat) {
+          store.setOutputFormat(profile.configurationJson.outputFormat);
+        }
+        if (profile.configurationJson.outputOptions?.fileExtension) {
+          store.setOutputExtension(profile.configurationJson.outputOptions.fileExtension);
+        }
       })
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoadingProfile(false));
@@ -77,9 +81,17 @@ export function MappingDesigner() {
     }
     setSaving(true);
     try {
+      const opts: Record<string, any> = {};
+      if (store.outputExtension.trim()) {
+        opts.fileExtension = store.outputExtension.trim();
+      }
       await profilesService.save({
         name: store.profileName,
-        configurationJson: { mappings: store.mappings },
+        configurationJson: {
+          mappings: store.mappings,
+          outputFormat: store.outputFormat,
+          outputOptions: Object.keys(opts).length ? opts : undefined,
+        },
         template: store.template,
       });
       toast.success('Profile saved successfully');
@@ -100,16 +112,16 @@ export function MappingDesigner() {
       return;
     }
     setRunning(true);
-    const opts: Record<string, any> = {};
-    if (outputExtension.trim()) {
-      opts.fileExtension = outputExtension.trim();
+      const opts: Record<string, any> = {};
+    if (store.outputExtension.trim()) {
+      opts.fileExtension = store.outputExtension.trim();
     }
     try {
       const job = await jobsService.create({
         fileId: selectedFileId,
         template: store.template,
         mappings: store.mappings,
-        outputFormat,
+        outputFormat: store.outputFormat,
         outputOptions: Object.keys(opts).length ? opts : undefined,
       });
       toast.success('Job started');
@@ -128,7 +140,7 @@ export function MappingDesigner() {
       const hasTemplate = !!store.template;
       let preview = '';
 
-      switch (outputFormat) {
+      switch (store.outputFormat) {
         case 'csv': {
           const header = fields.join(',');
           const sampleRow = fields.map((f) => `{{${f}}}`).join(',');
@@ -183,7 +195,7 @@ export function MappingDesigner() {
         }
       }
 
-      if (hasTemplate && outputFormat !== 'json') {
+      if (hasTemplate && store.outputFormat !== 'json') {
         preview += `\n\n# Template\n${store.template}`;
       }
 
@@ -244,7 +256,7 @@ export function MappingDesigner() {
 
           <OutputPreview
             output={store.outputPreview}
-            format={outputFormat}
+            format={store.outputFormat}
             loading={false}
           />
         </div>
@@ -279,8 +291,8 @@ export function MappingDesigner() {
           <div className="card">
             <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-slate-300">Output Format</h3>
             <select
-              value={outputFormat}
-              onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
+              value={store.outputFormat}
+              onChange={(e) => store.setOutputFormat(e.target.value as OutputFormat)}
               className="input-field"
             >
               {outputFormats.map((fmt) => (
@@ -295,10 +307,10 @@ export function MappingDesigner() {
                 <span className="text-sm text-gray-400">.</span>
                 <input
                   type="text"
-                  value={outputExtension}
-                  onChange={(e) => setOutputExtension(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  value={store.outputExtension}
+                  onChange={(e) => store.setOutputExtension(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
                   className="input-field flex-1"
-                  placeholder={outputFormat === 'freeform' ? 'txt' : outputFormat}
+                  placeholder={store.outputFormat === 'freeform' ? 'txt' : store.outputFormat}
                 />
               </div>
             </div>

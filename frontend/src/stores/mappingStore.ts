@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { UploadedFileInfo, ColumnInfo, FieldMapping } from '../types';
+import type { UploadedFileInfo, ColumnInfo, FieldMapping, OutputFormat } from '../types';
 
 interface MappingState {
   uploadedFile: UploadedFileInfo | null;
@@ -8,6 +8,8 @@ interface MappingState {
   template: string;
   outputPreview: string;
   profileName: string;
+  outputFormat: OutputFormat;
+  outputExtension: string;
   setUploadedFile: (file: UploadedFileInfo) => void;
   setSourceColumns: (columns: ColumnInfo[]) => void;
   addMapping: (mapping: FieldMapping) => void;
@@ -18,6 +20,8 @@ interface MappingState {
   setTemplate: (template: string) => void;
   setOutputPreview: (preview: string) => void;
   setProfileName: (name: string) => void;
+  setOutputFormat: (format: OutputFormat) => void;
+  setOutputExtension: (ext: string) => void;
   reset: () => void;
 }
 
@@ -28,6 +32,8 @@ const initialState = {
   template: '',
   outputPreview: '',
   profileName: '',
+  outputFormat: 'txt' as OutputFormat,
+  outputExtension: '',
 };
 
 export const useMappingStore = create<MappingState>((set) => ({
@@ -63,5 +69,7 @@ export const useMappingStore = create<MappingState>((set) => ({
   setTemplate: (template) => set({ template }),
   setOutputPreview: (preview) => set({ outputPreview: preview }),
   setProfileName: (name) => set({ profileName: name }),
+  setOutputFormat: (format) => set({ outputFormat: format }),
+  setOutputExtension: (ext) => set({ outputExtension: ext }),
   reset: () => set(initialState),
 }));

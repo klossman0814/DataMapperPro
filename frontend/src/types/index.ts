@@ -69,6 +69,8 @@ export interface MappingProfile {
   template: string;
   configurationJson: {
     mappings: FieldMapping[];
+    outputFormat?: OutputFormat;
+    outputOptions?: Record<string, any>;
   };
   version: number;
   createdAt: string;
