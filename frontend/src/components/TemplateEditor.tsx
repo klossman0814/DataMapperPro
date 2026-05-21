@@ -29,8 +29,8 @@ interface TemplateEditorProps {
 
 const syntaxHelpers = [
   { label: '{{field}}', insert: '{{}}', description: 'Field reference' },
-  { label: '{{#if}}', insert: '{{#if }}\n\n{{/if}}', description: 'Conditional' },
-  { label: '{{#each}}', insert: '{{#each }}\n\n{{/each}}', description: 'Loop' },
+  { label: '{{#if}}', insert: '{{#if }}{{/if}}', description: 'Conditional' },
+  { label: '{{#each}}', insert: '{{#each }}{{/each}}', description: 'Loop' },
 ];
 
 export function TemplateEditor({

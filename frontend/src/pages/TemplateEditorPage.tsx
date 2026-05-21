@@ -320,8 +320,8 @@ export function TemplateEditorPage() {
 
   const syntaxHelpers = [
     { icon: Variable, label: '{{field}}', insert: '{{}}' },
-    { icon: Braces, label: '{{#if}}', insert: '{{#if }}\n\n{{/if}}' },
-    { icon: List, label: '{{#each}}', insert: '{{#each }}\n\n{{/each}}' },
+    { icon: Braces, label: '{{#if}}', insert: '{{#if }}{{/if}}' },
+    { icon: List, label: '{{#each}}', insert: '{{#each }}{{/each}}' },
   ];
 
   if (loading) {
