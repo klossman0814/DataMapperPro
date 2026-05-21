@@ -7,6 +7,7 @@ import {
   PlayCircle,
   Bookmark,
   Settings,
+  BookOpen,
   LogOut,
   Menu,
   X,
@@ -23,6 +24,7 @@ const navItems = [
   { to: '/jobs', icon: PlayCircle, label: 'Processing Jobs' },
   { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
   { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/guide', icon: BookOpen, label: 'User Guide' },
 ];
 
 export function Layout() {
