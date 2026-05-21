@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
-import { Sun, Moon, User, Shield, Bell, Key, Download } from 'lucide-react';
+import { Sun, Moon, User, Shield, Bell, Key, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { notificationsService } from '../services/notifications.service';
+import { WeeklySummaryPreview } from '../components/WeeklySummaryPreview';
+import type { NotificationPreferences } from '../types';
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 export function Settings() {
   const { theme, setTheme, user } = useAppStore();
@@ -11,6 +16,38 @@ export function Settings() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [defaultFormat, setDefaultFormat] = useState('csv');
   const [defaultDelimiter, setDefaultDelimiter] = useState(',');
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  useEffect(() => {
+    notificationsService.getPreferences()
+      .then(setPrefs)
+      .catch(() => toast.error('Failed to load notification preferences'));
+  }, []);
+
+  const handleToggle = async (key: keyof NotificationPreferences, value: boolean) => {
+    if (!prefs) return;
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    try {
+      await notificationsService.updatePreferences({ [key]: value });
+    } catch {
+      setPrefs(prefs);
+      toast.error('Failed to update preference');
+    }
+  };
+
+  const handleScheduleChange = async (key: 'weeklySummaryDay' | 'weeklySummaryTime', value: string) => {
+    if (!prefs) return;
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    try {
+      await notificationsService.updatePreferences({ [key]: value });
+    } catch {
+      setPrefs(prefs);
+      toast.error('Failed to update schedule');
+    }
+  };
 
   const handleSaveProfile = () => {
     toast.success('Profile updated');
@@ -206,23 +243,86 @@ export function Settings() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notification Preferences</h2>
             </div>
             <div className="space-y-3">
-              {[
-                { label: 'Job completion notifications', enabled: true },
-                { label: 'Job failure alerts', enabled: true },
-                { label: 'Weekly usage summary', enabled: false },
-              ].map(({ label, enabled }) => (
-                <div key={label} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-slate-700/30">
-                  <span className="text-sm text-gray-700 dark:text-slate-200">{label}</span>
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-slate-700/30">
+                <span className="text-sm text-gray-700 dark:text-slate-200">Job completion notifications</span>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={prefs?.jobCompleted ?? true}
+                    onChange={(e) => handleToggle('jobCompleted', e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="h-5 w-9 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full dark:bg-slate-600" />
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-slate-700/30">
+                <span className="text-sm text-gray-700 dark:text-slate-200">Job failure alerts</span>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={prefs?.jobFailed ?? true}
+                    onChange={(e) => handleToggle('jobFailed', e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="h-5 w-9 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full dark:bg-slate-600" />
+                </label>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 dark:bg-slate-700/30">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-sm text-gray-700 dark:text-slate-200">Weekly usage summary</span>
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
                       type="checkbox"
-                      defaultChecked={enabled}
+                      checked={prefs?.weeklySummary ?? false}
+                      onChange={(e) => handleToggle('weeklySummary', e.target.checked)}
                       className="peer sr-only"
                     />
                     <div className="h-5 w-9 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-600 peer-checked:after:translate-x-full dark:bg-slate-600" />
                   </label>
                 </div>
-              ))}
+                {prefs?.weeklySummary && (
+                  <div className="border-t border-gray-200 px-4 py-3 dark:border-slate-600">
+                    <div className="flex flex-wrap items-end gap-4">
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-slate-400">Day of Week</label>
+                        <select
+                          value={prefs.weeklySummaryDay || 'monday'}
+                          onChange={(e) => handleScheduleChange('weeklySummaryDay', e.target.value)}
+                          className="input-field text-sm"
+                        >
+                          {DAYS.map(d => (
+                            <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-slate-400">Time</label>
+                        <input
+                          type="time"
+                          value={prefs.weeklySummaryTime || '09:00'}
+                          onChange={(e) => handleScheduleChange('weeklySummaryTime', e.target.value)}
+                          className="input-field text-sm"
+                        />
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => setShowPreview(true)}
+                          className="btn-secondary flex items-center gap-1.5 text-sm"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Preview
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400 dark:text-slate-500">
+                      Summary will be sent every {prefs.weeklySummaryDay || 'Monday'} at {prefs.weeklySummaryTime || '09:00'}.
+                      Configure SMTP settings to enable email delivery.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -280,6 +380,8 @@ export function Settings() {
           </div>
         </div>
       </div>
+
+      {showPreview && <WeeklySummaryPreview onClose={() => setShowPreview(false)} />}
     </div>
   );
 }

@@ -12,12 +12,20 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('admin123', 10);
 
+  const defaultPrefs: Prisma.InputJsonValue = JSON.parse(JSON.stringify({
+    jobCompleted: true,
+    jobFailed: true,
+    weeklySummary: false,
+    weeklySummaryDay: 'monday',
+    weeklySummaryTime: '09:00',
+  }));
+
   const adminUser = await prisma.user.create({
-    data: { email: 'admin@datamapperpro.com', passwordHash, name: 'Admin User' },
+    data: { email: 'admin@datamapperpro.com', passwordHash, name: 'Admin User', notificationPreferences: defaultPrefs },
   });
 
   const demoUser = await prisma.user.create({
-    data: { email: 'demo@datamapperpro.com', passwordHash, name: 'Demo User' },
+    data: { email: 'demo@datamapperpro.com', passwordHash, name: 'Demo User', notificationPreferences: defaultPrefs },
   });
 
   console.log('Created 2 users');

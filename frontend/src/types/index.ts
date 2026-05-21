@@ -1,7 +1,16 @@
+export interface NotificationPreferences {
+  jobCompleted: boolean;
+  jobFailed: boolean;
+  weeklySummary: boolean;
+  weeklySummaryDay: string;
+  weeklySummaryTime: string;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  notificationPreferences?: NotificationPreferences | null;
 }
 
 export interface AuthResponse {

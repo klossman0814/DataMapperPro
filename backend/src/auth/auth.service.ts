@@ -48,6 +48,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        notificationPreferences: (user.notificationPreferences as Record<string, any>) || null,
       },
     };
   }
@@ -58,7 +59,10 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     const { passwordHash, ...profile } = user;
-    return profile;
+    return {
+      ...profile,
+      notificationPreferences: (profile.notificationPreferences as Record<string, any>) || null,
+    };
   }
 
   generateToken(user: { id: string; email: string }) {
