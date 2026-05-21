@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import { Code, Eye, FileCode, Braces, Variable, List, FileInput, Wand2, X } from 'lucide-react';
+import { Code, Eye, FileCode, Braces, Variable, List, FileInput, Wand2, X, Sparkles } from 'lucide-react';
 import type { ColumnInfo } from '../types';
 
 interface TemplateEditorProps {
@@ -92,6 +92,17 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns }: Temp
     setShowGenerator(false);
     setSampleText('');
     setFieldName('');
+  };
+
+  const smartTokenize = () => {
+    const delimiters = /([|,^~&;:\s!@#$%()\/\\-]+)/;
+    const parts = sampleText.split(delimiters);
+    const tokenized = parts.map((part) => {
+      if (delimiters.test(part)) return part;
+      if (!part.trim()) return part;
+      return `{{${part.trim()}}}`;
+    });
+    setSampleText(tokenized.join(''));
   };
 
   return (
@@ -213,9 +224,9 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns }: Temp
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">
-                Paste a sample output from your vendor below, then replace hardcoded values with
-                {' '}<code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs dark:bg-slate-700">{'{{field}}'}</code>{' '}
-                tokens. Select text in the sample, type a field name, and click <strong>Replace</strong>.
+                Paste a sample output from your vendor below. Click <strong>Smart Tokenize</strong> to
+                auto-wrap values in <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs dark:bg-slate-700">{'{{field}}'}</code>{' '}
+                tokens, or select text and use <strong>Replace</strong> to manually create tokens.
               </p>
 
               <div className="mb-4">
@@ -229,6 +240,20 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns }: Temp
                   className="input-field min-h-[200px] w-full font-mono text-sm"
                   placeholder={`Paste vendor sample here, for example:\n\nMSH|^~\\&|App|Facility|||202401010000||ADT^A01|||2.5.1\nPID|||12345||Doe^John||19800101|M`}
                 />
+              </div>
+
+              <div className="mb-4 flex items-center gap-2">
+                <button
+                  onClick={smartTokenize}
+                  disabled={!sampleText.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:border-purple-300 hover:bg-purple-50 dark:border-purple-500/30 dark:bg-slate-800 dark:text-purple-400 dark:hover:border-purple-500/50 dark:hover:bg-purple-500/10"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Smart Tokenize
+                </button>
+                <span className="text-xs text-gray-400 dark:text-slate-500">
+                  Auto-detects field names and wraps them in <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{}}'}</code>
+                </span>
               </div>
 
               <div className="mb-4 flex items-end gap-2">
@@ -276,8 +301,8 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns }: Temp
               )}
 
               <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                <strong>Tip:</strong> Select any text in the sample above, type a field name, and click
-                {' '}<strong>Replace</strong> to turn it into a <code>{'{{field_name}}'}</code> token.
+                <strong>Tip:</strong> Click <strong>Smart Tokenize</strong> to auto-detect field names and wrap them in
+                {' '}<code>{'{{}}'}</code>. Then use <strong>Replace</strong> to fix any that should remain static text.
                 Or click a source column name to insert a token at the cursor position.
               </div>
             </div>
