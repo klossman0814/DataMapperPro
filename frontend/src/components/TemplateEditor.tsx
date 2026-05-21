@@ -3,11 +3,18 @@ import Editor from '@monaco-editor/react';
 import { Code, Eye, FileCode, Braces, Variable, List, FileInput, Wand2, X, Sparkles } from 'lucide-react';
 import type { ColumnInfo } from '../types';
 
+interface SavedTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
+
 interface TemplateEditorProps {
   value: string;
   onChange: (value: string) => void;
   preview?: string;
   sourceColumns?: ColumnInfo[];
+  templates?: SavedTemplate[];
 }
 
 const syntaxHelpers = [
@@ -16,7 +23,7 @@ const syntaxHelpers = [
   { label: '{{#each}}', insert: '{{#each }}\n\n{{/each}}', description: 'Loop' },
 ];
 
-export function TemplateEditor({ value, onChange, preview, sourceColumns }: TemplateEditorProps) {
+export function TemplateEditor({ value, onChange, preview, sourceColumns, templates }: TemplateEditorProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
@@ -110,6 +117,23 @@ export function TemplateEditor({ value, onChange, preview, sourceColumns }: Temp
       <div className="grid gap-6" style={{ gridTemplateColumns: showPreview ? '1fr 1fr' : '1fr' }}>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
+            {templates && templates.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  const tpl = templates.find((t) => t.id === e.target.value);
+                  if (tpl) onChange(tpl.content);
+                }}
+                className="input-field w-48 text-xs"
+              >
+                <option value="">Load saved template...</option>
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </select>
+            )}
             {syntaxHelpers.map((helper) => (
               <button
                 key={helper.label}

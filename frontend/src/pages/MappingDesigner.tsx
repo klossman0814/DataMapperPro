@@ -4,6 +4,8 @@ import { Save, Play, Eye, SplitSquareHorizontal, Upload } from 'lucide-react';
 import { filesService } from '../services/files.service';
 import { jobsService } from '../services/jobs.service';
 import { profilesService } from '../services/profiles.service';
+import { templatesService } from '../services/templates.service';
+import type { Template } from '../services/templates.service';
 import { useMappingStore } from '../stores/mappingStore';
 import { MappingCanvas } from '../components/MappingCanvas';
 import { OutputPreview } from '../components/OutputPreview';
@@ -37,9 +39,11 @@ export function MappingDesigner() {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [savedTemplates, setSavedTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
+    templatesService.list(1, 50).then((res) => setSavedTemplates(res.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -261,6 +265,7 @@ export function MappingDesigner() {
               value={store.template}
               onChange={store.setTemplate}
               sourceColumns={store.sourceColumns}
+              templates={savedTemplates}
             />
           </div>
 
