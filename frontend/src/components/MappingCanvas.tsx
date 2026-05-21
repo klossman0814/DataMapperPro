@@ -8,45 +8,6 @@ interface MappingCanvasProps {
   onMappingsChange: (mappings: FieldMapping[]) => void;
 }
 
-function levenshteinDistance(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .replace(/(id|_id|Id)$/i, '');
-}
-
-function findBestMatch(field: string, columns: ColumnInfo[]): ColumnInfo | null {
-  const normalized = normalizeName(field);
-  let best: ColumnInfo | null = null;
-  let bestScore = Infinity;
-  for (const col of columns) {
-    const colNormalized = normalizeName(col.name);
-    const dist = levenshteinDistance(normalized, colNormalized);
-    const score = dist / Math.max(normalized.length, colNormalized.length);
-    if (score < bestScore) {
-      bestScore = score;
-      best = col;
-    }
-  }
-  return bestScore <= 0.4 ? best : null;
-}
-
 const transformOptions = [
   { category: 'String', options: [
     { value: 'trim', label: 'Trim' },
@@ -78,8 +39,6 @@ const transformOptions = [
 
 export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: MappingCanvasProps) {
   const [destinationField, setDestinationField] = useState('');
-  const [showAutoMap, setShowAutoMap] = useState(false);
-  const [autoFields, setAutoFields] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -123,19 +82,12 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
   };
 
   const handleAutoMap = () => {
-    const fields = autoFields.split(',').map((f) => f.trim()).filter(Boolean);
-    if (fields.length === 0) return;
-    const autoMappings: FieldMapping[] = fields.map((field) => {
-      const match = findBestMatch(field, sourceColumns);
-      return {
-        destinationField: field,
-        sourceField: match?.name || '',
-        transformation: undefined,
-      };
-    });
+    const autoMappings: FieldMapping[] = sourceColumns.map((col) => ({
+      destinationField: col.name,
+      sourceField: col.name,
+      transformation: undefined,
+    }));
     onMappingsChange(autoMappings);
-    setShowAutoMap(false);
-    setAutoFields('');
   };
 
   const handleDropOnMapping = (sourceColName: string, targetIndex: number) => {
@@ -189,7 +141,7 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowAutoMap(true)}
+                onClick={handleAutoMap}
                 className="btn-secondary text-xs"
               >
                 <Wand2 className="h-3.5 w-3.5" />
@@ -224,29 +176,6 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
               )}
             </div>
           </div>
-
-          {showAutoMap && (
-            <div className="mb-4 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-500/30 dark:bg-primary-500/10">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">
-                Destination fields (comma-separated)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={autoFields}
-                  onChange={(e) => setAutoFields(e.target.value)}
-                  className="input-field flex-1"
-                  placeholder="first_name, last_name, email"
-                />
-                <button onClick={handleAutoMap} className="btn-primary text-sm">
-                  Map
-                </button>
-                <button onClick={() => setShowAutoMap(false)} className="btn-secondary text-sm">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className="mb-4 flex gap-2">
             <input
