@@ -450,62 +450,99 @@ export function TemplateEditorPage() {
         )}
 
         <div className="min-w-0 flex-1 flex flex-col min-h-0">
-          <div className="shrink-0 flex flex-wrap items-center gap-2 pb-2">
-            {syntaxHelpers.map((helper) => (
+          <div className="shrink-0 relative">
+            <div className="flex flex-wrap items-center gap-2 pb-2">
+              {syntaxHelpers.map((helper) => (
+                <button
+                  key={helper.label}
+                  onClick={() => {
+                    const editor = editorRef.current;
+                    if (editor) {
+                      const pos = editor.getPosition();
+                      editor.executeEdits('insert', [{
+                        range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                        text: helper.insert,
+                      }]);
+                      editor.focus();
+                    } else {
+                      setTemplateContent((prev) => prev + '\n' + helper.insert);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+                >
+                  <helper.icon className="h-3 w-3" />
+                  {helper.label}
+                </button>
+              ))}
               <button
-                key={helper.label}
-                onClick={() => setTemplateContent((prev) => prev + '\n' + helper.insert)}
+                onClick={() => {
+                  const editor = editorRef.current;
+                  if (editor) {
+                    const pos = editor.getPosition();
+                    editor.executeEdits('insert-text', [{
+                      range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                      text: 'Type text here',
+                    }]);
+                    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 14 });
+                    editor.focus();
+                  } else {
+                    setTemplateContent((prev) => prev + 'Type text here');
+                  }
+                }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
               >
-                <helper.icon className="h-3 w-3" />
-                {helper.label}
+                <span className="font-mono font-bold text-xs">T</span>
+                Text
               </button>
-            ))}
-            <button
-              onClick={() => setShowTransforms(!showTransforms)}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                showTransforms
-                  ? 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
-                  : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
-              }`}
-            >
-              <FunctionSquare className="h-3 w-3" />
-              Transforms
-              {showTransforms ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            </button>
-          </div>
-
-          {showTransforms && (
-            <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50 shrink-0 mb-2">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-                {transformGroups.map((group) => (
-                  <div key={group.category}>
-                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
-                      {group.category}
-                    </p>
-                    <div className="space-y-1">
-                      {group.items.map((fn) => (
-                        <button
-                          key={fn.name}
-                          onClick={() => applyTransform(fn.name)}
-                          className="group block w-full rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-purple-50 dark:hover:bg-purple-500/10"
-                          title={fn.description}
-                        >
-                          <span className="font-mono font-medium text-gray-800 group-hover:text-purple-700 dark:text-slate-200 dark:group-hover:text-purple-400">
-                            {fn.name}
-                          </span>
-                          <span className="ml-1 text-[10px] text-gray-400 dark:text-slate-500">{fn.syntax}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
-                Select text in the editor and click a transform to wrap it. Example: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{upper(first_name)}}'}</code>
-              </p>
+              <button
+                onClick={() => setShowTransforms(!showTransforms)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  showTransforms
+                    ? 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
+                    : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <FunctionSquare className="h-3 w-3" />
+                Transforms
+                {showTransforms ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              </button>
             </div>
-          )}
+
+            {showTransforms && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowTransforms(false)} />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 max-h-64 overflow-y-auto">
+                    {transformGroups.map((group) => (
+                      <div key={group.category}>
+                        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                          {group.category}
+                        </p>
+                        <div className="space-y-1">
+                          {group.items.map((fn) => (
+                            <button
+                              key={fn.name}
+                              onClick={() => { applyTransform(fn.name); setShowTransforms(false); }}
+                              className="group block w-full rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-purple-50 dark:hover:bg-purple-500/10"
+                              title={fn.description}
+                            >
+                              <span className="font-mono font-medium text-gray-800 group-hover:text-purple-700 dark:text-slate-200 dark:group-hover:text-purple-400">
+                                {fn.name}
+                              </span>
+                              <span className="ml-1 text-[10px] text-gray-400 dark:text-slate-500">{fn.syntax}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
+                    Select text in the editor and click a transform to wrap it. Example: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{upper(first_name)}}'}</code>
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden" ref={splitContainerRef}>
             <div className="flex flex-col min-h-0 overflow-hidden" style={{ height: `${splitRatio * 100}%` }}>
