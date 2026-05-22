@@ -33,6 +33,21 @@ export class ProfilesController {
     return this.profilesService.list(userId, search, page || 1, limit || 20);
   }
 
+  @Get('workspace/export')
+  exportWorkspace(@CurrentUser('id') userId: string) {
+    return this.profilesService.exportWorkspace(userId);
+  }
+
+  @Post('workspace/import')
+  importWorkspace(@Body() body: any, @CurrentUser('id') userId: string) {
+    return this.profilesService.importWorkspace(body, userId);
+  }
+
+  @Post('import')
+  importProfile(@Body() body: any, @CurrentUser('id') userId: string) {
+    return this.profilesService.importProfile(body, userId);
+  }
+
   @Get(':id')
   get(@Param('id') id: string) {
     return this.profilesService.get(id);
@@ -56,20 +71,5 @@ export class ProfilesController {
   @Get(':id/export')
   exportProfile(@Param('id') id: string) {
     return this.profilesService.exportProfile(id);
-  }
-
-  @Post('import')
-  importProfile(@Body() body: any, @CurrentUser('id') userId: string) {
-    return this.profilesService.importProfile(body, userId);
-  }
-
-  @Get('workspace/export')
-  exportWorkspace(@CurrentUser('id') userId: string) {
-    return this.profilesService.exportWorkspace(userId);
-  }
-
-  @Post('workspace/import')
-  importWorkspace(@Body() body: any, @CurrentUser('id') userId: string) {
-    return this.profilesService.importWorkspace(body, userId);
   }
 }
