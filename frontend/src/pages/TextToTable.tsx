@@ -12,12 +12,13 @@ import { databaseConnectionsService } from '../services/database-connections.ser
 import type { DatabaseConnection, ParseTextResult, ColumnInfo } from '../types';
 import toast from 'react-hot-toast';
 
-const DEFAULT_SEPARATORS = [',', '|', '^', '&', '\t', ';'];
+const DEFAULT_SEPARATORS = [',', '|', '^', '&', '~', '\t', ';'];
 const SEPARATOR_LABELS: Record<string, string> = {
   ',': 'Comma ,',
   '|': 'Pipe |',
   '^': 'Caret ^',
   '&': 'Ampersand &',
+  '~': 'Tilde ~',
   '\t': 'Tab \\t',
   ';': 'Semicolon ;',
 };
