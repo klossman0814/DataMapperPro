@@ -285,7 +285,7 @@ export function TextToTable() {
                 Flat
               </button>
               <button
-                onClick={() => setParseMode('hierarchical')}
+                onClick={() => { setParseMode('hierarchical'); setSelectedSeps(new Set(['|', '^', '~', '&'])); setHasHeader(false); }}
                 className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
                   parseMode === 'hierarchical'
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
@@ -299,58 +299,55 @@ export function TextToTable() {
             <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">
               {parseMode === 'flat'
                 ? 'All selected separators split at the same level.'
-                : 'Primary delimiter splits fields; secondary delimiters split sub-fields (dot notation).'}
+                : 'HL7 standard: one row per OBX observation. Columns named using HL7 field definitions (e.g. pid_patient_name_given_name).'}
             </p>
           </div>
 
           <div>
             <label className="mb-2 block text-xs font-medium text-gray-500 dark:text-slate-400">
-              Delimiters
+              {parseMode === 'hierarchical' ? 'HL7 Encoding Characters' : 'Delimiters'}
             </label>
-            <div className="flex flex-wrap gap-2">
-              {DEFAULT_SEPARATORS.map(sep => (
-                <button
-                  key={sep}
-                  onClick={() => toggleSep(sep)}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-mono transition-colors ${
-                    selectedSeps.has(sep)
-                      ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400 dark:border-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {SEPARATOR_LABELS[sep]}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">{selectedSeps.size} selected</p>
+            {parseMode === 'hierarchical' ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-500/30 dark:bg-amber-500/10">
+                <p className="mb-1 font-mono text-amber-700 dark:text-amber-300">| ^ ~ \ &</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  HL7 encoding auto-detected from MSH-2. Field separator <code className="font-mono">|</code>, component <code className="font-mono">^</code>, repetition <code className="font-mono">~</code>, escape <code className="font-mono">\</code>, subcomponent <code className="font-mono">&amp;</code>.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {DEFAULT_SEPARATORS.map(sep => (
+                  <button
+                    key={sep}
+                    onClick={() => toggleSep(sep)}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-mono transition-colors ${
+                      selectedSeps.has(sep)
+                        ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
+                        : 'border-gray-300 text-gray-600 hover:border-gray-400 dark:border-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {SEPARATOR_LABELS[sep]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {parseMode !== 'hierarchical' && (
+              <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">{selectedSeps.size} selected</p>
+            )}
           </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-6">
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={hasHeader}
-              onChange={(e) => setHasHeader(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600"
+          {parseMode !== 'hierarchical' && (
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={hasHeader}
+                onChange={(e) => setHasHeader(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600"
             />
-            First row is header
-          </label>
-
-          {parseMode === 'hierarchical' && (
-            <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
-              <Replace className="h-4 w-4 text-gray-400" />
-              <span>Primary delimiter:</span>
-              <select
-                value={primarySep}
-                onChange={(e) => setPrimarySep(e.target.value)}
-                className="input-field w-24 text-sm"
-              >
-                {Array.from(selectedSeps).map(sep => (
-                  <option key={sep} value={sep}>{SEPARATOR_LABELS[sep] || sep}</option>
-                ))}
-              </select>
-            </div>
+              First row is header
+            </label>
           )}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Hl7ParserService } from './hl7-parser.service';
 
 export interface ColumnInfo {
   name: string;
@@ -28,6 +29,8 @@ export interface ParseOutput extends ParseResult {
 
 @Injectable()
 export class TextParserService {
+  constructor(private hl7Parser: Hl7ParserService) {}
+
   parse(text: string, separators: string[], parseMode: string, hasHeader: boolean): ParseOutput {
     if (!text.trim()) {
       return { columns: [], rows: [], rowCount: 0, separatorUsed: '', stats: [], selectedSeparator: '' };
@@ -39,6 +42,10 @@ export class TextParserService {
     }
 
     if (parseMode === 'hierarchical') {
+      const firstLine = lines[0].trim();
+      if (firstLine.startsWith('MSH|')) {
+        return this.hl7Parser.parse(text);
+      }
       return this.parseHierarchical(lines, separators, hasHeader);
     }
 
