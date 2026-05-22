@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List, GripVertical, PanelLeftClose, PanelLeft, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
+import { Save, Play, Trash2, FileCode, Eye, BookTemplate, Variable, Braces, List, GripVertical, PanelLeftClose, PanelLeft, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2, Database } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FieldBuilder } from '../components/FieldBuilder';
 import { templatesService, Template } from '../services/templates.service';
 import { filesService } from '../services/files.service';
 import { profilesService } from '../services/profiles.service';
-import type { UploadedFileInfo, ColumnInfo } from '../types';
+import type { UploadedFileInfo, ColumnInfo, DatabaseConnection } from '../types';
+import { databaseConnectionsService } from '../services/database-connections.service';
 import toast from 'react-hot-toast';
 
 const defaultTemplate = '{{mrn}}|{{last_name}}|{{first_name}}|{{dob}}|{{gender}}';
@@ -44,6 +45,12 @@ export function TemplateEditorPage() {
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(() => localStorage.getItem('templateEditorLivePreview') === 'true');
   const [liveOutput, setLiveOutput] = useState('');
   const [filesLoading, setFilesLoading] = useState(false);
+
+  const [sourceTab, setSourceTab] = useState<'file' | 'database'>('file');
+  const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
+  const [dbConnectionId, setDbConnectionId] = useState(localStorage.getItem('templateEditorDbConnectionId') || '');
+  const [querySql, setQuerySql] = useState(localStorage.getItem('templateEditorQuerySql') || '');
+  const [dbQueryLoading, setDbQueryLoading] = useState(false);
   const editorRef = useRef<any>(null);
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -89,10 +96,12 @@ export function TemplateEditorPage() {
     Promise.all([
       templatesService.list(1, 50).catch(() => ({ data: [] as Template[] })),
       filesService.list(1, 50).catch(() => ({ data: [] })),
+      databaseConnectionsService.list().catch(() => [] as DatabaseConnection[]),
     ])
-    .then(([tplRes, fileRes]) => {
+    .then(([tplRes, fileRes, dbConns]) => {
       setTemplates(tplRes.data);
       setUploadedFiles(fileRes.data || []);
+      setDbConnections(dbConns as DatabaseConnection[]);
     })
     .catch(() => {});
   }, []);
@@ -111,10 +120,7 @@ export function TemplateEditorPage() {
   }, [selectedTemplateId]);
 
   useEffect(() => {
-    if (!selectedFileId) {
-      setPreviewColumns([]);
-      setPreviewRows([]);
-      setShowSourcePanel(false);
+    if (sourceTab !== 'file' || !selectedFileId) {
       return;
     }
     setFilesLoading(true);
@@ -130,7 +136,29 @@ export function TemplateEditorPage() {
       })
       .catch(() => toast.error('Failed to load file data'))
       .finally(() => setFilesLoading(false));
-  }, [selectedFileId]);
+  }, [selectedFileId, sourceTab]);
+
+  const handleDbQuery = async () => {
+    if (!dbConnectionId || !querySql.trim()) {
+      toast.error('Select a connection and enter a SQL query');
+      return;
+    }
+    setDbQueryLoading(true);
+    try {
+      const result = await databaseConnectionsService.query(dbConnectionId, querySql);
+      setPreviewColumns(result.columns.map((c: any) => ({
+        name: c.name, type: c.type, nullCount: 0, nullPercentage: 0, sampleValues: [],
+      })));
+      setPreviewRows(result.rows);
+      setShowSourcePanel(true);
+      setLivePreviewEnabled(true);
+      toast.success(`Query returned ${result.rowCount} rows`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Query failed');
+    } finally {
+      setDbQueryLoading(false);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('templateEditorName', templateName);
@@ -155,6 +183,14 @@ export function TemplateEditorPage() {
   useEffect(() => {
     localStorage.setItem('templateEditorLivePreview', String(livePreviewEnabled));
   }, [livePreviewEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorDbConnectionId', dbConnectionId);
+  }, [dbConnectionId]);
+
+  useEffect(() => {
+    localStorage.setItem('templateEditorQuerySql', querySql);
+  }, [querySql]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -410,30 +446,96 @@ export function TemplateEditorPage() {
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">
             Import Data Source <span className="text-xs text-gray-400">(optional — for live preview and drag-and-drop)</span>
           </label>
-          <div className="flex gap-2">
-            <select
-              value={selectedFileId}
-              onChange={(e) => setSelectedFileId(e.target.value)}
-              className="input-field flex-1"
+          <div className="flex gap-1 mb-2 border-b border-gray-200 dark:border-slate-700">
+            <button
+              onClick={() => setSourceTab('file')}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                sourceTab === 'file'
+                  ? 'border-b-2 border-primary-500 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
             >
-              <option value="">Select a file for preview data...</option>
-              {uploadedFiles.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.originalName} ({f.rowCount} rows)
-                </option>
-              ))}
-            </select>
-            {previewColumns.length > 0 && (
-              <button
-                onClick={() => setShowSourcePanel(!showSourcePanel)}
-                className="btn-secondary shrink-0"
-                title="Toggle source columns panel"
-              >
-                {showSourcePanel ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-                Columns
-              </button>
-            )}
+              <FileCode className="mr-1 inline h-3.5 w-3.5" />
+              File
+            </button>
+            <button
+              onClick={() => setSourceTab('database')}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                sourceTab === 'database'
+                  ? 'border-b-2 border-primary-500 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              <Database className="mr-1 inline h-3.5 w-3.5" />
+              Database
+            </button>
           </div>
+
+          {sourceTab === 'file' ? (
+            <div className="flex gap-2">
+              <select
+                value={selectedFileId}
+                onChange={(e) => setSelectedFileId(e.target.value)}
+                className="input-field flex-1"
+              >
+                <option value="">Select a file for preview data...</option>
+                {uploadedFiles.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.originalName} ({f.rowCount} rows)
+                  </option>
+                ))}
+              </select>
+              {previewColumns.length > 0 && (
+                <button
+                  onClick={() => setShowSourcePanel(!showSourcePanel)}
+                  className="btn-secondary shrink-0"
+                  title="Toggle source columns panel"
+                >
+                  {showSourcePanel ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+                  Columns
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <select
+                  value={dbConnectionId}
+                  onChange={(e) => setDbConnectionId(e.target.value)}
+                  className="input-field flex-1 text-sm"
+                >
+                  <option value="">Select a database connection...</option>
+                  {dbConnections.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.host})</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleDbQuery}
+                  disabled={dbQueryLoading || !dbConnectionId || !querySql.trim()}
+                  className="btn-secondary whitespace-nowrap text-xs"
+                >
+                  {dbQueryLoading ? 'Running...' : 'Run Query'}
+                </button>
+              </div>
+              <textarea
+                value={querySql}
+                onChange={(e) => setQuerySql(e.target.value)}
+                className="input-field w-full font-mono text-xs"
+                rows={3}
+                placeholder="SELECT * FROM my_table LIMIT 10"
+              />
+              {previewColumns.length > 0 && (
+                <button
+                  onClick={() => setShowSourcePanel(!showSourcePanel)}
+                  className="btn-secondary text-xs"
+                >
+                  {showSourcePanel ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
+                  Columns ({previewColumns.length})
+                </button>
+              )}
+            </div>
+          )}
+
           {filesLoading && (
             <p className="mt-1 text-xs text-gray-400">Loading file data...</p>
           )}
