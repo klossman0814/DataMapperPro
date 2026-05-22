@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { useAppStore } from './stores/appStore';
 import { authService } from './services/auth.service';
 import { Layout } from './components/Layout';
@@ -42,7 +43,9 @@ export default function App() {
   }, [theme]);
 
   return (
-    <Routes>
+    <>
+      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { fontSize: '14px' } }} />
+      <Routes>
       <Route path="/login" element={<AuthGuard />} />
       <Route
         path="/"
@@ -64,5 +67,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
