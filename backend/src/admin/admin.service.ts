@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+const SUPER_ADMIN_EMAIL = 'admin@datamapperpro.com';
 
 @Injectable()
 export class AdminService {
@@ -81,6 +83,10 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      throw new BadRequestException('Cannot modify the super admin account');
+    }
+
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
       if (existing) {
@@ -114,6 +120,10 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      throw new BadRequestException('Cannot deactivate the super admin account');
     }
 
     const updated = await this.prisma.user.update({

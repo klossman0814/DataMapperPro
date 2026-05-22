@@ -5,6 +5,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { UserListItem } from '../types';
 import toast from 'react-hot-toast';
 
+const SUPER_ADMIN_EMAIL = 'admin@datamapperpro.com';
+
 export function AdminUsers() {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -166,21 +168,28 @@ export function AdminUsers() {
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => openEdit(user)}
-                        className="btn-secondary text-xs px-2 py-1"
-                        title="Edit user"
-                      >
-                        <UserCog className="h-3.5 w-3.5" />
-                      </button>
-                      {user.isActive && (
-                        <button
-                          onClick={() => setDeleteTarget(user)}
-                          className="btn-danger text-xs px-2 py-1"
-                          title="Deactivate user"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                      {user.email !== SUPER_ADMIN_EMAIL && (
+                        <>
+                          <button
+                            onClick={() => openEdit(user)}
+                            className="btn-secondary text-xs px-2 py-1"
+                            title="Edit user"
+                          >
+                            <UserCog className="h-3.5 w-3.5" />
+                          </button>
+                          {user.isActive && (
+                            <button
+                              onClick={() => setDeleteTarget(user)}
+                              className="btn-danger text-xs px-2 py-1"
+                              title="Deactivate user"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {user.email === SUPER_ADMIN_EMAIL && (
+                        <span className="text-xs text-gray-400 dark:text-slate-500 italic">Protected</span>
                       )}
                     </div>
                   </td>
