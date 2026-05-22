@@ -81,12 +81,26 @@ export function DatabaseConnections() {
   };
 
   const handleTest = async (id: string) => {
+    console.log('handleTest called for', id);
+    if (!id) { toast.error('Invalid connection ID'); return; }
     setTesting(id);
+    const timeout = setTimeout(() => { setTesting(null); }, 30000);
     try {
       const res = await databaseConnectionsService.test(id);
-      toast.success(res.message);
+      clearTimeout(timeout);
+      console.log('Test result:', res);
+      if (res?.message) toast.success(res.message);
+      else toast.success('Connection successful');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Connection test failed');
+      clearTimeout(timeout);
+      console.error('Test error:', err);
+      if (err?.response) {
+        toast.error(err.response.data?.message || `Error ${err.response.status}`);
+      } else if (err?.message) {
+        toast.error(err.message);
+      } else {
+        toast.error('Connection test failed');
+      }
     } finally { setTesting(null); }
   };
 
