@@ -265,7 +265,7 @@ export function TextToTable() {
               <p className="text-lg font-medium text-gray-900 dark:text-white">
                 {isDragActive ? 'Drop your file here' : 'Drag & drop a text file, or click to browse'}
               </p>
-              <p className="text-sm text-gray-500 dark:text-slate-400">.txt, .csv, .tsv, .dat, .hl7 — max 50 MB</p>
+               <p className="text-sm text-gray-500 dark:text-slate-400">.txt, .csv, .tsv, .dat, .hl7, .xlsx, .xls — max 50 MB</p>
             </div>
           </div>
         </div>
