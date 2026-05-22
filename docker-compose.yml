@@ -40,6 +40,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-datamapper-pro-secret-change-in-prod}
       JWT_EXPIRATION: 24h
       PORT: 3001
+      DB_ENCRYPTION_KEY: ${DB_ENCRYPTION_KEY:-datamapper-pro-db-key}
       UPLOAD_DIR: /app/uploads
       OUTPUT_DIR: /app/output
       CORS_ORIGIN: http://localhost:5175,http://192.168.2.22:5175

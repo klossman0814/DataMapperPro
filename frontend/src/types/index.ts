@@ -100,6 +100,19 @@ export interface ProcessingJob {
   profile?: MappingProfile;
 }
 
+export interface DatabaseConnection {
+  id: string;
+  name: string;
+  type: 'mssql' | 'postgresql' | 'mysql';
+  host: string;
+  port: number;
+  databaseName: string;
+  username: string;
+  sslEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TemplateContext {
   row: Record<string, any>;
   index: number;

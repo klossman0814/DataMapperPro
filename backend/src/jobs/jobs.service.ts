@@ -16,17 +16,23 @@ export class JobsService {
       ...(dto.outputOptions || {}),
       mappings: dto.mappings || [],
       template: dto.template || '',
+      databaseConnectionId: dto.databaseConnectionId || null,
+      querySql: dto.querySql || null,
     };
-    const job = await this.prisma.processingJob.create({
-      data: {
-        status: 'PENDING',
-        config: JSON.parse(JSON.stringify(config)) as Prisma.InputJsonValue,
-        outputFormat: dto.outputFormat,
-        uploadedFileId: dto.fileId,
-        profileId: dto.profileId,
-        createdById: userId,
-      },
-    });
+    const data: any = {
+      status: 'PENDING',
+      config: JSON.parse(JSON.stringify(config)) as Prisma.InputJsonValue,
+      outputFormat: dto.outputFormat,
+      profileId: dto.profileId,
+      createdById: userId,
+    };
+    if (dto.fileId) {
+      data.uploadedFileId = dto.fileId;
+    } else if (dto.databaseConnectionId) {
+      data.databaseConnectionId = dto.databaseConnectionId;
+      data.querySql = dto.querySql;
+    }
+    const job = await this.prisma.processingJob.create({ data });
 
     this.startProcessing(job.id).catch((err) => {
       console.error(`Job ${job.id} processing failed:`, err.message);

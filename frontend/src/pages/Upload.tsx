@@ -2,16 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileSpreadsheet, CheckCircle2, ArrowRight, Trash2, Settings2, Layers,
-  HardDrive, Calendar, Rows3, Columns3,
+  HardDrive, Calendar, Rows3, Columns3, Database,
 } from 'lucide-react';
 import { FileDropzone } from '../components/FileDropzone';
 import { DataPreviewGrid } from '../components/DataPreviewGrid';
 import { filesService } from '../services/files.service';
-import type { UploadedFileInfo } from '../types';
+import { databaseConnectionsService } from '../services/database-connections.service';
+import { useMappingStore } from '../stores/mappingStore';
+import type { UploadedFileInfo, DatabaseConnection } from '../types';
 import toast from 'react-hot-toast';
 
 export function Upload() {
   const navigate = useNavigate();
+  const store = useMappingStore();
+  const [sourceTab, setSourceTab] = useState<'file' | 'database'>('file');
   const [uploadedFile, setUploadedFile] = useState<UploadedFileInfo | null>(null);
   const [previewData, setPreviewData] = useState<{ columns: any[]; rows: any[] } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -19,6 +23,12 @@ export function Upload() {
   const [prevLoading, setPrevLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [sheetName, setSheetName] = useState('');
+
+  const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
+  const [selectedConnId, setSelectedConnId] = useState('');
+  const [querySql, setQuerySql] = useState('');
+  const [dbPreviewData, setDbPreviewData] = useState<{ columns: any[]; rows: any[] } | null>(null);
+  const [dbPreviewLoading, setDbPreviewLoading] = useState(false);
   const [delimiter, setDelimiter] = useState(',');
   const [hasHeader, setHasHeader] = useState(true);
 
@@ -60,6 +70,38 @@ export function Upload() {
     }
   };
 
+  const loadDbConnections = async () => {
+    try {
+      const list = await databaseConnectionsService.list();
+      setDbConnections(list);
+    } catch { /* ignore */ }
+  };
+
+  const handleDbQuery = async () => {
+    if (!selectedConnId || !querySql.trim()) {
+      toast.error('Select a connection and enter a SQL query');
+      return;
+    }
+    setDbPreviewLoading(true);
+    try {
+      const result = await databaseConnectionsService.query(selectedConnId, querySql);
+      setDbPreviewData({ columns: result.columns, rows: result.rows });
+      toast.success(`Query returned ${result.rowCount} rows`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Query failed');
+    } finally {
+      setDbPreviewLoading(false);
+    }
+  };
+
+  const handleContinueDbMapping = () => {
+    if (!dbPreviewData || !selectedConnId) return;
+    store.reset();
+    store.setSourceColumns(dbPreviewData.columns);
+    store.setDatabaseConnection(selectedConnId, querySql);
+    navigate('/mapping');
+  };
+
   const loadPreview = async (fileId: string) => {
     setPreviewLoading(true);
     try {
@@ -77,15 +119,40 @@ export function Upload() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upload Data File</h1>
         <p className="mt-1 text-gray-500 dark:text-slate-400">
-          Upload CSV, Excel, or text files to begin mapping
+          Upload CSV, Excel, or text files, or query a database to begin mapping
         </p>
       </div>
 
-      {!uploadedFile && (
+      <div className="flex gap-2 border-b border-gray-200 dark:border-slate-700">
+        <button
+          onClick={() => setSourceTab('file')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            sourceTab === 'file'
+              ? 'border-b-2 border-primary-500 text-primary-600'
+              : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileSpreadsheet className="mr-1.5 inline h-4 w-4" />
+          File Upload
+        </button>
+        <button
+          onClick={() => { setSourceTab('database'); loadDbConnections(); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            sourceTab === 'database'
+              ? 'border-b-2 border-primary-500 text-primary-600'
+              : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <Database className="mr-1.5 inline h-4 w-4" />
+          Database Query
+        </button>
+      </div>
+
+      {sourceTab === 'file' && !uploadedFile && (
         <FileDropzone onUploadComplete={handleUploadComplete} />
       )}
 
-      {uploadedFile && (
+      {sourceTab === 'file' && uploadedFile && (
         <>
           <div className="card">
             <div className="flex items-start justify-between">
@@ -204,6 +271,58 @@ export function Upload() {
               </p>
             </div>
           </div>
+
+          {sourceTab === 'database' && (
+            <div className="space-y-4">
+              <div className="card">
+                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-slate-300">Database Query</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Connection</label>
+                    <select value={selectedConnId} onChange={(e) => setSelectedConnId(e.target.value)} className="input-field text-sm">
+                      <option value="">Select a connection...</option>
+                      {dbConnections.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.host})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button onClick={() => navigate('/database-connections')} className="btn-secondary text-xs">
+                      <Database className="h-3.5 w-3.5" /> Manage Connections
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs text-gray-500">SQL Query</label>
+                  <textarea
+                    value={querySql}
+                    onChange={(e) => setQuerySql(e.target.value)}
+                    className="input-field w-full font-mono text-sm"
+                    rows={5}
+                    placeholder="SELECT * FROM my_table WHERE condition = 'value' LIMIT 100"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={handleDbQuery} disabled={dbPreviewLoading} className="btn-secondary">
+                    {dbPreviewLoading ? 'Running...' : 'Preview'}
+                  </button>
+                  {dbPreviewData && (
+                    <button onClick={handleContinueDbMapping} className="btn-primary">
+                      <ArrowRight className="h-4 w-4" /> Continue to Mapping
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {dbPreviewLoading && (
+                <div className="flex justify-center py-4"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>
+              )}
+
+              {dbPreviewData && !dbPreviewLoading && (
+                <DataPreviewGrid columns={dbPreviewData.columns} rows={dbPreviewData.rows} loading={false} />
+              )}
+            </div>
+          )}
 
           {prevFiles.length > 0 && (
             <div className="card">

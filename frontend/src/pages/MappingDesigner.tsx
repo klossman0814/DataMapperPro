@@ -160,13 +160,19 @@ export function MappingDesigner() {
       opts.fileExtension = store.outputExtension.trim();
     }
     try {
-      const job = await jobsService.create({
-        fileId: selectedFileId,
+      const jobPayload: any = {
         template: store.template,
         mappings: store.mappings,
         outputFormat: store.outputFormat,
         outputOptions: Object.keys(opts).length ? opts : undefined,
-      });
+      };
+      if (store.databaseConnectionId) {
+        jobPayload.databaseConnectionId = store.databaseConnectionId;
+        jobPayload.querySql = store.querySql;
+      } else {
+        jobPayload.fileId = selectedFileId;
+      }
+      const job = await jobsService.create(jobPayload);
       toast.success('Job started');
       navigate('/jobs');
     } catch {

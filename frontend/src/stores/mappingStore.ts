@@ -13,6 +13,8 @@ interface MappingState {
   outputExtension: string;
   savedProfileId: string | null;
   savedProfileVersion: number;
+  databaseConnectionId: string | null;
+  querySql: string;
   setUploadedFile: (file: UploadedFileInfo) => void;
   setSourceColumns: (columns: ColumnInfo[]) => void;
   addMapping: (mapping: FieldMapping) => void;
@@ -28,6 +30,7 @@ interface MappingState {
   setOutputExtension: (ext: string) => void;
   setSavedProfileId: (id: string | null) => void;
   setSavedProfileVersion: (v: number) => void;
+  setDatabaseConnection: (id: string | null, sql: string) => void;
   reset: () => void;
 }
 
@@ -43,6 +46,8 @@ const initialState = {
   outputExtension: '',
   savedProfileId: null,
   savedProfileVersion: 0,
+  databaseConnectionId: null,
+  querySql: '',
 };
 
 export const useMappingStore = create<MappingState>((set) => ({
@@ -83,5 +88,6 @@ export const useMappingStore = create<MappingState>((set) => ({
   setOutputExtension: (ext) => set({ outputExtension: ext }),
   setSavedProfileId: (id) => set({ savedProfileId: id }),
   setSavedProfileVersion: (v) => set({ savedProfileVersion: v }),
+  setDatabaseConnection: (id, sql) => set({ databaseConnectionId: id, querySql: sql }),
   reset: () => set(initialState),
 }));

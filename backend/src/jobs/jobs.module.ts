@@ -7,6 +7,7 @@ import { TemplatesModule } from '../templates/templates.module';
 import { TransformationsModule } from '../transformations/transformations.module';
 import { ValidationModule } from '../validation/validation.module';
 import { ExportModule } from '../export/export.module';
+import { DatabaseConnectionsModule } from '../database-connections/database-connections.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ExportModule } from '../export/export.module';
     TransformationsModule,
     ValidationModule,
     ExportModule,
+    DatabaseConnectionsModule,
   ],
   controllers: [JobsController],
   providers: [JobsService, FileProcessorService],

@@ -11,6 +11,7 @@ import { MappingEngineService, Mapping } from '../../mappings/engine/mapping-eng
 import { TemplateEngineService } from '../../templates/engine/template-engine.service';
 import { TransformationEngineService } from '../../transformations/engine/transformation-engine.service';
 import { ValidationEngineService } from '../../validation/engine/validation-engine.service';
+import { DatabaseConnectionsService } from '../../database-connections/database-connections.service';
 import { CsvExportService } from '../../export/engines/csv-export.service';
 import { JsonExportService } from '../../export/engines/json-export.service';
 import { XmlExportService } from '../../export/engines/xml-export.service';
@@ -26,6 +27,7 @@ export class FileProcessorService {
     private templateEngine: TemplateEngineService,
     private transformationEngine: TransformationEngineService,
     private validationEngine: ValidationEngineService,
+    private dbConnections: DatabaseConnectionsService,
     private csvExport: CsvExportService,
     private jsonExport: JsonExportService,
     private xmlExport: XmlExportService,
@@ -46,8 +48,24 @@ export class FileProcessorService {
       },
     });
 
-    if (!job || !job.uploadedFile) {
-      throw new Error('Job or file not found');
+    if (!job) {
+      throw new Error('Job not found');
+    }
+
+    const config = job.config as any;
+    const mappings: Mapping[] = config.mappings || [];
+    const template = config.template || job.profile?.template || '';
+    const outputFormat = job.outputFormat;
+    const outputOptions = config.outputOptions || {};
+
+    let rows: Record<string, any>[];
+    if (job.databaseConnectionId && job.querySql) {
+      const result = await this.dbConnections.executeQuery(job.databaseConnectionId, job.querySql, job.createdById);
+      rows = result.rows;
+    } else if (job.uploadedFile) {
+      rows = await this.loadRows(job.uploadedFile.filename, config);
+    } else {
+      throw new Error('No data source configured for this job');
     }
 
     await this.prisma.processingJob.update({
@@ -55,18 +73,11 @@ export class FileProcessorService {
       data: {
         status: 'PROCESSING',
         startedAt: new Date(),
-        totalRows: job.uploadedFile.rowCount || 0,
+        totalRows: rows.length,
       },
     });
 
     try {
-      const config = job.config as any;
-      const mappings: Mapping[] = config.mappings || [];
-      const template = config.template || job.profile?.template || '';
-      const outputFormat = job.outputFormat;
-      const outputOptions = config.outputOptions || {};
-
-      const rows = await this.loadRows(job.uploadedFile.filename, config);
       const processedRows: Record<string, any>[] = [];
       const errors: { row: number; message: string }[] = [];
 

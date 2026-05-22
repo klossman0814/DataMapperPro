@@ -8,6 +8,7 @@ import { TemplatesModule } from './templates/templates.module';
 import { TransformationsModule } from './transformations/transformations.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobsModule } from './jobs/jobs.module';
+import { DatabaseConnectionsModule } from './database-connections/database-connections.module';
 import { ValidationModule } from './validation/validation.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -29,6 +30,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ValidationModule,
     ExportModule,
     NotificationsModule,
+    DatabaseConnectionsModule,
   ],
 })
 export class AppModule {}

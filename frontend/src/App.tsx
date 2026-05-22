@@ -13,6 +13,7 @@ import { ProcessingJobs } from './pages/ProcessingJobs';
 import { SavedProfiles } from './pages/SavedProfiles';
 import { Settings } from './pages/Settings';
 import { UserGuide } from './pages/UserGuide';
+import { DatabaseConnections } from './pages/DatabaseConnections';
 
 function AuthGuard() {
   const { isAuthenticated } = useAppStore();
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="profiles" element={<SavedProfiles />} />
         <Route path="settings" element={<Settings />} />
         <Route path="guide" element={<UserGuide />} />
+        <Route path="database-connections" element={<DatabaseConnections />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,8 +1,17 @@
 import { IsString, IsOptional, IsUUID, IsObject, IsArray } from 'class-validator';
 
 export class CreateJobDto {
+  @IsOptional()
   @IsUUID()
-  fileId: string;
+  fileId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  databaseConnectionId?: string;
+
+  @IsOptional()
+  @IsString()
+  querySql?: string;
 
   @IsOptional()
   @IsUUID()
@@ -21,10 +30,5 @@ export class CreateJobDto {
 
   @IsOptional()
   @IsObject()
-  outputOptions?: {
-    delimiter?: string;
-    lineEnding?: string;
-    encoding?: string;
-    fixedWidthConfig?: { field: string; width: number; align: string; padChar: string }[];
-  };
+  outputOptions?: Record<string, any>;
 }
