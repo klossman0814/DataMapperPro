@@ -1,15 +1,50 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SplitSquareHorizontal, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { SplitSquareHorizontal, Mail, Lock, Unlock, UserPlus, LogIn, Sparkles } from 'lucide-react';
 import { authService } from '../services/auth.service';
 import { useAppStore } from '../stores/appStore';
 import { setAuthToken } from '../services/api';
 import toast from 'react-hot-toast';
 
+type StrengthLevel = { label: string; color: string; bg: string; score: number };
+
+const strengthLevels: StrengthLevel[] = [
+  { label: 'Very Weak', color: 'text-red-500', bg: 'bg-red-500', score: 0 },
+  { label: 'Weak', color: 'text-orange-500', bg: 'bg-orange-500', score: 1 },
+  { label: 'Fair', color: 'text-yellow-500', bg: 'bg-yellow-500', score: 2 },
+  { label: 'Strong', color: 'text-lime-500', bg: 'bg-lime-500', score: 3 },
+  { label: 'Very Strong', color: 'text-emerald-500', bg: 'bg-emerald-500', score: 4 },
+];
+
+function getPasswordStrength(pw: string): StrengthLevel {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  return strengthLevels[Math.min(score, strengthLevels.length - 1)];
+}
+
+function generatePassword(): string {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const special = '!@#$%&*+-=_';
+  const all = upper + lower + digits + special;
+  const required = [upper, lower, digits, special];
+  const pw: string[] = required.map((chars) => chars[Math.floor(Math.random() * chars.length)]);
+  while (pw.length < 24) {
+    pw.push(all[Math.floor(Math.random() * all.length)]);
+  }
+  return pw.sort(() => Math.random() - 0.5).join('');
+}
+
 export function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -89,16 +124,61 @@ export function Login() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-400" />
+                {showPassword ? (
+                  <Unlock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-400" />
+                ) : (
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-400" />
+                )}
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10"
+                  className="input-field pl-10 pr-20"
                   placeholder="••••••••"
                   required
                 />
+                <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="rounded p-1 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
+                    tabIndex={-1}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  </button>
+                  {isRegister && (
+                    <button
+                      type="button"
+                      onClick={() => setPassword(generatePassword())}
+                      className="rounded p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                      tabIndex={-1}
+                      title="Generate strong password"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
+              {isRegister && password && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex h-1.5 gap-1">
+                    {strengthLevels.map((level) => (
+                      <div
+                        key={level.label}
+                        className={`h-full flex-1 rounded-full transition-colors duration-200 ${
+                          level.score <= getPasswordStrength(password).score
+                            ? getPasswordStrength(password).bg
+                            : 'bg-gray-200 dark:bg-slate-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs ${getPasswordStrength(password).color}`}>
+                    {getPasswordStrength(password).label}
+                  </p>
+                </div>
+              )}
             </div>
 
             <button
