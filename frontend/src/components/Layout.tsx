@@ -9,6 +9,7 @@ import {
   Bookmark,
   Settings,
   BookOpen,
+  Shield,
   LogOut,
   Menu,
   X,
@@ -17,7 +18,7 @@ import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
 import clsx from 'clsx';
 
-const navItems = [
+const baseNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/upload', icon: Upload, label: 'Upload' },
   { to: '/mapping', icon: SplitSquareHorizontal, label: 'Mapping Designer' },
@@ -29,9 +30,18 @@ const navItems = [
   { to: '/guide', icon: BookOpen, label: 'User Guide' },
 ];
 
+const adminNavItems = [
+  { to: '/admin/users', icon: Shield, label: 'Admin' },
+];
+
 export function Layout() {
   const { sidebarOpen, toggleSidebar, user, logout } = useAppStore();
   const navigate = useNavigate();
+
+  const navItems = [
+    ...baseNavItems,
+    ...(user?.role === 'ADMIN' ? adminNavItems : []),
+  ];
 
   const handleLogout = () => {
     logout();

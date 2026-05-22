@@ -31,7 +31,7 @@ async function main() {
   }));
 
   const adminUser = await prisma.user.create({
-    data: { email: 'admin@datamapperpro.com', passwordHash, name: 'Admin User', notificationPreferences: defaultPrefs },
+    data: { email: 'admin@datamapperpro.com', passwordHash, name: 'Admin User', role: 'ADMIN', notificationPreferences: defaultPrefs },
   });
 
   const demoUser = await prisma.user.create({

@@ -12,6 +12,7 @@ import { DatabaseConnectionsModule } from './database-connections/database-conne
 import { ValidationModule } from './validation/validation.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ExportModule,
     NotificationsModule,
     DatabaseConnectionsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -10,7 +10,26 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  role: 'ADMIN' | 'USER';
+  isActive?: boolean;
+  createdAt?: string;
   notificationPreferences?: NotificationPreferences | null;
+}
+
+export interface UserListItem {
+  id: string;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'USER';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count: {
+    mappingProfiles: number;
+    uploadedFiles: number;
+    processingJobs: number;
+    databaseConnections: number;
+  };
 }
 
 export interface AuthResponse {

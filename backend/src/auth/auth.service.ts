@@ -18,12 +18,14 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    const userCount = await this.prisma.user.count();
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         name: dto.name,
+        role: userCount === 0 ? 'ADMIN' : 'USER',
       },
     });
 
@@ -48,6 +50,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
+        isActive: user.isActive,
         notificationPreferences: (user.notificationPreferences as Record<string, any>) || null,
       },
     };
@@ -91,8 +95,8 @@ export class AuthService {
     };
   }
 
-  generateToken(user: { id: string; email: string }) {
-    const payload = { email: user.email, sub: user.id };
+  generateToken(user: { id: string; email: string; role: string }) {
+    const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
     };
