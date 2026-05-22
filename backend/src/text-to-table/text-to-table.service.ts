@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DatabaseQueryService } from '../database-connections/engine/database-query.service';
-import { DatabaseConnectionsService } from '../database-connections/database-connections.service';
 import { TextParserService } from './engine/text-parser.service';
 import { TableCreatorService } from './engine/table-creator.service';
 import { ParseTextDto } from './dto/parse-text.dto';
@@ -12,7 +11,6 @@ export class TextToTableService {
   constructor(
     private prisma: PrismaService,
     private queryService: DatabaseQueryService,
-    private connectionsService: DatabaseConnectionsService,
     private textParser: TextParserService,
     private tableCreator: TableCreatorService,
   ) {}
@@ -51,23 +49,23 @@ export class TextToTableService {
       throw new BadRequestException('Database connection not found');
     }
 
+    const dbType = conn.type;
+
     if (dto.dropExisting) {
-      const dropDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, true);
+      const dropDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, true, dbType);
       await this.executeOnConnection(conn, dropDDL);
     }
 
-    const createDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, false);
+    const createDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, false, dbType);
     await this.executeOnConnection(conn, createDDL);
 
     const batchSize = dto.batchSize || 100;
-    const result = this.tableCreator.generateInsertStatements(dto.tableName, dto.columns, dto.rows, batchSize);
+    const result = this.tableCreator.generateInsertStatements(dto.tableName, dto.columns, dto.rows, batchSize, dbType);
 
-    let totalInserted = 0;
     const ddlStatements: string[] = [createDDL];
 
     for (const insertSql of result.insertStatements) {
       await this.executeOnConnection(conn, insertSql);
-      totalInserted += batchSize;
     }
 
     return {
