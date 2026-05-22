@@ -74,12 +74,34 @@ export function TextToTable() {
 
   useEffect(() => { loadConnections(); }, []);
 
-  const handleFileDrop = useCallback((acceptedFiles: File[]) => {
+  const handleFileDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
     const file = acceptedFiles[0];
     setFileName(file.name);
     const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9_]/gi, '_').toLowerCase();
     if (!tableName) setTableName(baseName);
+
+    const isXlsx = file.name.match(/\.xlsx?$/i);
+    if (isXlsx) {
+      setParsing(true);
+      try {
+        const result = await textToTableService.parseFile(file);
+        if (!result.columns || result.columns.length === 0) {
+          toast.error('No data found in spreadsheet');
+          setParsing(false);
+          return;
+        }
+        setParseResult(result);
+        setStep('preview');
+      } catch (err: any) {
+        const msg = err?.response?.data?.message || err?.message || 'Failed to parse spreadsheet';
+        setParseError(msg);
+      } finally {
+        setParsing(false);
+      }
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       setRawText(e.target?.result as string || '');
@@ -89,7 +111,11 @@ export function TextToTable() {
   }, [tableName]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { 'text/plain': ['.txt', '.csv', '.tsv', '.dat', '.hl7', '.log'] },
+    accept: {
+      'text/plain': ['.txt', '.csv', '.tsv', '.dat', '.hl7', '.log'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+    },
     maxFiles: 1,
     onDrop: handleFileDrop,
   });

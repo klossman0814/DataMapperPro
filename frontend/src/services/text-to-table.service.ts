@@ -9,6 +9,15 @@ export const textToTableService = {
     hasHeader?: boolean;
   }) => api.post<ParseTextResult>('/text-to-table/parse', data).then(r => r.data),
 
+  parseFile: (file: File, sheetName?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (sheetName) formData.append('sheetName', sheetName);
+    return api.post<ParseTextResult>('/text-to-table/parse-file', formData, {
+      headers: { 'Content-Type': undefined },
+    }).then(r => r.data);
+  },
+
   importToTable: (data: {
     connectionId: string;
     tableName: string;

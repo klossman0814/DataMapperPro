@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service';
 import { DatabaseQueryService } from '../database-connections/engine/database-query.service';
 import { TextParserService } from './engine/text-parser.service';
@@ -14,6 +15,29 @@ export class TextToTableService {
     private textParser: TextParserService,
     private tableCreator: TableCreatorService,
   ) {}
+
+  parseFile(file: Express.Multer.File, sheetName?: string) {
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const targetSheet = sheetName || workbook.SheetNames[0];
+    const sheet = workbook.Sheets[targetSheet];
+    if (!sheet) {
+      throw new BadRequestException(`Sheet "${targetSheet}" not found`);
+    }
+
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+    if (!jsonData || jsonData.length === 0) {
+      throw new BadRequestException('No data found in sheet');
+    }
+
+    const headers = Object.keys(jsonData[0]);
+    const headerLine = headers.join('|');
+    const dataLines = jsonData.map(row =>
+      headers.map(h => String(row[h] ?? '').replace(/\|/g, ' ')).join('|'),
+    );
+    const text = [headerLine, ...dataLines].join('\n');
+
+    return this.textParser.parse(text, ['|'], 'flat', true);
+  }
 
   parseText(dto: ParseTextDto) {
     if (!dto.text.trim()) {
