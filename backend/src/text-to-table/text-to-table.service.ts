@@ -51,12 +51,7 @@ export class TextToTableService {
 
     const dbType = conn.type;
 
-    if (dto.dropExisting) {
-      const dropDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, true, dbType);
-      await this.executeOnConnection(conn, dropDDL);
-    }
-
-    const createDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, false, dbType);
+    const createDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, dto.dropExisting ?? true, dbType);
     await this.executeOnConnection(conn, createDDL);
 
     const batchSize = dto.batchSize || 100;
