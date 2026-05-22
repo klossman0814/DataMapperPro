@@ -123,4 +123,60 @@ export class ProfilesService {
       },
     });
   }
+
+  async exportWorkspace(userId: string) {
+    const profiles = await this.prisma.mappingProfile.findMany({
+      where: { createdById: userId },
+      select: { name: true, description: true, template: true, configurationJson: true, createdAt: true },
+    });
+    const connections = await this.prisma.databaseConnection.findMany({
+      where: { createdById: userId },
+      select: { name: true, type: true, host: true, port: true, databaseName: true, username: true, encryptedPassword: true, sslEnabled: true, createdAt: true },
+    });
+    return {
+      exportedAt: new Date().toISOString(),
+      profiles,
+      databaseConnections: connections,
+    };
+  }
+
+  async importWorkspace(data: {
+    profiles?: { name: string; description?: string; template: string; configurationJson: any }[];
+    databaseConnections?: { name: string; type: string; host: string; port: number; databaseName: string; username: string; encryptedPassword: string; sslEnabled?: boolean }[];
+  }, userId: string) {
+    const results: any = { profiles: 0, databaseConnections: 0 };
+    for (const profile of data.profiles || []) {
+      try {
+        await this.prisma.mappingProfile.create({
+          data: {
+            name: profile.name,
+            description: profile.description,
+            template: profile.template,
+            configurationJson: JSON.parse(JSON.stringify(profile.configurationJson)) as Prisma.InputJsonValue,
+            createdById: userId,
+          },
+        });
+        results.profiles++;
+      } catch { /* skip duplicates */ }
+    }
+    for (const conn of data.databaseConnections || []) {
+      try {
+        await this.prisma.databaseConnection.create({
+          data: {
+            name: conn.name,
+            type: conn.type,
+            host: conn.host,
+            port: conn.port,
+            databaseName: conn.databaseName,
+            username: conn.username,
+            encryptedPassword: conn.encryptedPassword,
+            sslEnabled: conn.sslEnabled ?? false,
+            createdById: userId,
+          },
+        });
+        results.databaseConnections++;
+      } catch { /* skip duplicates */ }
+    }
+    return results;
+  }
 }

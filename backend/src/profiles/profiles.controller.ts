@@ -62,4 +62,14 @@ export class ProfilesController {
   importProfile(@Body() body: any, @CurrentUser('id') userId: string) {
     return this.profilesService.importProfile(body, userId);
   }
+
+  @Get('workspace/export')
+  exportWorkspace(@CurrentUser('id') userId: string) {
+    return this.profilesService.exportWorkspace(userId);
+  }
+
+  @Post('workspace/import')
+  importWorkspace(@Body() body: any, @CurrentUser('id') userId: string) {
+    return this.profilesService.importWorkspace(body, userId);
+  }
 }

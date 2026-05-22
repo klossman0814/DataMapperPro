@@ -4,6 +4,15 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  const existingUsers = await prisma.user.count();
+  if (existingUsers > 0 && process.env.FORCE_SEED !== 'true') {
+    console.log(`Database already has ${existingUsers} user(s) — skipping seed to preserve your data.`);
+    console.log('  Run with FORCE_SEED=true to re-seed and discard existing data.');
+    return;
+  }
+  if (existingUsers > 0) {
+    console.log('FORCE_SEED=true — clearing all existing data...');
+  }
   console.log('Cleaning existing data...');
   await prisma.processingJob.deleteMany();
   await prisma.databaseConnection.deleteMany();

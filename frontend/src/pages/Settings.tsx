@@ -293,6 +293,78 @@ export function Settings() {
 
           <div className="card">
             <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-lg bg-emerald-100 p-2.5 dark:bg-emerald-500/10">
+                <Download className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Backup & Restore</h2>
+            </div>
+            <p className="mb-3 text-sm text-gray-500 dark:text-slate-400">
+              Export your profiles and database connections to a JSON file for safekeeping.
+              Import them back after re-seeding or migrating to a new instance.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const api = (await import('../services/api')).default;
+                    const token = localStorage.getItem('accessToken');
+                    const res = await fetch(`${api.defaults.baseURL}/profiles/workspace/export`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) throw new Error('Export failed');
+                    const data = await res.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `datamapper-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Workspace exported');
+                  } catch {
+                    toast.error('Failed to export workspace');
+                  }
+                }}
+                className="btn-secondary"
+              >
+                <Download className="h-4 w-4" /> Export Backup
+              </button>
+              <button
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.json';
+                  input.onchange = async (e: any) => {
+                    const file = e.target?.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const data = JSON.parse(text);
+                      const api = (await import('../services/api')).default;
+                      const token = localStorage.getItem('accessToken');
+                      const res = await fetch(`${api.defaults.baseURL}/profiles/workspace/import`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                      });
+                      if (!res.ok) throw new Error('Import failed');
+                      const result = await res.json();
+                      toast.success(`Imported ${result.profiles} profiles, ${result.databaseConnections} connections`);
+                    } catch {
+                      toast.error('Failed to import workspace');
+                    }
+                  };
+                  input.click();
+                }}
+                className="btn-secondary"
+              >
+                <Eye className="h-4 w-4" /> Restore Backup
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="mb-4 flex items-center gap-3">
               <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-500/10">
                 <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
