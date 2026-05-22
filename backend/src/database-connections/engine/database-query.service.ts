@@ -6,6 +6,9 @@ export interface QueryResult {
   rowCount: number;
 }
 
+const CONNECT_TIMEOUT = 8000;
+const QUERY_TIMEOUT = 30000;
+
 @Injectable()
 export class DatabaseQueryService {
   async executeQuery(
@@ -36,7 +39,7 @@ export class DatabaseQueryService {
       database: config.database,
       user: config.username,
       password: config.password,
-      options: { encrypt: config.ssl ?? false, trustServerCertificate: true },
+      options: { encrypt: config.ssl ?? false, trustServerCertificate: true, connectTimeout: CONNECT_TIMEOUT, requestTimeout: QUERY_TIMEOUT },
     });
     try {
       const result = await pool.request().query(sql);
@@ -63,6 +66,8 @@ export class DatabaseQueryService {
       user: config.username,
       password: config.password,
       ssl: config.ssl ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: CONNECT_TIMEOUT,
+      query_timeout: QUERY_TIMEOUT,
     });
     try {
       const result = await pool.query(sql);
@@ -89,6 +94,7 @@ export class DatabaseQueryService {
       user: config.username,
       password: config.password,
       ssl: config.ssl ? {} : undefined,
+      connectTimeout: CONNECT_TIMEOUT,
     });
     try {
       const [rows] = await connection.execute(sql);
