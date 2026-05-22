@@ -248,29 +248,31 @@ export function Upload() {
 
       {!uploadedFile && (
         <>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="card">
-              <FileSpreadsheet className="mb-3 h-8 w-8 text-primary-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">CSV Files</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                Comma-separated, tab-separated, or custom delimiter
-              </p>
+          {sourceTab === 'file' && (
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="card">
+                <FileSpreadsheet className="mb-3 h-8 w-8 text-primary-500" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">CSV Files</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                  Comma-separated, tab-separated, or custom delimiter
+                </p>
+              </div>
+              <div className="card">
+                <FileSpreadsheet className="mb-3 h-8 w-8 text-emerald-500" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">Excel Files</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                  .xlsx and .xls with multi-sheet support
+                </p>
+              </div>
+              <div className="card">
+                <FileSpreadsheet className="mb-3 h-8 w-8 text-amber-500" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">Text Files</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                  Fixed-width, pipe-delimited, and more
+                </p>
+              </div>
             </div>
-            <div className="card">
-              <FileSpreadsheet className="mb-3 h-8 w-8 text-emerald-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Excel Files</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                .xlsx and .xls with multi-sheet support
-              </p>
-            </div>
-            <div className="card">
-              <FileSpreadsheet className="mb-3 h-8 w-8 text-amber-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Text Files</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                Fixed-width, pipe-delimited, and more
-              </p>
-            </div>
-          </div>
+          )}
 
           {sourceTab === 'database' && (
             <div className="space-y-4">
