@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Cleaning existing data...');
   await prisma.processingJob.deleteMany();
+  await prisma.databaseConnection.deleteMany();
   await prisma.uploadedFile.deleteMany();
   await prisma.mappingProfile.deleteMany();
   await prisma.user.deleteMany();
