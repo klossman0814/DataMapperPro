@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Database, Plus, Plug, Trash2, ChevronDown, ChevronRight, HardDrive, Server, CheckCircle2, XCircle } from 'lucide-react';
 import { databaseConnectionsService } from '../services/database-connections.service';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { DatabaseConnection } from '../types';
 import toast from 'react-hot-toast';
 
@@ -18,6 +19,7 @@ export function DatabaseConnections() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({
     name: '', type: 'postgresql', host: '', port: 5432,
     databaseName: '', username: '', password: '', sslEnabled: false,
@@ -71,8 +73,7 @@ export function DatabaseConnections() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete connection "${name}"?`)) return;
+  const handleDelete = async (id: string) => {
     try {
       await databaseConnectionsService.delete(id);
       setConnections((prev) => prev.filter((c) => c.id !== id));
@@ -199,12 +200,23 @@ export function DatabaseConnections() {
                   Test
                 </button>
                 <button onClick={() => handleEdit(conn)} className="btn-secondary text-xs">Edit</button>
-                <button onClick={() => handleDelete(conn.id, conn.name)} className="btn-danger text-xs"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })} className="btn-danger text-xs"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Connection"
+        message={`Delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
