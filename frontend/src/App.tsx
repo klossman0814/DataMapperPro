@@ -17,6 +17,7 @@ import { SavedProfiles } from './pages/SavedProfiles';
 import { Settings } from './pages/Settings';
 import { UserGuide } from './pages/UserGuide';
 import { DatabaseConnections } from './pages/DatabaseConnections';
+import { TextToTable } from './pages/TextToTable';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="guide" element={<UserGuide />} />
         <Route path="database-connections" element={<DatabaseConnections />} />
+        <Route path="text-to-table" element={<TextToTable />} />
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

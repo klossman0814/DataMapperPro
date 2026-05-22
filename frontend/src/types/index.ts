@@ -166,3 +166,32 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
+
+export interface ParseColumnInfo {
+  name: string;
+  type: string;
+  nullCount: number;
+  sampleValues: any[];
+}
+
+export interface ParseStats {
+  separator: string;
+  columns: number;
+  rows: number;
+  consistencyScore: number;
+}
+
+export interface ParseTextResult {
+  columns: ParseColumnInfo[];
+  rows: Record<string, any>[];
+  rowCount: number;
+  separatorUsed: string;
+  stats: ParseStats[];
+  selectedSeparator: string;
+}
+
+export interface ImportTableResult {
+  tableName: string;
+  rowsInserted: number;
+  ddlStatements: string[];
+}

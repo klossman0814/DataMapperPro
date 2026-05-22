@@ -14,6 +14,7 @@ import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { EmailModule } from './email/email.module';
+import { TextToTableModule } from './text-to-table/text-to-table.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { EmailModule } from './email/email.module';
     DatabaseConnectionsModule,
     AdminModule,
     EmailModule,
+    TextToTableModule,
   ],
 })
 export class AppModule {}
