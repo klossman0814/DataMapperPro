@@ -75,7 +75,7 @@ services:
     ports:
       - "5175:5173"
     environment:
-      VITE_PROXY_TARGET: http://backend:3001
+      VITE_API_URL: http://192.168.2.22:3002
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend
