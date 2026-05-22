@@ -15,8 +15,10 @@ model User {
   role                  String   @default("USER")
   isActive              Boolean  @default(true)
   notificationPreferences Json?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  resetToken          String?
+  resetTokenExpiry    DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   mappingProfiles     MappingProfile[]
   uploadedFiles       UploadedFile[]

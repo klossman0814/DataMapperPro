@@ -13,6 +13,7 @@ import { ValidationModule } from './validation/validation.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     DatabaseConnectionsModule,
     AdminModule,
+    EmailModule,
   ],
 })
 export class AppModule {}

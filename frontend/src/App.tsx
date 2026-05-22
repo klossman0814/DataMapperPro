@@ -6,6 +6,8 @@ import { authService } from './services/auth.service';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Upload } from './pages/Upload';
 import { MappingDesigner } from './pages/MappingDesigner';
@@ -49,6 +51,8 @@ export default function App() {
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { fontSize: '14px' } }} />
       <Routes>
       <Route path="/login" element={<AuthGuard />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
         element={

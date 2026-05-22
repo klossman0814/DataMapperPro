@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { SplitSquareHorizontal, Mail, Lock, Unlock, UserPlus, LogIn, Sparkles } from 'lucide-react';
 import { authService } from '../services/auth.service';
 import { useAppStore } from '../stores/appStore';
@@ -180,6 +180,14 @@ export function Login() {
                 </div>
               )}
             </div>
+
+            {!isRegister && (
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-xs text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
+                  Forgot your password?
+                </Link>
+              </div>
+            )}
 
             <button
               type="submit"
