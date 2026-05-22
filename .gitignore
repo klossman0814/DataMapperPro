@@ -7,3 +7,4 @@ coverage/
 uploads/
 output/
 tmp/
+frontend/tsconfig.tsbuildinfo
