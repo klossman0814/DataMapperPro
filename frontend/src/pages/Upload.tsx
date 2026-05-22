@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { FileDropzone } from '../components/FileDropzone';
 import { DataPreviewGrid } from '../components/DataPreviewGrid';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { filesService } from '../services/files.service';
 import { databaseConnectionsService } from '../services/database-connections.service';
 import { useMappingStore } from '../stores/mappingStore';
@@ -22,6 +23,7 @@ export function Upload() {
   const [prevFiles, setPrevFiles] = useState<UploadedFileInfo[]>([]);
   const [prevLoading, setPrevLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [sheetName, setSheetName] = useState('');
 
   const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
@@ -368,11 +370,7 @@ export function Upload() {
                         Map
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Delete "${f.originalName}"? This action cannot be undone.`)) {
-                            handleDelete(f.id);
-                          }
-                        }}
+                        onClick={() => setDeleteTarget({ id: f.id, name: f.originalName })}
                         disabled={deleting === f.id}
                         className="btn-danger text-xs"
                       >
@@ -388,6 +386,16 @@ export function Upload() {
         </>
       )}
 
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete File"
+        message={`Delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
