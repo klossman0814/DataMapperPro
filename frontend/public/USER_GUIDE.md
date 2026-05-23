@@ -10,49 +10,53 @@
    - [Drag-and-Drop Upload](#21-drag-and-drop-upload)
    - [File Options](#22-file-options)
    - [Data Preview](#23-data-preview)
-3. [Mapping Designer](#3-mapping-designer)
-   - [Selecting a Source File](#31-selecting-a-source-file)
-   - [Adding Mappings](#32-adding-mappings)
-   - [Auto-Mapping](#33-auto-mapping)
-   - [Drag-and-Drop Mapping](#34-drag-and-drop-mapping)
-   - [Transformations](#35-transformations)
-   - [Expressions and Constants](#36-expressions-and-constants)
-   - [Conditions](#37-conditions)
-   - [Output Format](#38-output-format)
-   - [Saving, Previewing, and Running](#39-saving-previewing-and-running)
-4. [Template Editor](#4-template-editor)
-   - [Template Syntax Reference](#41-template-syntax-reference)
-   - [Creating a Template](#42-creating-a-template)
-   - [Testing with Sample Data](#43-testing-with-sample-data)
-   - [Template Library](#44-template-library)
-   - [From Sample Generator](#45-from-sample-generator)
-5. [Processing Jobs](#5-processing-jobs)
-   - [Job Lifecycle](#51-job-lifecycle)
-   - [Monitoring Progress](#52-monitoring-progress)
-   - [Downloading Results](#53-downloading-results)
-   - [Cancelling Jobs](#54-cancelling-jobs)
-   - [Filtering and Searching](#55-filtering-and-searching)
-6. [Saved Profiles](#6-saved-profiles)
-   - [Saving and Loading Profiles](#61-saving-and-loading-profiles)
-   - [Cloning, Exporting, and Importing](#62-cloning-exporting-and-importing)
-   - [Searching Profiles](#63-searching-profiles)
-7. [Settings](#7-settings)
-   - [Profile Settings](#71-profile-settings)
-   - [Security](#72-security)
-   - [API Keys](#73-api-keys)
-   - [Export Defaults](#74-export-defaults)
-   - [Appearance](#75-appearance)
-   - [Notification Preferences](#76-notification-preferences)
-8. [Validation Rules](#8-validation-rules)
-9. [Appendix A: Transformation Functions](#9-appendix-a-transformation-functions)
-10. [Appendix B: Output Formats](#10-appendix-b-output-formats)
-11. [Appendix C: Seed Data Examples](#11-appendix-c-seed-data-examples)
-12. [API Reference](#12-api-reference)
-    - [Base URL and Authentication](#121-base-url-and-authentication)
-    - [Endpoints](#122-endpoints)
-    - [Request and Response Schemas](#123-request-and-response-schemas)
-    - [Common Patterns](#124-common-patterns)
-    - [Rate Limiting](#125-rate-limiting)
+3. [Text to Table](#3-text-to-table)
+   - [Input Methods](#31-input-methods)
+   - [Parse Configuration](#32-parse-configuration)
+   - [Preview and Import](#33-preview-and-import)
+4. [Mapping Designer](#4-mapping-designer)
+   - [Selecting a Source File](#41-selecting-a-source-file)
+   - [Adding Mappings](#42-adding-mappings)
+   - [Auto-Mapping](#43-auto-mapping)
+   - [Drag-and-Drop Mapping](#44-drag-and-drop-mapping)
+   - [Transformations](#45-transformations)
+   - [Expressions and Constants](#46-expressions-and-constants)
+   - [Conditions](#47-conditions)
+   - [Output Format](#48-output-format)
+   - [Saving, Previewing, and Running](#49-saving-previewing-and-running)
+5. [Template Editor](#5-template-editor)
+   - [Template Syntax Reference](#51-template-syntax-reference)
+   - [Creating a Template](#52-creating-a-template)
+   - [Testing with Sample Data](#53-testing-with-sample-data)
+   - [Template Library](#54-template-library)
+   - [From Sample Generator](#55-from-sample-generator)
+6. [Processing Jobs](#6-processing-jobs)
+   - [Job Lifecycle](#61-job-lifecycle)
+   - [Monitoring Progress](#62-monitoring-progress)
+   - [Downloading Results](#63-downloading-results)
+   - [Cancelling Jobs](#64-cancelling-jobs)
+   - [Filtering and Searching](#65-filtering-and-searching)
+7. [Saved Profiles](#7-saved-profiles)
+   - [Saving and Loading Profiles](#71-saving-and-loading-profiles)
+   - [Cloning, Exporting, and Importing](#72-cloning-exporting-and-importing)
+   - [Searching Profiles](#73-searching-profiles)
+8. [Settings](#8-settings)
+   - [Profile Settings](#81-profile-settings)
+   - [Security](#82-security)
+   - [API Keys](#83-api-keys)
+   - [Export Defaults](#84-export-defaults)
+   - [Appearance](#85-appearance)
+   - [Notification Preferences](#86-notification-preferences)
+9. [Validation Rules](#9-validation-rules)
+10. [Appendix A: Transformation Functions](#10-appendix-a-transformation-functions)
+11. [Appendix B: Output Formats](#11-appendix-b-output-formats)
+12. [Appendix C: Seed Data Examples](#12-appendix-c-seed-data-examples)
+13. [API Reference](#13-api-reference)
+    - [Base URL and Authentication](#131-base-url-and-authentication)
+    - [Endpoints](#132-endpoints)
+    - [Request and Response Schemas](#133-request-and-response-schemas)
+    - [Common Patterns](#134-common-patterns)
+    - [Rate Limiting](#135-rate-limiting)
 
 ---
 
@@ -148,7 +152,60 @@ After reviewing the preview, click **Continue to Mapping** to proceed to the Map
 
 ---
 
-## 3. Mapping Designer
+## 3. Text to Table
+
+The **Text to Table** feature lets you paste or upload delimited text data, configure how it should be parsed, preview the results, and import directly into a database table. It supports flat delimited files, hierarchical HL7 messages, and HL7 flat files with custom encoding characters.
+
+Navigate to **Text to Table** via the sidebar.
+
+### 3.1 Input Methods
+
+### 3.2 Parse Configuration
+
+After entering your text, click **Configure Parsing** to reach the configuration step.
+
+**Parse Mode** — Three modes are available:
+
+- **Flat** — All selected delimiters split at the same level. Select any combination of delimiters (Comma `,`, Pipe `|`, Caret `^`, Ampersand `&`, Tilde `~`, Tab `\t`, Semicolon `;`). Optionally toggle **First row is header**.
+
+- **Hierarchical (HL7)** — Full HL7 v2.x message parsing. The parser detects segments (MSH, PID, OBR, OBX, etc.), extracts encoding characters from MSH-2, expands components and subcomponents into named columns using HL7 field definitions (e.g. `pid_patient_name_given_name`), and groups observations into one row per OBX. HL7 encoding characters are shown for reference and are not user-configurable.
+
+- **HL7 Flat File** — HL7-aware flat parsing with configurable per-role delimiters. When this mode is selected, five delimiter inputs appear:
+
+  | Delimiter | Default | Role |
+  |---|---|---|
+  | Field | `|` | Splits each line into fields |
+  | Component | `^` | Splits field values into components (when expansion is on) |
+  | Repetition | `~` | Splits field values into repeated instances, expanded into `_rep_N` sub-columns |
+  | Escape | `\` | Character used for HL7 escape sequences (`\F\`, `\S\`, `\T\`, `\R\`, `\E\`) |
+  | Subcomponent | `&` | Splits component values into subcomponents (when expansion is on) |
+
+  Additional options:
+  - **Auto-detect from MSH-2** (default ON) — If the data starts with `MSH`, the parser reads the actual encoding characters from the MSH-2 field and overrides the delimiter inputs.
+  - **Expand components** (default ON) — When enabled, fields are split by component and subcomponent separators into sub-columns (e.g. `field_3_comp_1`, `field_3_comp_2`). When disabled, only field-separator splitting is applied with HL7 escape sequence decoding.
+  - **First row is header** — Toggle whether the first row provides column names.
+
+  Unlike the Hierarchical (HL7) mode, HL7 Flat File mode does not interpret segment types or observation structure — it simply applies the HL7 encoding rules to produce flat tabular output. This is useful when you have HL7-formatted data but want flat rows without segment-level parsing.
+
+### 3.3 Preview and Import
+
+After configuring, click **Parse & Preview** to see the results:
+
+- **Parse Result** card shows row count, column count, and the detected separator. If multiple separators were scored, each is shown with its consistency score.
+- **Data Preview Grid** shows the parsed data with pagination, sorting, and column type badges.
+- **Column summary** shows each column's name, detected type (`string`, `number`, `date`, `boolean`, `integer`), and null percentage.
+
+To import into a database:
+1. Select a **Database Connection** from the dropdown, or create a new one.
+2. Enter a **Target Table Name**.
+3. Optionally toggle **Drop table if exists**.
+4. Click **Create Table & Import**.
+
+The import generates CREATE TABLE and INSERT statements, executes them against the selected database, and shows the import result with DDL for review.
+
+---
+
+## 4. Mapping Designer
 
 The Mapping Designer is where you connect source data fields to output fields. It is a split-screen interface with source columns on the left and mapping configuration on the right.
 
@@ -157,13 +214,13 @@ The page header has three action buttons:
 - **Save Profile** — Save the current configuration as a reusable profile
 - **Run Job** — Start processing the file with the current mappings
 
-### 3.1 Selecting a Source File
+### 4.1 Selecting a Source File
 
 On the right sidebar, the **Source File** panel shows a dropdown of all your uploaded files. Select the file you want to use. If no files exist, a button links to the Upload page.
 
 The **Output Format** dropdown lets you choose the format for the generated output file. See [Appendix B](#10-appendix-b-output-formats) for all available formats.
 
-### 3.2 Adding Mappings
+### 4.2 Adding Mappings
 
 Type a destination field name into the input at the top of the **Field Mappings** section and click **Add Mapping** (or press Enter). Each mapping row has:
 
@@ -176,7 +233,7 @@ Each mapping row is **draggable** (grab the grip icon on the left) to reorder ma
 
 **Clear All** — The button at the top of the mappings panel removes all mappings at once. A confirmation prompt ("Yes" / "No") prevents accidental deletion.
 
-### 3.3 Auto-Mapping
+### 4.3 Auto-Mapping
 
 Click the **Auto-Map** button to open the auto-mapping dialog. Enter your desired destination fields as a comma-separated list (e.g., `first_name, last_name, email, phone`). The system automatically matches each destination field to its best source column using fuzzy name matching with Levenshtein distance scoring (threshold <= 0.4).
 
@@ -184,7 +241,7 @@ Click **Map** to apply the suggestions, or **Cancel** to dismiss.
 
 **Example**: If you type `full_name` and your source has `first_name` and `last_name`, the auto-mapper will suggest the closest match. For exact matches like `email` → `email`, it maps directly.
 
-### 3.4 Drag-and-Drop Mapping
+### 4.4 Drag-and-Drop Mapping
 
 The left panel lists all **Source Columns** with their types. Each source column is draggable:
 
@@ -193,7 +250,7 @@ The left panel lists all **Source Columns** with their types. Each source column
 
 This sets the source field for that mapping to the dropped column.
 
-### 3.5 Transformations
+### 4.5 Transformations
 
 Each mapping can apply an optional transformation function. Select from the dropdown, which is grouped by category:
 
@@ -204,7 +261,7 @@ Each mapping can apply an optional transformation function. Select from the drop
 
 When a transformation is selected, the engine applies it to the source value before writing to the destination field. See [Appendix A](#9-appendix-a-transformation-functions) for the complete reference with examples.
 
-### 3.6 Expressions and Constants
+### 4.6 Expressions and Constants
 
 The **Expression / Constant** field serves two purposes:
 
@@ -222,7 +279,7 @@ This field is most useful when:
 - `{{quantity}} * {{unit_price}}` — Computes total price
 - `coalesce({{phone}}, {{email}}, 'No contact')` — First non-empty value
 
-### 3.7 Conditions
+### 4.7 Conditions
 
 Each mapping can optionally have a **condition** that controls whether the mapping is applied. Conditions use this structure:
 
@@ -244,7 +301,7 @@ Source: status
 Condition: status notEquals Active
 ```
 
-### 3.8 Output Format
+### 4.8 Output Format
 
 On the right sidebar, the **Output Format** dropdown lets you choose the format for the generated output file. Each format has specific configuration options:
 
@@ -262,7 +319,7 @@ On the right sidebar, the **Output Format** dropdown lets you choose the format 
 
 See [Appendix B](#10-appendix-b-output-formats) for detailed descriptions.
 
-### 3.9 Saving, Previewing, and Running
+### 4.9 Saving, Previewing, and Running
 
 - **Save Profile**: Enter a profile name in the right sidebar, then click **Save Profile**. The profile is saved and appears on the Saved Profiles page.
 - **Preview**: Click **Preview** to generate a sample of the output using the current mappings and template. The preview appears in the Output Preview panel.
@@ -270,11 +327,11 @@ See [Appendix B](#10-appendix-b-output-formats) for detailed descriptions.
 
 ---
 
-## 4. Template Editor
+## 5. Template Editor
 
 The Template Editor lets you create and test Handlebars-style output templates. Navigate to it via the sidebar, or access it inline from the Mapping Designer.
 
-### 4.1 Template Syntax Reference
+### 5.1 Template Syntax Reference
 
 The editor supports the following syntax constructs:
 
@@ -672,11 +729,11 @@ Default template when creating new: `{{mrn}}|{{last_name}}|{{first_name}}|{{dob}
 
 The editor shows real-time brace-matching validation — if your `{{` and `}}` are unbalanced, a red error banner appears.
 
-### 4.3 Testing with Sample Data
+### 5.3 Testing with Sample Data
 
 Click **Render** to test your template against sample data. The system uses hardcoded sample values (`first_name: John`, `last_name: Doe`, etc.) to demonstrate the output. The rendered output appears in the **Output Preview** panel alongside a **Token Reference** card showing available syntax options.
 
-### 4.4 Template Library
+### 5.4 Template Library
 
 The **Template Library** section at the bottom provides starter templates for common formats:
 
@@ -687,7 +744,7 @@ The **Template Library** section at the bottom provides starter templates for co
 
 Click any library template to load its content into the editor.
 
-### 4.5 From Sample Generator
+### 5.5 From Sample Generator
 
 A modal dialog accessed from the Template Editor that helps you create templates from existing sample output:
 
@@ -701,11 +758,11 @@ This is especially useful when you have an existing output format and want to cr
 
 ---
 
-## 5. Processing Jobs
+## 6. Processing Jobs
 
 The Processing Jobs page lists all data processing jobs and their current status. Navigate to it via the sidebar or dashboard.
 
-### 5.1 Job Lifecycle
+### 6.1 Job Lifecycle
 
 Jobs go through these statuses:
 
@@ -714,7 +771,7 @@ PENDING → PROCESSING → COMPLETED
                     → FAILED (or cancelled)
 ```
 
-### 5.2 Monitoring Progress
+### 6.2 Monitoring Progress
 
 The job list shows:
 
@@ -731,25 +788,25 @@ Click any job row to expand it and see detailed progress metrics:
 
 Active jobs (PROCESSING, PENDING) auto-poll every 3 seconds for progress updates. Completed and failed jobs stop polling.
 
-### 5.3 Downloading Results
+### 6.3 Downloading Results
 
 For completed jobs, click the download icon (or the **Download** button in the expanded view). The browser downloads the output file named `output-<id>.<format>`.
 
-### 5.4 Cancelling Jobs
+### 6.4 Cancelling Jobs
 
 Active jobs (PENDING or PROCESSING) show a cancel button (X icon). Click it to cancel the job. Cancelled jobs are marked as FAILED.
 
-### 5.5 Filtering and Searching
+### 6.5 Filtering and Searching
 
 Use the **search box** to filter jobs by file name or job ID. Use the **status filter** dropdown to show only jobs with a specific status (All, Pending, Processing, Completed, Failed).
 
 ---
 
-## 6. Saved Profiles
+## 7. Saved Profiles
 
 The Saved Profiles page stores reusable mapping configurations. Navigate to it via the sidebar.
 
-### 6.1 Saving and Loading Profiles
+### 7.1 Saving and Loading Profiles
 
 To save a profile:
 1. Go to the **Mapping Designer**
@@ -766,7 +823,7 @@ On the Saved Profiles page, each profile card shows:
 
 Click **Load** to open the profile in the Mapping Designer with all settings restored.
 
-### 6.2 Cloning, Exporting, and Importing
+### 7.2 Cloning, Exporting, and Importing
 
 Each profile card has action buttons:
 
@@ -783,21 +840,21 @@ The page header has two additional buttons:
 | **Import** | Opens a file picker for `.json` profile files. Imports the profile into your account. |
 | **Create New Profile** | Navigates to the Mapping Designer to create a fresh profile |
 
-### 6.3 Searching Profiles
+### 7.3 Searching Profiles
 
 Use the **search box** to filter profiles by name or description.
 
 ---
 
-## 7. Settings
+## 8. Settings
 
 The Settings page lets you manage your account and application preferences. Navigate to it via the sidebar.
 
-### 7.1 Profile Settings
+### 8.1 Profile Settings
 
 Edit your **Name** and view your **Email** (email is read-only). Click **Save Changes** to update.
 
-### 7.2 Security
+### 8.2 Security
 
 Change your password:
 1. Enter your **Current Password**
@@ -805,7 +862,7 @@ Change your password:
 3. **Confirm Password**
 4. Click **Update Password**
 
-### 7.3 API Keys
+### 8.3 API Keys
 
 API keys allow programmatic access to the DataMapper Pro API for automation, CI/CD integration, and custom scripting.
 
@@ -850,19 +907,19 @@ response = requests.get("http://localhost:3002/api/jobs", headers=headers)
 - Rotate keys periodically as part of your security policy.
 - The API key is currently **generated and stored client-side only**. Server-side key validation and role-based scoping are not yet implemented. The key serves as a bearer token for the current session.
 
-### 7.4 Export Defaults
+### 8.4 Export Defaults
 
 Set your preferred defaults:
 - **Default Output Format**: CSV, JSON, XML, Text, HL7, Pipe-Delimited
 - **Default Delimiter**: Comma, Tab, Pipe, Semicolon
 
-### 7.5 Appearance
+### 8.5 Appearance
 
 Toggle between **Dark Mode** and **Light Mode**. The selected theme is saved to `localStorage` and persists across sessions.
 
 The **About** card shows the application version (`1.0.0`) and the current environment mode.
 
-### 7.6 Notification Preferences
+### 8.6 Notification Preferences
 
 Toggle notification settings:
 - **Job completion notifications**
@@ -871,7 +928,7 @@ Toggle notification settings:
 
 ---
 
-## 8. Validation Rules
+## 9. Validation Rules
 
 Validation rules enforce data quality constraints on your output. Rules are configured per profile and run during job processing. When a row fails validation, it is **skipped** in the output but processing continues. Failed rows are collected in the job's error log with descriptive messages.
 
@@ -920,7 +977,7 @@ This configuration:
 
 ---
 
-## 9. Appendix A: Transformation Functions
+## 10. Appendix A: Transformation Functions
 
 ### String Functions
 
@@ -1030,7 +1087,7 @@ Returns the first non-empty value from `phone`, then `email`, then the literal `
 
 ---
 
-## 10. Appendix B: Output Formats
+## 11. Appendix B: Output Formats
 
 ### CSV (Comma-Separated Values)
 - **Extension**: `.csv`
@@ -1099,7 +1156,7 @@ Returns the first non-empty value from `phone`, then `email`, then the literal `
 
 ---
 
-## 11. Appendix C: Seed Data Examples
+## 12. Appendix C: Seed Data Examples
 
 The demo environment includes pre-seeded data that demonstrates all major features. Here is a summary:
 
@@ -1178,9 +1235,9 @@ This demonstrates how validation rules catch data quality issues during processi
 
 ---
 
-## 12. API Reference
+## 13. API Reference
 
-### 12.1 Base URL and Authentication
+### 13.1 Base URL and Authentication
 
 **Base URL**: `http://localhost:3002/api`
 
@@ -1198,7 +1255,7 @@ Authorization: Bearer <jwt_token_or_api_key>
 
 **Content-Type**: `application/json` for all request bodies (except file uploads which use `multipart/form-data`)
 
-### 12.2 Endpoints
+### 13.2 Endpoints
 
 #### Auth (No JWT required for register/login)
 
@@ -1290,7 +1347,7 @@ Authorization: Bearer <jwt_token_or_api_key>
 | `GET` | `/api/notifications/preferences` | — | `NotificationPreferences` | Get prefs |
 | `PUT` | `/api/notifications/preferences` | `Partial<NotificationPreferences>` | `NotificationPreferences` | Update prefs |
 
-### 12.3 Request and Response Schemas
+### 13.3 Request and Response Schemas
 
 #### User
 
@@ -1441,7 +1498,7 @@ Validation errors include a `messages` array:
 }
 ```
 
-### 12.4 Common Patterns
+### 13.4 Common Patterns
 
 #### Pagination
 
@@ -1494,7 +1551,7 @@ File uploads use `multipart/form-data` with the following fields:
 | `delimiter` | string | No | Custom delimiter for CSV (default `,`) |
 | `hasHeader` | boolean | No | Whether first row is a header (default `true`) |
 
-### 12.5 Rate Limiting
+### 13.5 Rate Limiting
 
 The API is protected by a global rate limiter:
 
