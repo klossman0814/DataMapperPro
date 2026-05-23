@@ -51,12 +51,12 @@ export function SpecEvaluator() {
   const loadSpecs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await specEvaluatorService.list(page, 20, tagFilter || undefined);
+      const res = await specEvaluatorService.list(page, 20);
       setSpecs(res.data);
       setTotalPages(res.totalPages);
     } catch { toast.error('Failed to load specs'); }
     finally { setLoading(false); }
-  }, [page, tagFilter]);
+  }, [page]);
 
   useEffect(() => { loadSpecs(); }, [loadSpecs]);
 
