@@ -186,10 +186,10 @@ export class SpecEvaluatorService {
     }));
 
     const fieldRefs = fields.map((f: any) => `{{${f.name}}}`);
-    const detectedFormat = extracted?.formats?.[0]?.type || 'pipe';
-    const delimiter = detectedFormat === 'csv' ? ',' : '|';
+    const hasSubFields = extracted?.hasSubFields === true;
+    const delimiter = hasSubFields ? '|' : ',';
     const template = fieldRefs.join(delimiter);
-    const outputFormat = detectedFormat === 'csv' ? 'csv' : 'pipe';
+    const outputFormat = hasSubFields ? 'pipe' : 'csv';
 
     const profile = await this.prisma.mappingProfile.create({
       data: {
@@ -223,6 +223,7 @@ export class SpecEvaluatorService {
       version: record.version,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
+      hasSubFields: extracted?.hasSubFields === true,
       fieldCount: extracted?.fields?.length || 0,
       formatCount: extracted?.formats?.length || 0,
       fields: extracted?.fields || [],

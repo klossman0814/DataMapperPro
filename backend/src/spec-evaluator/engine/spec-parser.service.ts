@@ -33,6 +33,7 @@ interface ParsedSpec {
   notes: string[];
   sections: SpecSection[];
   sourceText?: string;
+  hasSubFields?: boolean;
 }
 
 const FIELD_PATTERNS = [
@@ -264,9 +265,9 @@ export class SpecParserService {
       }
     }
 
-    const tableFields = this.extractTableFromText(text);
+    const tableResult = this.extractTableFromText(text);
     const existingNames = new Set(fields.map(f => f.name.toLowerCase()));
-    for (const tf of tableFields) {
+    for (const tf of tableResult.fields) {
       if (!existingNames.has(tf.name.toLowerCase())) {
         fields.push(tf);
         existingNames.add(tf.name.toLowerCase());
@@ -275,7 +276,7 @@ export class SpecParserService {
 
     const name = this.inferName(text);
 
-    return { name, fields, formats, rules, notes, sections, sourceText: text };
+    return { name, fields, formats, rules, notes, sections, sourceText: text, hasSubFields: tableResult.hasSubFields };
   }
 
   private extractFieldFromLine(line: string): ExtractedField | null {
@@ -314,7 +315,7 @@ export class SpecParserService {
     return null;
   }
 
-  private extractTableFromText(text: string): ExtractedField[] {
+  private extractTableFromText(text: string): { fields: ExtractedField[]; hasSubFields: boolean } {
     const fields: ExtractedField[] = [];
     const lines = text.split('\n');
     let inTable = false;
@@ -326,6 +327,8 @@ export class SpecParserService {
     let descCol = -1;
     let posCol = -1;
     let defaultCol = -1;
+    let subCol = -1;
+    let hasSubFields = false;
 
     for (const line of lines) {
       if (line.includes('|') && line.split('|').filter(s => s.trim()).length >= 3) {
@@ -341,6 +344,7 @@ export class SpecParserService {
             else if (lenCol === -1 && h.match(/^(length|len|size|width|maxlength|fieldlength)$/)) lenCol = i;
             else if (descCol === -1 && h.match(/^(description|desc|definition|note|notes|comment|comments)$/)) descCol = i;
             else if (posCol === -1 && h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number)$/)) posCol = i;
+            else if (subCol === -1 && h.match(/^(csvsubfield|subfield|subfieldnum|sub|component)$/)) subCol = i;
             else if (defaultCol === -1 && h.match(/^(default|defaultvalue)$/)) defaultCol = i;
           }
           if (nameCol === -1) {
@@ -356,6 +360,10 @@ export class SpecParserService {
 
         if (parts.length >= 2) {
           const field: ExtractedField = { name: parts[Math.min(nameCol, parts.length - 1)] };
+
+          if (subCol >= 0 && subCol < parts.length && parts[subCol].trim()) {
+            hasSubFields = true;
+          }
 
           for (let i = 0; i < parts.length && i < headers.length; i++) {
             const val = parts[i];
@@ -385,7 +393,7 @@ export class SpecParserService {
       } else {
         inTable = false;
         headers = [];
-        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1;
+        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1; subCol = -1;
       }
     }
 
@@ -410,7 +418,7 @@ export class SpecParserService {
       }
     }
 
-    return fields;
+    return { fields, hasSubFields };
   }
 
   private inferName(text: string): string {
