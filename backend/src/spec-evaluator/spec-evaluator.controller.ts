@@ -26,9 +26,8 @@ export class SpecEvaluatorController {
     @CurrentUser('id') userId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-    @Query('tag') tag?: string,
   ) {
-    return this.service.findAll(userId, page || 1, limit || 20, tag);
+    return this.service.findAll(userId, page || 1, limit || 20);
   }
 
   @Get(':id')

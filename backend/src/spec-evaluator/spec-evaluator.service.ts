@@ -52,7 +52,6 @@ export class SpecEvaluatorService {
         sourceText: parsed.sections.map(s => `${s.heading}\n${s.content}`).join('\n').slice(0, 50000) || null,
         extractedSpec: JSON.parse(JSON.stringify(enhanced)) as Prisma.InputJsonValue,
         sections: JSON.parse(JSON.stringify(parsed.sections)) as Prisma.InputJsonValue,
-        tags: dto.tags || null,
         provider: (enhanced as any).provider || null,
         status: 'PARSED',
         createdById: userId,
@@ -62,11 +61,8 @@ export class SpecEvaluatorService {
     return this.formatSpecResponse(record);
   }
 
-  async findAll(userId: string, page = 1, limit = 20, tag?: string) {
+  async findAll(userId: string, page = 1, limit = 20) {
     const where: any = { createdById: userId };
-    if (tag) {
-      where.tags = { contains: tag };
-    }
 
     const [items, total] = await Promise.all([
       this.prisma.specDocument.findMany({

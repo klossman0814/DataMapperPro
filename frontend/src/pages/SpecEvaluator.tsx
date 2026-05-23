@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Upload, Trash2, ClipboardCheck, Download, ArrowRight,
   Search, AlertCircle, CheckCircle2, XCircle, Loader2, FileSpreadsheet,
-  FileType, Table2, BookOpen, BarChart3, Tag, Plus,
+  FileType, Table2, BookOpen, BarChart3,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
@@ -35,13 +35,12 @@ export function SpecEvaluator() {
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
-  const [tagFilter, setTagFilter] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadName, setUploadName] = useState('');
   const [uploadDesc, setUploadDesc] = useState('');
-  const [uploadTags, setUploadTags] = useState('');
+
 
   const [evalSpecId, setEvalSpecId] = useState<string | null>(null);
   const [evalFile, setEvalFile] = useState<File | null>(null);
@@ -69,12 +68,10 @@ export function SpecEvaluator() {
       await specEvaluatorService.upload(file, {
         name: uploadName || undefined,
         description: uploadDesc || undefined,
-        tags: uploadTags || undefined,
       });
       toast.success('Spec uploaded and parsed');
       setUploadName('');
       setUploadDesc('');
-      setUploadTags('');
       loadSpecs();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Upload failed');
@@ -171,9 +168,8 @@ export function SpecEvaluator() {
                 {isDragActive ? 'Drop spec document here' : 'Upload a spec document'}
               </p>
               <p className="text-xs text-gray-500 dark:text-slate-400">.docx, .xlsx, .xls, .pdf, .txt — max 50 MB</p>
-              <div className="mt-2 flex gap-3 text-xs">
-                <input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="Spec name (optional)" className="input-field w-48 text-xs" onClick={e => e.stopPropagation()} />
-                <input value={uploadTags} onChange={e => setUploadTags(e.target.value)} placeholder="Tags (comma-separated)" className="input-field w-48 text-xs" onClick={e => e.stopPropagation()} />
+              <div className="mt-2">
+                <input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="Spec name (optional)" className="input-field w-64 text-xs" onClick={e => e.stopPropagation()} />
               </div>
             </>
           )}
@@ -181,11 +177,6 @@ export function SpecEvaluator() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input value={tagFilter} onChange={e => { setTagFilter(e.target.value); setPage(1); }}
-            className="input-field pl-9 text-sm" placeholder="Filter by tag..." />
-        </div>
         <span className="text-xs text-gray-400">{specs.length} specs</span>
       </div>
 
@@ -219,15 +210,7 @@ export function SpecEvaluator() {
                         <span>{spec.fieldCount} fields</span>
                         {spec.provider && <span className="text-primary-500">{spec.provider}</span>}
                       </div>
-                      {spec.tags && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {spec.tags.split(',').map(t => (
-                            <span key={t} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-slate-300">
-                              <Tag className="h-2.5 w-2.5" />{t.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
