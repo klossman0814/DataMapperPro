@@ -2,12 +2,14 @@ import api from './api';
 import type { SpecDocument, SpecEvaluation, PaginatedSpecs } from '../types';
 
 export const specEvaluatorService = {
-  upload: (file: File, data?: { name?: string; description?: string; tags?: string }) => {
+  upload: (file: File, data?: { name?: string; description?: string; tags?: string; delimiter?: string; sheetName?: string }) => {
     const formData = new FormData();
     formData.append('file', file);
     if (data?.name) formData.append('name', data.name);
     if (data?.description) formData.append('description', data.description);
     if (data?.tags) formData.append('tags', data.tags);
+    if (data?.delimiter) formData.append('delimiter', data.delimiter);
+    if (data?.sheetName) formData.append('sheetName', data.sheetName);
     return api.post<SpecDocument>('/spec-evaluator/upload', formData, {
       headers: { 'Content-Type': undefined },
     }).then(r => r.data);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Upload, Trash2, ClipboardCheck, Download, ArrowRight,
-  Search, AlertCircle, CheckCircle2, XCircle, Loader2, FileSpreadsheet,
+  Search, Tag, AlertCircle, CheckCircle2, XCircle, Loader2, FileSpreadsheet,
   FileType, Table2, BookOpen, BarChart3,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -35,12 +35,14 @@ export function SpecEvaluator() {
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
+  const [tagFilter, setTagFilter] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadName, setUploadName] = useState('');
   const [uploadDesc, setUploadDesc] = useState('');
-
+  const [uploadTags, setUploadTags] = useState('');
+  const [uploadDelimiter, setUploadDelimiter] = useState('');
 
   const [evalSpecId, setEvalSpecId] = useState<string | null>(null);
   const [evalFile, setEvalFile] = useState<File | null>(null);
@@ -51,12 +53,12 @@ export function SpecEvaluator() {
   const loadSpecs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await specEvaluatorService.list(page, 20);
+      const res = await specEvaluatorService.list(page, 20, tagFilter || undefined);
       setSpecs(res.data);
       setTotalPages(res.totalPages);
     } catch { toast.error('Failed to load specs'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, tagFilter]);
 
   useEffect(() => { loadSpecs(); }, [loadSpecs]);
 
@@ -68,10 +70,14 @@ export function SpecEvaluator() {
       await specEvaluatorService.upload(file, {
         name: uploadName || undefined,
         description: uploadDesc || undefined,
+        tags: uploadTags || undefined,
+        delimiter: uploadDelimiter || undefined,
       });
       toast.success('Spec uploaded and parsed');
       setUploadName('');
       setUploadDesc('');
+      setUploadTags('');
+      setUploadDelimiter('');
       loadSpecs();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Upload failed');
@@ -168,8 +174,17 @@ export function SpecEvaluator() {
                 {isDragActive ? 'Drop spec document here' : 'Upload a spec document'}
               </p>
               <p className="text-xs text-gray-500 dark:text-slate-400">.docx, .xlsx, .xls, .pdf, .txt — max 50 MB</p>
-              <div className="mt-2">
-                <input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="Spec name (optional)" className="input-field w-64 text-xs" onClick={e => e.stopPropagation()} />
+              <div className="mt-2 flex flex-wrap gap-2 justify-center">
+                <input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="Spec name" className="input-field w-44 text-xs" onClick={e => e.stopPropagation()} />
+                <select value={uploadDelimiter} onChange={e => setUploadDelimiter(e.target.value)} className="input-field w-28 text-xs" onClick={e => e.stopPropagation()}>
+                  <option value="">Auto-detect</option>
+                  <option value=",">Comma (,)</option>
+                  <option value="|">Pipe (|)</option>
+                  <option value="\t">Tab (\t)</option>
+                  <option value=";">Semicolon (;)</option>
+                  <option value="^">Caret (^)</option>
+                </select>
+                <input value={uploadTags} onChange={e => setUploadTags(e.target.value)} placeholder="Tags" className="input-field w-36 text-xs" onClick={e => e.stopPropagation()} />
               </div>
             </>
           )}
@@ -177,6 +192,11 @@ export function SpecEvaluator() {
       </div>
 
       <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input value={tagFilter || ''} onChange={e => { setTagFilter(e.target.value); setPage(1); }}
+            className="input-field pl-9 text-sm" placeholder="Filter by tag..." />
+        </div>
         <span className="text-xs text-gray-400">{specs.length} specs</span>
       </div>
 
@@ -212,8 +232,17 @@ export function SpecEvaluator() {
                       </div>
 
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                      {spec.tags && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {spec.tags.split(',').map(t => (
+                            <span key={t} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-slate-300">
+                              <Tag className="h-2.5 w-2.5" />{t.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
                     {statusBadge(spec.status)}
                     <button onClick={() => setExpandedId(isExpanded ? null : spec.id)} className="btn-secondary text-xs">Details</button>
                   </div>

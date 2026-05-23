@@ -71,7 +71,7 @@ const DELIMITER_MAP: Record<string, string> = {
 export class SpecParserService {
   private readonly logger = new Logger(SpecParserService.name);
 
-  async parse(file: Express.Multer.File, originalName: string): Promise<ParsedSpec> {
+  async parse(file: Express.Multer.File, originalName: string, delimiter?: string): Promise<ParsedSpec> {
     const ext = originalName.toLowerCase().split('.').pop() || '';
 
     switch (ext) {
@@ -87,7 +87,7 @@ export class SpecParserService {
       case 'tsv':
       case 'dat':
       case 'hl7':
-        return this.parseText(file.buffer);
+        return this.parseText(file.buffer, delimiter);
       default:
         throw new Error(`Unsupported file type: .${ext}`);
     }
@@ -159,14 +159,47 @@ export class SpecParserService {
     return this.parseStructuredText(text);
   }
 
-  private parseText(buffer: Buffer): ParsedSpec {
-    const text = buffer.toString('utf-8')
+  private parseText(buffer: Buffer, delimiter?: string): ParsedSpec {
+    let text = buffer.toString('utf-8');
+
+    if (delimiter && delimiter !== '|') {
+      text = text
+        .split('\n')
+        .map(line => {
+          const parts = this.splitByDelimiter(line, delimiter);
+          return parts.join('|');
+        })
+        .join('\n');
+    }
+
+    text = text
       .split('\n')
       .map(l => l.trim())
       .filter(l => l)
       .join('\n');
 
     return this.parseStructuredText(text);
+  }
+
+  private splitByDelimiter(line: string, delimiter: string): string[] {
+    const parts: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+        current += ch;
+      } else if (!inQuotes && ch === delimiter) {
+        parts.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    parts.push(current);
+    return parts;
   }
 
   private parseStructuredText(text: string): ParsedSpec {

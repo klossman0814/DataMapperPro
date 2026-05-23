@@ -12,4 +12,12 @@ export class UploadSpecDto {
   @IsOptional()
   @IsString()
   tags?: string;
+
+  @IsOptional()
+  @IsString()
+  delimiter?: string;
+
+  @IsOptional()
+  @IsString()
+  sheetName?: string;
 }
