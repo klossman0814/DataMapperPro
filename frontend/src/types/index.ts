@@ -203,8 +203,11 @@ export interface SpecField {
   required?: boolean;
   description?: string;
   sourcePosition?: number;
+  subFieldPosition?: number;
   defaultValue?: string;
   validation?: string;
+  repeating?: boolean;
+  delimiter?: string;
   hl7Segment?: string;
   hl7Field?: number;
   hl7Component?: number;

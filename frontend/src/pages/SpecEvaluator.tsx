@@ -1,36 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  FileText, Upload, Trash2, ClipboardCheck, Download, ArrowRight,
+  Upload, Trash2, ClipboardCheck,
   Search, Tag, AlertCircle, CheckCircle2, XCircle, Loader2, FileSpreadsheet,
-  FileType, Table2, BookOpen, BarChart3,
+  BarChart3,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { useNavigate } from 'react-router-dom';
+
 import { specEvaluatorService } from '../services/spec-evaluator.service';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import type { SpecDocument, SpecEvaluation } from '../types';
+import type { SpecDocument, SpecEvaluation, SpecField } from '../types';
 import toast from 'react-hot-toast';
 
 const FILE_ACCEPT = {
-  'text/plain': ['.txt', '.csv', '.tsv', '.dat', '.hl7'],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
   'application/vnd.ms-excel': ['.xls'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/pdf': ['.pdf'],
 };
 
-const TYPE_ICONS: Record<string, typeof FileText> = {
-  'docx': FileText,
+const TYPE_ICONS: Record<string, typeof FileSpreadsheet> = {
   'xlsx': FileSpreadsheet,
   'xls': FileSpreadsheet,
-  'pdf': FileType,
-  'txt': FileText,
 };
 
 function getExt(name: string) { return name.toLowerCase().split('.').pop() || ''; }
 
 export function SpecEvaluator() {
-  const navigate = useNavigate();
   const [specs, setSpecs] = useState<SpecDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
@@ -40,9 +33,6 @@ export function SpecEvaluator() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadName, setUploadName] = useState('');
-  const [uploadDesc, setUploadDesc] = useState('');
-  const [uploadTags, setUploadTags] = useState('');
-  const [uploadDelimiter, setUploadDelimiter] = useState('');
 
   const [evalSpecId, setEvalSpecId] = useState<string | null>(null);
   const [evalFile, setEvalFile] = useState<File | null>(null);
@@ -69,15 +59,9 @@ export function SpecEvaluator() {
     try {
       await specEvaluatorService.upload(file, {
         name: uploadName || undefined,
-        description: uploadDesc || undefined,
-        tags: uploadTags || undefined,
-        delimiter: uploadDelimiter || undefined,
       });
       toast.success('Spec uploaded and parsed');
       setUploadName('');
-      setUploadDesc('');
-      setUploadTags('');
-      setUploadDelimiter('');
       loadSpecs();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Upload failed');
@@ -128,14 +112,12 @@ export function SpecEvaluator() {
     return () => clearInterval(interval);
   }, [polling, evalResult?.id]);
 
-  const handleGenerateTemplate = async (specId: string) => {
-    try {
-      const profile = await specEvaluatorService.generateTemplate(specId);
-      toast.success('Template generated');
-      navigate(`/template/${profile.id}`);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to generate template');
-    }
+  const buildTemplate = (fields: SpecField[]) => {
+    if (!fields.length) return '';
+    return [...fields]
+      .sort((a, b) => (a.sourcePosition ?? 0) - (b.sourcePosition ?? 0))
+      .map(f => `{{${f.name}}}${f.delimiter || ','}`)
+      .join('');
   };
 
   const statusBadge = (status: string) => {
@@ -173,18 +155,9 @@ export function SpecEvaluator() {
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {isDragActive ? 'Drop spec document here' : 'Upload a spec document'}
               </p>
-              <p className="text-xs text-gray-500 dark:text-slate-400">.docx, .xlsx, .xls, .pdf, .txt — max 50 MB</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400">.xlsx or .xls — max 50 MB</p>
               <div className="mt-2 flex flex-wrap gap-2 justify-center">
                 <input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="Spec name" className="input-field w-44 text-xs" onClick={e => e.stopPropagation()} />
-                <select value={uploadDelimiter} onChange={e => setUploadDelimiter(e.target.value)} className="input-field w-28 text-xs" onClick={e => e.stopPropagation()}>
-                  <option value="">Auto-detect</option>
-                  <option value=",">Comma (,)</option>
-                  <option value="|">Pipe (|)</option>
-                  <option value="\t">Tab (\t)</option>
-                  <option value=";">Semicolon (;)</option>
-                  <option value="^">Caret (^)</option>
-                </select>
-                <input value={uploadTags} onChange={e => setUploadTags(e.target.value)} placeholder="Tags" className="input-field w-36 text-xs" onClick={e => e.stopPropagation()} />
               </div>
             </>
           )}
@@ -211,7 +184,7 @@ export function SpecEvaluator() {
         <div className="space-y-3">
           {specs.map(spec => {
             const ext = getExt(spec.originalName);
-            const Icon = TYPE_ICONS[ext] || FileText;
+            const Icon = TYPE_ICONS[ext] || FileSpreadsheet;
             const isExpanded = expandedId === spec.id;
             const specEvalId = evalSpecId === spec.id;
 
@@ -258,20 +231,56 @@ export function SpecEvaluator() {
                         <div className="max-h-60 overflow-auto rounded-lg border border-gray-200 dark:border-slate-700">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-gray-50 dark:bg-slate-800/50">
-                              <tr><th className="px-3 py-2 font-medium text-gray-500">Name</th><th className="px-3 py-2 font-medium text-gray-500">Type</th><th className="px-3 py-2 font-medium text-gray-500">Req</th><th className="px-3 py-2 font-medium text-gray-500">Length</th><th className="px-3 py-2 font-medium text-gray-500">Description</th></tr>
+                              <tr><th className="px-3 py-2 font-medium text-gray-500">Field #</th><th className="px-3 py-2 font-medium text-gray-500">Sub-Field #</th><th className="px-3 py-2 font-medium text-gray-500">Field Name</th><th className="px-3 py-2 font-medium text-gray-500">Required</th><th className="px-3 py-2 font-medium text-gray-500">Repeating</th><th className="px-3 py-2 font-medium text-gray-500">Delimiter</th></tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                               {spec.fields.map((f, i) => (
                                 <tr key={i} className="hover:bg-gray-50 dark:hover:bg-slate-800/30">
+                                  <td className="px-3 py-1.5 font-mono text-gray-500">{f.sourcePosition ?? '-'}</td>
+                                  <td className="px-3 py-1.5 font-mono text-gray-500">{f.subFieldPosition ?? '-'}</td>
                                   <td className="px-3 py-1.5 font-mono text-gray-900 dark:text-slate-200">{f.name}</td>
-                                  <td className="px-3 py-1.5 text-gray-500">{f.dataType || '-'}</td>
                                   <td className="px-3 py-1.5">{f.required ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
-                                  <td className="px-3 py-1.5 text-gray-500">{f.length ?? '-'}</td>
-                                  <td className="px-3 py-1.5 text-gray-500 max-w-xs truncate">{f.description || '-'}</td>
+                                  <td className="px-3 py-1.5">{f.repeating ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
+                                  <td className="px-3 py-1.5 font-mono text-gray-500">{f.delimiter || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {spec.fields.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 text-xs font-semibold text-gray-700 dark:text-slate-300">Generated Template</h4>
+                        <div className="relative">
+                          <pre className="max-h-32 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs text-gray-800 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200 whitespace-pre-wrap break-all">
+                            {buildTemplate(spec.fields)}
+                          </pre>
+                          <button
+                            onClick={() => {
+                              const text = buildTemplate(spec.fields);
+                              const copy = (t: string) => {
+                                const el = document.createElement('textarea');
+                                el.value = t;
+                                el.style.position = 'fixed';
+                                el.style.opacity = '0';
+                                document.body.appendChild(el);
+                                el.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(el);
+                              };
+                              if (navigator.clipboard?.writeText) {
+                                navigator.clipboard.writeText(text).catch(() => copy(text));
+                              } else {
+                                copy(text);
+                              }
+                              toast.success('Template copied');
+                            }}
+                            className="absolute right-2 top-2 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium text-gray-500 transition-colors hover:text-gray-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                          >
+                            Copy
+                          </button>
                         </div>
                       </div>
                     )}
@@ -302,9 +311,6 @@ export function SpecEvaluator() {
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => { setEvalSpecId(spec.id); setEvalFile(null); setEvalResult(null); }} className="btn-primary text-xs">
                         <BarChart3 className="h-3.5 w-3.5" /> Evaluate Data
-                      </button>
-                      <button onClick={() => handleGenerateTemplate(spec.id)} className="btn-secondary text-xs">
-                        <ArrowRight className="h-3.5 w-3.5" /> Generate Template
                       </button>
                       <button onClick={() => setDeleteTarget({ id: spec.id, name: spec.name })} className="btn-danger text-xs">
                         <Trash2 className="h-3.5 w-3.5" /> Delete

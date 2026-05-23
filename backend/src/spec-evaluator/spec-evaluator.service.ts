@@ -185,23 +185,13 @@ export class SpecEvaluatorService {
       condition: null as any,
     }));
 
-    const hasPositions = fields.some((f: any) => f.sourcePosition != null);
-    let template: string;
+    const sortedFields = [...fields].sort((a: any, b: any) =>
+      (a.sourcePosition ?? 0) - (b.sourcePosition ?? 0)
+    );
 
-    if (hasPositions) {
-      const groups = new Map<number, string[]>();
-      for (const f of fields) {
-        const pos = f.sourcePosition ?? 0;
-        if (!groups.has(pos)) groups.set(pos, []);
-        groups.get(pos)!.push(`{{${f.name}}}`);
-      }
-      const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a - b);
-      template = sortedGroups.map(([, refs]) => refs.join('|')).join(',');
-    } else {
-      const hasSubFields = extracted?.hasSubFields === true;
-      const delimiter = hasSubFields ? '|' : ',';
-      template = fields.map((f: any) => `{{${f.name}}}`).join(delimiter);
-    }
+    const template = sortedFields
+      .map((f: any) => `{{${f.name}}}${f.delimiter || ','}`)
+      .join('');
 
     const outputFormat = template.includes('|') ? 'pipe' : 'csv';
 

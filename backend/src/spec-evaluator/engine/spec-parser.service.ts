@@ -8,8 +8,11 @@ interface ExtractedField {
   required?: boolean;
   description?: string;
   sourcePosition?: number;
+  subFieldPosition?: number;
   defaultValue?: string;
   validation?: string;
+  repeating?: boolean;
+  delimiter?: string;
 }
 
 interface FormatSpec {
@@ -134,11 +137,11 @@ export class SpecParserService {
         allText.push(`## ${sheetName}`);
         allText.push(colNames.join(' | '));
         for (const row of jsonData) {
-          allText.push(colNames.map(c => String(row[c] ?? '')).join(' | '));
+          allText.push(colNames.map(c => String(row[c] ?? '').replace(/\|/g, '\v')).join(' | '));
         }
         sections.push({
           heading: sheetName,
-          content: jsonData.map(r => Object.values(r).join(' | ')).join('\n'),
+          content: jsonData.map(r => Object.values(r).map(v => String(v ?? '').replace(/\|/g, '\v')).join(' | ')).join('\n'),
           level: 1,
         });
       }
@@ -328,23 +331,32 @@ export class SpecParserService {
     let posCol = -1;
     let defaultCol = -1;
     let subCol = -1;
+    let repeatingCol = -1;
+    let delimiterCol = -1;
     let hasSubFields = false;
 
     for (const line of lines) {
       if (line.includes('|') && line.split('|').filter(s => s.trim()).length >= 3) {
-        const parts = line.split('|').map(s => s.trim());
+        const parts = line.split('|').map(s => s.replace(/\v/g, '|').trim());
 
         if (!inTable) {
           headers = parts;
           for (let i = 0; i < headers.length; i++) {
-            const h = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^_+|_+$/g, '');
+            const h = headers[i]
+              .toLowerCase()
+              .replace(/^[a-z]\s*\.\s+/, '')
+              .replace(/^\d+\s*\.\s+/, '')
+              .replace(/[^a-z0-9]/g, '')
+              .replace(/^_+|_+$/g, '');
             if (nameCol === -1 && h.match(/^(dataelementname|dataelement|elementname|fieldname|columnname|name)$/)) nameCol = i;
             else if (typeCol === -1 && h.match(/^(datatype|type|data_type|fieldtype)$/)) typeCol = i;
             else if (reqCol === -1 && h.match(/^(required|req|mandatory|requirement|requiredync|requiredyn)/)) reqCol = i;
             else if (lenCol === -1 && h.match(/^(length|len|size|width|maxlength|fieldlength)$/)) lenCol = i;
             else if (descCol === -1 && h.match(/^(description|desc|definition|note|notes|comment|comments)$/)) descCol = i;
-            else if (posCol === -1 && h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number)$/)) posCol = i;
+            else if (posCol === -1 && h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number|field)$/)) posCol = i;
             else if (subCol === -1 && h.match(/^(csvsubfield|subfield|subfieldnum|sub|component)$/)) subCol = i;
+            else if (repeatingCol === -1 && h.match(/^(repeating|repeat|rep|repeatingyn)$/)) repeatingCol = i;
+            else if (delimiterCol === -1 && h.match(/^(delimiter|delim|sep|separator)$/)) delimiterCol = i;
             else if (defaultCol === -1 && h.match(/^(default|defaultvalue)$/)) defaultCol = i;
           }
           if (nameCol === -1) {
@@ -381,6 +393,13 @@ export class SpecParserService {
               if (!isNaN(num)) field.sourcePosition = num;
             } else if (i === defaultCol && defaultCol >= 0) {
               field.defaultValue = val;
+            } else if (i === subCol && subCol >= 0) {
+              const num = parseInt(val, 10);
+              if (!isNaN(num)) field.subFieldPosition = num;
+            } else if (i === repeatingCol && repeatingCol >= 0) {
+              field.repeating = /^(y|yes|true|r|repeating)$/i.test(val);
+            } else if (i === delimiterCol && delimiterCol >= 0) {
+              field.delimiter = val.trim();
             }
           }
 
@@ -393,14 +412,14 @@ export class SpecParserService {
       } else {
         inTable = false;
         headers = [];
-        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1; subCol = -1;
+        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1; subCol = -1; repeatingCol = -1; delimiterCol = -1;
       }
     }
 
     if (fields.length === 0) {
       for (const line of lines) {
         if (line.includes('|') && line.split('|').filter(s => s.trim()).length >= 3) {
-          const parts = line.split('|').map(s => s.trim());
+          const parts = line.split('|').map(s => s.replace(/\v/g, '|').trim());
           if (!inTable) {
             inTable = true;
             continue;
