@@ -195,3 +195,74 @@ export interface ImportTableResult {
   rowsInserted: number;
   ddlStatements: string[];
 }
+
+export interface SpecField {
+  name: string;
+  dataType?: string;
+  length?: number;
+  required?: boolean;
+  description?: string;
+  sourcePosition?: number;
+  defaultValue?: string;
+  validation?: string;
+  hl7Segment?: string;
+  hl7Field?: number;
+  hl7Component?: number;
+}
+
+export interface SpecFormat {
+  type: string;
+  delimiter?: string;
+  headerRow?: boolean;
+  encoding?: string;
+}
+
+export interface SpecDocument {
+  id: string;
+  name: string;
+  description?: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  tags?: string;
+  provider?: string;
+  status: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  fieldCount: number;
+  formatCount: number;
+  fields: SpecField[];
+  formats: SpecFormat[];
+  rules: string[];
+  notes: string[];
+  sections?: { heading: string; content: string; level: number }[];
+  evaluations?: SpecEvaluation[];
+}
+
+export interface SpecEvaluation {
+  id: string;
+  specDocumentId: string;
+  status: string;
+  score?: number;
+  fieldCoverage?: {
+    matched: string[];
+    missing: string[];
+    extra: string[];
+    typeMismatches: { field: string; expected: string; actual: string }[];
+  };
+  issues?: { severity: string; field?: string; message: string }[];
+  summary?: string;
+  inputFilename?: string;
+  inputRowCount?: number;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface PaginatedSpecs {
+  data: SpecDocument[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

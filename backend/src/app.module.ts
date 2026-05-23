@@ -15,6 +15,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { EmailModule } from './email/email.module';
 import { TextToTableModule } from './text-to-table/text-to-table.module';
+import { SpecEvaluatorModule } from './spec-evaluator/spec-evaluator.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { TextToTableModule } from './text-to-table/text-to-table.module';
     AdminModule,
     EmailModule,
     TextToTableModule,
+    SpecEvaluatorModule,
   ],
 })
 export class AppModule {}

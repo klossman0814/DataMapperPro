@@ -24,6 +24,8 @@ model User {
   uploadedFiles       UploadedFile[]
   processingJobs      ProcessingJob[]
   databaseConnections DatabaseConnection[]
+  specDocuments       SpecDocument[]
+  specEvaluations     SpecEvaluation[]
 }
 
 model DatabaseConnection {
@@ -74,6 +76,48 @@ model UploadedFile {
 
   uploadedBy     User             @relation(fields: [uploadedById], references: [id])
   processingJobs ProcessingJob[]
+}
+
+model SpecDocument {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  sourceText    String?
+  extractedSpec Json?
+  sections      Json?
+  tags          String?
+  provider      String?
+  status        String   @default("UPLOADED")
+  version       Int      @default(1)
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy   User              @relation(fields: [createdById], references: [id])
+  evaluations SpecEvaluation[]
+}
+
+model SpecEvaluation {
+  id              String   @id @default(uuid())
+  specDocumentId  String
+  evaluatedById   String
+  status          String   @default("PENDING")
+  score           Float?
+  fieldCoverage   Json?
+  issues          Json?
+  summary         String?
+  inputFilename   String?
+  inputRowCount   Int?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  specDocument SpecDocument @relation(fields: [specDocumentId], references: [id])
+  evaluatedBy  User         @relation(fields: [evaluatedById], references: [id])
 }
 
 model ProcessingJob {
