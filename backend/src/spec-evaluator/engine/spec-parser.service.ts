@@ -302,15 +302,19 @@ export class SpecParserService {
           headers = parts;
           for (let i = 0; i < headers.length; i++) {
             const h = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^_+|_+$/g, '');
-            if (h.match(/^(dataelementname|elementname|fieldname|columnname)$/)) nameCol = i;
-            else if (h.match(/^(datatype|type|data_type|format)$/)) typeCol = i;
-            else if (h.match(/^(required|req|mandatory)$/)) reqCol = i;
-            else if (h.match(/^(length|len|size|width|maxlength)$/)) lenCol = i;
-            else if (h.match(/^(description|desc|definition|note|notes)$/)) descCol = i;
-            else if (h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield)$/)) posCol = i;
+            if (h.match(/^(dataelementname|elementname|fieldname|columnname|name)$/)) nameCol = i;
+            else if (h.match(/^(datatype|type|data_type|fieldtype)$/)) typeCol = i;
+            else if (h.match(/^(required|req|mandatory|requirement)$/)) reqCol = i;
+            else if (h.match(/^(length|len|size|width|maxlength|fieldlength)$/)) lenCol = i;
+            else if (h.match(/^(description|desc|definition|note|notes|comment|comments)$/)) descCol = i;
+            else if (h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number)$/)) posCol = i;
             else if (h.match(/^(default|defaultvalue)$/)) defaultCol = i;
           }
-          if (nameCol === -1) nameCol = 0;
+          if (nameCol === -1 && typeCol === -1 && reqCol === -1) {
+            nameCol = 1;
+          } else if (nameCol === -1) {
+            nameCol = 0;
+          }
           inTable = true;
           continue;
         }
@@ -347,6 +351,27 @@ export class SpecParserService {
         inTable = false;
         headers = [];
         nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1;
+      }
+    }
+
+    if (fields.length === 0) {
+      for (const line of lines) {
+        if (line.includes('|') && line.split('|').filter(s => s.trim()).length >= 3) {
+          const parts = line.split('|').map(s => s.trim());
+          if (!inTable) {
+            inTable = true;
+            continue;
+          }
+          if (parts.length >= 2) {
+            const name = parts[Math.min(parts.length > 2 ? 2 : 1, parts.length - 1)];
+            const cleanName = name.replace(/[^a-z0-9_]/gi, '_').replace(/^_+|_+$/g, '');
+            if (cleanName && cleanName.length > 0 && !/^\d+$/.test(cleanName)) {
+              fields.push({ name: cleanName });
+            }
+          }
+        } else {
+          inTable = false;
+        }
       }
     }
 
