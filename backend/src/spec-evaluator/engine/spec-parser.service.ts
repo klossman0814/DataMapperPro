@@ -13,6 +13,7 @@ interface ExtractedField {
   validation?: string;
   repeating?: boolean;
   delimiter?: string;
+  include?: boolean;
 }
 
 interface FormatSpec {
@@ -333,6 +334,7 @@ export class SpecParserService {
     let subCol = -1;
     let repeatingCol = -1;
     let delimiterCol = -1;
+    let includeCol = -1;
     let hasSubFields = false;
 
     for (const line of lines) {
@@ -357,6 +359,7 @@ export class SpecParserService {
             else if (subCol === -1 && h.match(/^(csvsubfield|subfield|subfieldnum|sub|component)$/)) subCol = i;
             else if (repeatingCol === -1 && h.match(/^(repeating|repeat|rep|repeatingyn)$/)) repeatingCol = i;
             else if (delimiterCol === -1 && h.match(/^(delimiter|delim|sep|separator)$/)) delimiterCol = i;
+            else if (includeCol === -1 && h.match(/^(include|included|includeyn)$/)) includeCol = i;
             else if (defaultCol === -1 && h.match(/^(default|defaultvalue)$/)) defaultCol = i;
           }
           if (nameCol === -1) {
@@ -400,6 +403,8 @@ export class SpecParserService {
               field.repeating = /^(y|yes|true|r|repeating)$/i.test(val);
             } else if (i === delimiterCol && delimiterCol >= 0) {
               field.delimiter = val.trim();
+            } else if (i === includeCol && includeCol >= 0) {
+              field.include = /^(y|yes|true)$/i.test(val);
             }
           }
 
@@ -412,7 +417,7 @@ export class SpecParserService {
       } else {
         inTable = false;
         headers = [];
-        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1; subCol = -1; repeatingCol = -1; delimiterCol = -1;
+        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1; subCol = -1; repeatingCol = -1; delimiterCol = -1; includeCol = -1;
       }
     }
 

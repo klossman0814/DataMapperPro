@@ -115,6 +115,7 @@ export function SpecEvaluator() {
   const buildTemplate = (fields: SpecField[]) => {
     if (!fields.length) return '';
     return [...fields]
+      .filter(f => f.include !== false)
       .sort((a, b) => (a.sourcePosition ?? 0) - (b.sourcePosition ?? 0))
       .map(f => `{{${f.name}}}${f.delimiter || ','}`)
       .join('');
@@ -231,7 +232,7 @@ export function SpecEvaluator() {
                         <div className="max-h-60 overflow-auto rounded-lg border border-gray-200 dark:border-slate-700">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-gray-50 dark:bg-slate-800/50">
-                              <tr><th className="px-3 py-2 font-medium text-gray-500">Field #</th><th className="px-3 py-2 font-medium text-gray-500">Sub-Field #</th><th className="px-3 py-2 font-medium text-gray-500">Field Name</th><th className="px-3 py-2 font-medium text-gray-500">Required</th><th className="px-3 py-2 font-medium text-gray-500">Repeating</th><th className="px-3 py-2 font-medium text-gray-500">Delimiter</th></tr>
+                              <tr><th className="px-3 py-2 font-medium text-gray-500">Field #</th><th className="px-3 py-2 font-medium text-gray-500">Sub-Field #</th><th className="px-3 py-2 font-medium text-gray-500">Field Name</th><th className="px-3 py-2 font-medium text-gray-500">Required</th><th className="px-3 py-2 font-medium text-gray-500">Repeating</th><th className="px-3 py-2 font-medium text-gray-500">Delimiter</th><th className="px-3 py-2 font-medium text-gray-500">Include</th></tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                               {spec.fields.map((f, i) => (
@@ -242,6 +243,7 @@ export function SpecEvaluator() {
                                   <td className="px-3 py-1.5">{f.required ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
                                   <td className="px-3 py-1.5">{f.repeating ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
                                   <td className="px-3 py-1.5 font-mono text-gray-500">{f.delimiter || '-'}</td>
+                                  <td className="px-3 py-1.5">{f.include !== false ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
                                 </tr>
                               ))}
                             </tbody>
