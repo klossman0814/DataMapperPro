@@ -302,18 +302,20 @@ export class SpecParserService {
           headers = parts;
           for (let i = 0; i < headers.length; i++) {
             const h = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^_+|_+$/g, '');
-            if (h.match(/^(dataelementname|elementname|fieldname|columnname|name)$/)) nameCol = i;
-            else if (h.match(/^(datatype|type|data_type|fieldtype)$/)) typeCol = i;
-            else if (h.match(/^(required|req|mandatory|requirement)$/)) reqCol = i;
-            else if (h.match(/^(length|len|size|width|maxlength|fieldlength)$/)) lenCol = i;
-            else if (h.match(/^(description|desc|definition|note|notes|comment|comments)$/)) descCol = i;
-            else if (h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number)$/)) posCol = i;
-            else if (h.match(/^(default|defaultvalue)$/)) defaultCol = i;
+            if (nameCol === -1 && h.match(/^(dataelementname|dataelement|elementname|fieldname|columnname|name)$/)) nameCol = i;
+            else if (typeCol === -1 && h.match(/^(datatype|type|data_type|fieldtype)$/)) typeCol = i;
+            else if (reqCol === -1 && h.match(/^(required|req|mandatory|requirement|requiredync|requiredyn)/)) reqCol = i;
+            else if (lenCol === -1 && h.match(/^(length|len|size|width|maxlength|fieldlength)$/)) lenCol = i;
+            else if (descCol === -1 && h.match(/^(description|desc|definition|note|notes|comment|comments)$/)) descCol = i;
+            else if (posCol === -1 && h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield|fieldnumber|number)$/)) posCol = i;
+            else if (defaultCol === -1 && h.match(/^(default|defaultvalue)$/)) defaultCol = i;
           }
-          if (nameCol === -1 && typeCol === -1 && reqCol === -1) {
-            nameCol = 1;
-          } else if (nameCol === -1) {
-            nameCol = 0;
+          if (nameCol === -1) {
+            if (posCol >= 0 && posCol + 2 < headers.length) {
+              nameCol = posCol + 2;
+            } else {
+              nameCol = 1;
+            }
           }
           inTable = true;
           continue;
