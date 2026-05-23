@@ -151,7 +151,8 @@ export class SpecParserService {
   }
 
   private async parsePdf(buffer: Buffer): Promise<ParsedSpec> {
-    const pdfParse = await import('pdf-parse');
+    const pdfModule = await import('pdf-parse');
+    const pdfParse = pdfModule.default || pdfModule;
     const data = await pdfParse(buffer);
 
     const text = data.text
