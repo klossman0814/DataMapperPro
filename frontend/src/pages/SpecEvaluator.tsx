@@ -34,6 +34,7 @@ export function SpecEvaluator() {
   const [uploading, setUploading] = useState(false);
   const [uploadName, setUploadName] = useState('');
 
+  const [fieldInclude, setFieldInclude] = useState<Record<string, Record<number, boolean>>>({});
   const [evalSpecId, setEvalSpecId] = useState<string | null>(null);
   const [evalFile, setEvalFile] = useState<File | null>(null);
   const [evalResult, setEvalResult] = useState<SpecEvaluation | null>(null);
@@ -112,13 +113,26 @@ export function SpecEvaluator() {
     return () => clearInterval(interval);
   }, [polling, evalResult?.id]);
 
-  const buildTemplate = (fields: SpecField[]) => {
+  const buildTemplate = (fields: SpecField[], specId?: string) => {
     if (!fields.length) return '';
+    const overrides = specId ? (fieldInclude[specId] || {}) : {};
     return [...fields]
-      .filter(f => f.include !== false)
+      .filter((f, i) => {
+        if (specId && i in overrides) return overrides[i];
+        return f.include !== false;
+      })
       .sort((a, b) => (a.sourcePosition ?? 0) - (b.sourcePosition ?? 0))
       .map(f => `{{${f.name}}}${f.delimiter || ','}`)
       .join('');
+  };
+
+  const toggleInclude = (specId: string, fieldIdx: number) => {
+    setFieldInclude(prev => {
+      const specOverrides = { ...(prev[specId] || {}) };
+      const current = specId in prev && fieldIdx in prev[specId] ? prev[specId][fieldIdx] : undefined;
+      specOverrides[fieldIdx] = current !== undefined ? !current : false;
+      return { ...prev, [specId]: specOverrides };
+    });
   };
 
   const statusBadge = (status: string) => {
@@ -243,7 +257,13 @@ export function SpecEvaluator() {
                                   <td className="px-3 py-1.5">{f.required ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
                                   <td className="px-3 py-1.5">{f.repeating ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
                                   <td className="px-3 py-1.5 font-mono text-gray-500">{f.delimiter || '-'}</td>
-                                  <td className="px-3 py-1.5">{f.include !== false ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <XCircle className="h-3.5 w-3.5 text-gray-300" />}</td>
+                                  <td className="px-3 py-1.5">
+                                    <button onClick={() => toggleInclude(spec.id, i)} className="cursor-pointer">
+                                      {(spec.id in fieldInclude && i in fieldInclude[spec.id] ? fieldInclude[spec.id][i] : f.include !== false)
+                                        ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                        : <XCircle className="h-3.5 w-3.5 text-gray-300" />}
+                                    </button>
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -257,11 +277,11 @@ export function SpecEvaluator() {
                         <h4 className="mb-2 text-xs font-semibold text-gray-700 dark:text-slate-300">Generated Template</h4>
                         <div className="relative">
                           <pre className="max-h-32 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs text-gray-800 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200 whitespace-pre-wrap break-all">
-                            {buildTemplate(spec.fields)}
+                            {buildTemplate(spec.fields, spec.id)}
                           </pre>
                           <button
                             onClick={() => {
-                              const text = buildTemplate(spec.fields);
+                              const text = buildTemplate(spec.fields, spec.id);
                               const copy = (t: string) => {
                                 const el = document.createElement('textarea');
                                 el.value = t;
