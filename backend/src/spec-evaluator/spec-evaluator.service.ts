@@ -159,7 +159,7 @@ export class SpecEvaluatorService {
     });
   }
 
-  async createMappingProfile(specId: string, userId: string) {
+  async generateTemplate(specId: string, userId: string) {
     const spec = await this.prisma.specDocument.findFirst({
       where: { id: specId, createdById: userId },
     });
@@ -169,7 +169,7 @@ export class SpecEvaluatorService {
     const fields = extracted?.fields || [];
 
     if (fields.length === 0) {
-      throw new BadRequestException('No fields found in spec to create a mapping profile');
+      throw new BadRequestException('No fields found in spec to generate a template');
     }
 
     const mappings = fields.map((f: any) => ({
@@ -181,14 +181,20 @@ export class SpecEvaluatorService {
       condition: null as any,
     }));
 
+    const fieldRefs = fields.map((f: any) => `{{${f.name}}}`);
+    const detectedFormat = extracted?.formats?.[0]?.type || 'pipe';
+    const delimiter = detectedFormat === 'csv' ? ',' : '|';
+    const template = fieldRefs.join(delimiter);
+    const outputFormat = detectedFormat === 'csv' ? 'csv' : 'pipe';
+
     const profile = await this.prisma.mappingProfile.create({
       data: {
         name: `${spec.name} — Auto-generated`,
         description: `Auto-generated from spec document: ${spec.originalName}`,
-        template: '',
+        template,
         configurationJson: JSON.parse(JSON.stringify({
           mappings,
-          outputFormat: 'csv',
+          outputFormat,
           outputOptions: {},
         })) as Prisma.InputJsonValue,
         createdById: userId,

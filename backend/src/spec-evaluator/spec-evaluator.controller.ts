@@ -61,8 +61,8 @@ export class SpecEvaluatorController {
     return this.service.getEvaluation(evalId, userId);
   }
 
-  @Post(':id/create-profile')
-  createProfile(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.service.createMappingProfile(id, userId);
+  @Post(':id/generate-template')
+  generateTemplate(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.service.generateTemplate(id, userId);
   }
 }

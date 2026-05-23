@@ -235,9 +235,13 @@ export class SpecParserService {
       }
     }
 
-    if (fields.length === 0) {
-      const tableFields = this.extractTableFromText(text);
-      fields.push(...tableFields);
+    const tableFields = this.extractTableFromText(text);
+    const existingNames = new Set(fields.map(f => f.name.toLowerCase()));
+    for (const tf of tableFields) {
+      if (!existingNames.has(tf.name.toLowerCase())) {
+        fields.push(tf);
+        existingNames.add(tf.name.toLowerCase());
+      }
     }
 
     const name = this.inferName(text);
@@ -246,7 +250,11 @@ export class SpecParserService {
   }
 
   private extractFieldFromLine(line: string): ExtractedField | null {
-    const tableSplit = line.split('|').map(s => s.trim()).filter(Boolean);
+    const rawParts = line.split('|').map(s => s.trim()).filter(Boolean);
+    if (rawParts.length >= 3) {
+      return null;
+    }
+    const tableSplit = rawParts;
     if (tableSplit.length >= 2) {
       const field: ExtractedField = { name: tableSplit[0] };
       for (let i = 1; i < tableSplit.length; i++) {
@@ -282,40 +290,67 @@ export class SpecParserService {
     const lines = text.split('\n');
     let inTable = false;
     let headers: string[] = [];
+    let nameCol = -1;
+    let typeCol = -1;
+    let reqCol = -1;
+    let lenCol = -1;
+    let descCol = -1;
+    let posCol = -1;
+    let defaultCol = -1;
 
     for (const line of lines) {
       if (line.includes('|') && line.split('|').filter(s => s.trim()).length >= 3) {
+        const parts = line.split('|').map(s => s.trim());
+
         if (!inTable) {
-          headers = line.split('|').map(s => s.trim());
+          headers = parts;
+          for (let i = 0; i < headers.length; i++) {
+            const h = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^_+|_+$/g, '');
+            if (h.match(/^(dataelementname|elementname|fieldname|columnname)$/)) nameCol = i;
+            else if (h.match(/^(datatype|type|data_type|format)$/)) typeCol = i;
+            else if (h.match(/^(required|req|mandatory)$/)) reqCol = i;
+            else if (h.match(/^(length|len|size|width|maxlength)$/)) lenCol = i;
+            else if (h.match(/^(description|desc|definition|note|notes)$/)) descCol = i;
+            else if (h.match(/^(position|pos|seq|order|seqnum|fieldnum|csvfield)$/)) posCol = i;
+            else if (h.match(/^(default|defaultvalue)$/)) defaultCol = i;
+          }
+          if (nameCol === -1) nameCol = 0;
           inTable = true;
           continue;
         }
-        const parts = line.split('|').map(s => s.trim());
+
         if (parts.length >= 2) {
-          const field: ExtractedField = { name: parts[0] };
-          for (let i = 1; i < parts.length && i < headers.length; i++) {
-            const header = headers[i].toLowerCase();
+          const field: ExtractedField = { name: parts[Math.min(nameCol, parts.length - 1)] };
+
+          for (let i = 0; i < parts.length && i < headers.length; i++) {
             const val = parts[i];
-            if (header.match(/type|datatype|format/)) {
+            if (i === typeCol && typeCol >= 0) {
               field.dataType = val;
-            } else if (header.match(/req|required|mandatory/)) {
+            } else if (i === reqCol && reqCol >= 0) {
               field.required = val.match(/^(y|yes|required|mandatory|r)$/i) ? true : false;
-            } else if (header.match(/len|length|size|width/)) {
-              field.length = parseInt(val, 10) || undefined;
-            } else if (header.match(/desc|description|definition|note/)) {
+            } else if (i === lenCol && lenCol >= 0) {
+              const num = parseInt(val, 10);
+              if (!isNaN(num)) field.length = num;
+            } else if (i === descCol && descCol >= 0) {
               field.description = val;
-            } else if (header.match(/pos|position|seq|order|#/)) {
-              field.sourcePosition = parseInt(val, 10) || undefined;
-            } else if (header.match(/default/)) {
+            } else if (i === posCol && posCol >= 0) {
+              const num = parseInt(val, 10);
+              if (!isNaN(num)) field.sourcePosition = num;
+            } else if (i === defaultCol && defaultCol >= 0) {
               field.defaultValue = val;
             }
           }
-          if (field.name.replace(/[^a-z0-9]/gi, '').length > 0) {
+
+          const name = field.name.replace(/[^a-z0-9_]/gi, '_').replace(/^_+|_+$/g, '');
+          if (name && name.length > 0) {
+            field.name = name;
             fields.push(field);
           }
         }
       } else {
         inTable = false;
+        headers = [];
+        nameCol = -1; typeCol = -1; reqCol = -1; lenCol = -1; descCol = -1; posCol = -1; defaultCol = -1;
       }
     }
 

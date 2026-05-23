@@ -34,6 +34,6 @@ export const specEvaluatorService = {
   getEvaluation: (evalId: string) =>
     api.get<SpecEvaluation>(`/spec-evaluator/evaluations/${evalId}`).then(r => r.data),
 
-  createProfile: (specId: string) =>
-    api.post(`/spec-evaluator/${specId}/create-profile`).then(r => r.data),
+  generateTemplate: (specId: string) =>
+    api.post(`/spec-evaluator/${specId}/generate-template`).then(r => r.data),
 };

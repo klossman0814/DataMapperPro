@@ -122,13 +122,13 @@ export function SpecEvaluator() {
     return () => clearInterval(interval);
   }, [polling, evalResult?.id]);
 
-  const handleCreateProfile = async (specId: string) => {
+  const handleGenerateTemplate = async (specId: string) => {
     try {
-      const profile = await specEvaluatorService.createProfile(specId);
-      toast.success('Mapping profile created');
-      navigate(`/mapping`);
+      const profile = await specEvaluatorService.generateTemplate(specId);
+      toast.success('Template generated');
+      navigate(`/template/${profile.id}`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to create profile');
+      toast.error(err?.response?.data?.message || 'Failed to generate template');
     }
   };
 
@@ -274,8 +274,8 @@ export function SpecEvaluator() {
                       <button onClick={() => { setEvalSpecId(spec.id); setEvalFile(null); setEvalResult(null); }} className="btn-primary text-xs">
                         <BarChart3 className="h-3.5 w-3.5" /> Evaluate Data
                       </button>
-                      <button onClick={() => handleCreateProfile(spec.id)} className="btn-secondary text-xs">
-                        <ArrowRight className="h-3.5 w-3.5" /> Create Mapping Profile
+                      <button onClick={() => handleGenerateTemplate(spec.id)} className="btn-secondary text-xs">
+                        <ArrowRight className="h-3.5 w-3.5" /> Generate Template
                       </button>
                       <button onClick={() => setDeleteTarget({ id: spec.id, name: spec.name })} className="btn-danger text-xs">
                         <Trash2 className="h-3.5 w-3.5" /> Delete
