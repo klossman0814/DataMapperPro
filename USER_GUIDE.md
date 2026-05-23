@@ -1241,7 +1241,7 @@ This demonstrates how validation rules catch data quality issues during processi
 
 **Base URL**: `http://localhost:3002/api`
 
-All endpoints (except `/api/auth/register` and `/api/auth/login`) require authentication via a **Bearer token** or **API key**:
+All endpoints require authentication via a **Bearer JWT token** or **API key**, except `register`, `login`, `forgot-password`, and `reset-password`:
 
 ```
 Authorization: Bearer <jwt_token_or_api_key>
@@ -1250,176 +1250,363 @@ Authorization: Bearer <jwt_token_or_api_key>
 **Authentication Flow:**
 1. Call `POST /api/auth/login` with valid credentials to receive an `access_token`
 2. Include the token in the `Authorization` header of subsequent requests
-3. The token expires after 7 days (`JWT_EXPIRATION` configurable via environment variable)
+3. The token expires after 24 hours (`JWT_EXPIRATION` configurable)
 4. On a 401 response, re-authenticate and obtain a new token
 
 **Content-Type**: `application/json` for all request bodies (except file uploads which use `multipart/form-data`)
 
-### 13.2 Endpoints
+**Global constraints**:
+- All endpoints under the `/api` global prefix
+- `ValidationPipe` with `transform: true` and `whitelist: true`
+- Rate limited to 100 requests per 60 seconds per IP
+- Helmet security headers + compression enabled
 
-#### Auth (No JWT required for register/login)
+---
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/auth/register` | `{ email, password, name }` | `{ access_token, user }` | Create account |
-| `POST` | `/api/auth/login` | `{ email, password }` | `{ access_token, user }` | Obtain JWT |
-| `GET` | `/api/auth/profile` | — | `User` | Current user (JWT required) |
+### 13.2 Auth Endpoints
 
-#### Files
+Open endpoints (no JWT required):
 
-| Method | Path | Params / Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/files/upload` | `multipart/form-data` with `file`, optional `sheetName`, `delimiter`, `hasHeader` | `UploadedFileInfo` | CSV/XLSX only, max 500 MB |
-| `GET` | `/api/files` | `?page=1, limit=20` | `PaginatedResponse<UploadedFileInfo>` | List uploaded files |
-| `GET` | `/api/files/:id` | — | `UploadedFileInfo` | File metadata |
-| `GET` | `/api/files/:id/preview` | `?page=1, limit=20` | `{ columns, rows, totalRows }` | Paginated row preview |
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/auth/register` | `{ email, password, name }` | `{ access_token, user }` |
+| `POST` | `/auth/login` | `{ email, password }` | `{ access_token, user }` |
+| `POST` | `/auth/forgot-password` | `{ email }` | `{ message }` |
+| `POST` | `/auth/reset-password` | `{ token, newPassword }` | `{ message }` |
 
-#### Jobs
+JWT-required:
 
-| Method | Path | Request Body / Params | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/jobs` | `CreateJobDto` | `ProcessingJob` | Start processing |
-| `GET` | `/api/jobs` | `?status=COMPLETED, page=1, limit=20` | `PaginatedResponse<ProcessingJob>` | Filterable list |
-| `GET` | `/api/jobs/:id` | — | `ProcessingJob` (with file + profile) | Job details |
-| `GET` | `/api/jobs/:id/progress` | — | `{ status, totalRows, processedRows, failedRows, progress }` | Progress % |
-| `POST` | `/api/jobs/:id/cancel` | — | `ProcessingJob` | Cancel pending/processing |
-| `GET` | `/api/jobs/:id/download` | — | Binary file stream | Download output |
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `GET` | `/auth/profile` | — | User object |
+| `PUT` | `/auth/profile` | `{ name }` | Updated user |
+| `PUT` | `/auth/password` | `{ currentPassword, newPassword }` | `{ message }` |
 
-#### Mappings (Mapping Profiles)
+**Validation rules**:
+- `register`: email must be valid, password min 6 chars, name required
+- `login`: email and password required
+- `reset-password` / `password`: newPassword min 6 chars
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/mappings` | `CreateMappingDto` | `MappingProfile` | Create |
-| `GET` | `/api/mappings` | — | `MappingProfile[]` | List all for user |
-| `GET` | `/api/mappings/:id` | — | `MappingProfile` | Get by ID |
-| `PUT` | `/api/mappings/:id` | `Partial<CreateMappingDto>` | `MappingProfile` | Update |
-| `DELETE` | `/api/mappings/:id` | — | — | Delete |
-| `POST` | `/api/mappings/:id/clone` | — | `MappingProfile` | Clone with version++ |
+**Notes**:
+- First registered user gets `role: "ADMIN"`, subsequent users get `role: "USER"`
+- Forgot-password sends bcrypt-hashed token via SMTP with 1-hour expiry
+- Response is intentionally vague on forgot-password to prevent email enumeration
 
-#### Profiles (Full Lifecycle)
+---
 
-| Method | Path | Request Body / Params | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/profiles` | Profile object | `MappingProfile` | Save (create/upsert) |
-| `GET` | `/api/profiles` | `?search=&page=1, limit=20` | `PaginatedResponse<MappingProfile>` | Searchable list |
-| `GET` | `/api/profiles/:id` | — | `MappingProfile` | Get |
-| `PUT` | `/api/profiles/:id` | Profile object | `MappingProfile` | Update |
-| `DELETE` | `/api/profiles/:id` | — | — | Delete |
-| `POST` | `/api/profiles/:id/clone` | — | `MappingProfile` | Clone |
-| `GET` | `/api/profiles/:id/export` | — | `MappingProfile` | Export as JSON |
-| `POST` | `/api/profiles/import` | Profile JSON | `MappingProfile` | Import from JSON |
+### 13.3 Files Endpoints
 
-#### Templates
+All JWT required.
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/templates` | `{ name, template, description? }` | `Template` | Create |
-| `GET` | `/api/templates` | — | `Template[]` | List |
-| `GET` | `/api/templates/:id` | — | `Template` | Get |
-| `PUT` | `/api/templates/:id` | `{ name?, template?, description? }` | `Template` | Update |
-| `DELETE` | `/api/templates/:id` | — | — | Delete |
-| `POST` | `/api/templates/:id/render` | `{ row, index?, ... }` | `{ output }` | Test-render with data |
+| Method | Path | Params / Body | Response |
+|---|---|---|---|
+| `POST` | `/files/upload` | `multipart/form-data`: `file`, `sheetName?`, `delimiter?`, `hasHeader?` | `UploadedFile` |
+| `GET` | `/files` | `?page=1&limit=20` | Paginated `UploadedFile[]` |
+| `GET` | `/files/:id` | — | `UploadedFile` |
+| `GET` | `/files/:id/preview` | `?page=1&limit=20` | `{ columns, rows, total, page, limit, totalPages }` |
+| `DELETE` | `/files/:id` | — | `{ message }` |
 
-#### Transformations
+**Upload response includes**:
+- `id`, `originalName`, `filename`, `mimeType`, `size`, `rowCount`
+- `columns`: auto-detected column metadata (name, type: `number|date|string`, sampleValues)
+- `preview`: first 100 rows of data
+- `sheetNames`: list of sheets (Excel only)
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/transformations/apply` | `{ expression, row }` | `{ result }` | Single expression test |
-| `POST` | `/api/transformations/apply-row` | `{ mappings, row }` | `{ row }` | Apply multiple mappings |
+**Notes**:
+- Supported formats: CSV, XLSX, XLS (max 500 MB)
+- Files stored as `{uuid}.{ext}` in configured upload directory
+- Delete blocked if file has active processing jobs (409 Conflict)
 
-#### Validation
+---
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/validation/row` | `{ row, rules }` | `{ valid, errors, fieldErrors }` | Validate one row |
-| `POST` | `/api/validation/rows` | `{ rows, rules }` | `{ results: [...], summary }` | Validate batch |
+### 13.4 Mappings Endpoints
 
-#### Export
+All JWT required. Define how source fields map to destination fields.
 
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `POST` | `/api/export` | `{ rows, format, options? }` | `{ content, format, rowCount }` | Render data to format |
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/mappings` | `{ profileId, name, description?, template, mappings[] }` | `MappingProfile` |
+| `GET` | `/mappings` | — | `MappingProfile[]` |
+| `GET` | `/mappings/:id` | — | `MappingProfile` |
+| `PUT` | `/mappings/:id` | Partial of create body | `MappingProfile` (version++) |
+| `DELETE` | `/mappings/:id` | — | 200 OK |
+| `POST` | `/mappings/:id/clone` | — | `MappingProfile` (Copy) |
 
-#### Notifications
-
-| Method | Path | Request Body | Response | Notes |
-|---|---|---|---|---|
-| `GET` | `/api/notifications/preferences` | — | `NotificationPreferences` | Get prefs |
-| `PUT` | `/api/notifications/preferences` | `Partial<NotificationPreferences>` | `NotificationPreferences` | Update prefs |
-
-### 13.3 Request and Response Schemas
-
-#### User
-
+**FieldMapping schema**:
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "name": "User Name",
-  "notificationPreferences": {
-    "jobCompleted": true,
-    "jobFailed": true,
-    "weeklySummary": false,
-    "weeklySummaryDay": "monday",
-    "weeklySummaryTime": "09:00"
+  "destinationField": "output_name",
+  "sourceField": "source_col",
+  "constant": "StaticValue",
+  "expression": "concat({{a}}, ' ', {{b}})",
+  "transformation": "upper",
+  "condition": {
+    "field": "status",
+    "operator": "equals|notEquals|contains|greaterThan|lessThan|isEmpty|isNotEmpty",
+    "value": "Active"
   }
 }
 ```
 
-#### CreateJobDto
+---
 
+### 13.5 Profiles Endpoints
+
+All JWT required. Full lifecycle for mapping profiles with search, clone, and workspace import/export.
+
+| Method | Path | Params / Body | Response |
+|---|---|---|---|
+| `POST` | `/profiles` | `{ name, description?, template, configurationJson, id? }` | `MappingProfile` |
+| `GET` | `/profiles` | `?search=&page=1&limit=20` | Paginated `MappingProfile[]` |
+| `GET` | `/profiles/:id` | — | `MappingProfile` |
+| `PUT` | `/profiles/:id` | `{ name, description?, template, configurationJson }` | `MappingProfile` (version++) |
+| `DELETE` | `/profiles/:id` | — | 200 OK |
+| `POST` | `/profiles/:id/clone` | — | New `MappingProfile` |
+| `GET` | `/profiles/:id/export` | — | `{ name, description, template, configurationJson, version, exportedAt }` |
+| `POST` | `/profiles/import` | `{ name, description?, template, configurationJson }` | `MappingProfile` |
+| `GET` | `/profiles/workspace/export` | — | `{ exportedAt, profiles[], databaseConnections[] }` |
+| `POST` | `/profiles/workspace/import` | `{ profiles[], databaseConnections[] }` | `{ profiles: N, databaseConnections: N }` |
+
+**Notes**:
+- Search is case-insensitive on `name` and `description`
+- Workspace export includes all profiles and DB connections (passwords excluded)
+- If `profiles/create` includes an `id`, it updates the existing profile
+
+---
+
+### 13.6 Jobs Endpoints
+
+All JWT required. Jobs process data through the ETL pipeline.
+
+| Method | Path | Params / Body | Response |
+|---|---|---|---|
+| `POST` | `/jobs` | `CreateJobDto` | `ProcessingJob` |
+| `GET` | `/jobs` | `?status=&page=1&limit=20` | Paginated `ProcessingJob[]` |
+| `GET` | `/jobs/:id` | — | `ProcessingJob` (with file + profile) |
+| `GET` | `/jobs/:id/progress` | — | `{ id, status, totalRows, processedRows, failedRows, progress }` |
+| `GET` | `/jobs/:id/download` | — | Binary file stream |
+| `POST` | `/jobs/:id/cancel` | — | Updated job (status → FAILED) |
+| `DELETE` | `/jobs/:id` | — | 200 OK |
+
+**CreateJobDto**:
 ```json
 {
-  "fileId": "uuid (required)",
-  "profileId": "uuid (optional)",
-  "outputFormat": "csv | json | xml | hl7 | pipe | tab | fixedwidth | txt",
+  "fileId": "uuid (optional — source file)",
+  "databaseConnectionId": "uuid (optional — source DB)",
+  "querySql": "SELECT * FROM ... (optional)",
+  "profileId": "uuid (optional — use existing profile)",
+  "outputFormat": "csv|json|xml|pipe|tab|fixedwidth|txt",
   "template": "string (optional, overrides profile template)",
-  "mappings": [
-    {
-      "destinationField": "output_name",
-      "sourceField": "source_col",
-      "transformation": "upper",
-      "expression": "concat({{a}}, ' ', {{b}})",
-      "condition": {
-        "field": "status",
-        "operator": "equals",
-        "value": "Active"
-      }
-    }
-  ],
+  "mappings": [ { "destinationField": "...", "sourceField": "...", ... } ],
   "outputOptions": {
     "delimiter": ",",
     "includeHeader": true,
     "pretty": true,
     "rootElement": "root",
     "itemElement": "item",
-    "fixedWidthConfig": [
-      { "field": "id", "width": 10, "align": "left", "padChar": " " }
-    ]
+    "fixedWidthConfig": [ { "field": "id", "width": 10, "align": "left", "padChar": " " } ]
   }
 }
 ```
 
-#### FieldMapping
+**Job statuses**: `PENDING → PROCESSING → COMPLETED` or `FAILED` (cancelled = FAILED).
 
-```typescript
+**Notes**:
+- Processing starts immediately in the background via Bull queue
+- Download requires job to be COMPLETED (404 if not)
+- Delete blocked if job is still PENDING or PROCESSING (409 Conflict)
+
+---
+
+### 13.7 Templates Endpoints
+
+All JWT required. Handlebars-style output templates.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `GET` | `/templates` | — | `{ data: Template[] }` |
+| `GET` | `/templates/:id` | — | `{ id, name, description, content, version, createdAt, updatedAt }` |
+| `POST` | `/templates` | `{ name, template, description? }` | Created template |
+| `PUT` | `/templates/:id` | `{ name?, template?, description? }` | Updated template (version++) |
+| `DELETE` | `/templates/:id` | — | `{ deleted: true }` |
+| `POST` | `/templates/render-inline` | `{ template, context: { row, index? } }` | `{ output }` |
+| `POST` | `/templates/:id/render` | `{ row, index? }` | `{ output }` |
+
+---
+
+### 13.8 Transformations Endpoints
+
+All JWT required. Test transformation expressions.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/transformations/apply` | `{ expression, row }` | Transformed value |
+| `POST` | `/transformations/apply-row` | `{ mappings: [{ destination, expression }], row }` | Transformed row |
+
+**Supported functions (19)**: `trim`, `upper`, `lower`, `substring`, `replace`, `padStart`, `padEnd`, `concat`, `formatDate`, `parseDate`, `round`, `formatNumber`, `parseInt`, `parseFloat`, `coalesce`, `if`, `case`, `switch`, `join`.
+
+---
+
+### 13.9 Validation Endpoints
+
+All JWT required. Validate rows against rules.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/validation/row` | `{ row, rules[] }` | `{ valid, errors[], fieldErrors{} }` |
+| `POST` | `/validation/rows` | `{ rows[], rules[] }` | `{ results[], summary: { totalRows, validRows, invalidRows } }` |
+
+**ValidationRule schema**:
+```json
 {
-  destinationField: string;   // Required — output column name
-  sourceField?: string;      // Source column from uploaded file
-  constant?: string;         // Static value (supports {{token}} replacement)
-  expression?: string;       // Expression like `concat({{first}}, ' ', {{last}})`
-  transformation?: string;   // Function like `upper`, `formatDate(yyyyMMdd)`
-  condition?: {              // Conditional — skip mapping if condition fails
-    field: string;
-    operator: 'equals' | 'notEquals' | 'contains' | 'greaterThan'
-             | 'lessThan' | 'isEmpty' | 'isNotEmpty';
-    value?: any;
-  }
+  "field": "email",
+  "type": "required|maxLength|minLength|regex|date|email|number|lookup|enum",
+  "value": "50",
+  "message": "Custom error message (optional)"
 }
 ```
 
-#### PaginatedResponse
+---
 
+### 13.10 Export Endpoint
+
+All JWT required.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/export` | `{ rows[], format, options? }` | `{ content, format, rowCount }` |
+
+**Supported formats**: `csv`, `pipe`, `tab`, `json`, `xml`, `fixedwidth`
+
+**Options**:
+- `delimiter`, `lineEnding`, `encoding` — for delimited formats
+- `includeHeaders`, `jsonLines` — boolean flags
+- `xmlRoot`, `xmlItem` — element names for XML
+- `fixedWidthConfig` — `[{ field, width, align, padChar }]`
+
+---
+
+### 13.11 Database Connections Endpoints
+
+All JWT required. Manage external database connections.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/database-connections` | `{ name, type, host, port, databaseName, username, password, sslEnabled? }` | Connection (no password) |
+| `GET` | `/database-connections` | — | Connection[] (no passwords) |
+| `GET` | `/database-connections/:id` | — | Connection (no password) |
+| `PUT` | `/database-connections/:id` | Any subset of create fields | Updated connection |
+| `DELETE` | `/database-connections/:id` | — | `{ deleted: true }` |
+| `POST` | `/database-connections/:id/test` | — | `{ success: true, message }` |
+| `POST` | `/database-connections/:id/query` | `{ sql }` | `{ columns[], rows[], rowCount }` |
+
+**Supported types**: `mssql`, `postgresql`, `mysql`
+
+**Notes**:
+- Passwords encrypted with AES-256-GCM before storage
+- Never returned in API responses
+- Test runs `SELECT 1 AS ok` against the database
+- Query returns column metadata + row data
+
+---
+
+### 13.12 Notifications Endpoints
+
+All JWT required.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `GET` | `/notifications/preferences` | — | `NotificationPreferences` |
+| `PUT` | `/notifications/preferences` | `{ jobCompleted?, jobFailed?, weeklySummary?, weeklySummaryDay?, weeklySummaryTime? }` | Updated preferences |
+
+**NotificationPreferences schema**:
+```json
+{
+  "jobCompleted": true,
+  "jobFailed": true,
+  "weeklySummary": false,
+  "weeklySummaryDay": "Monday",
+  "weeklySummaryTime": "09:00"
+}
+```
+
+**Validation**: `weeklySummaryTime` must match `HH:MM` format (24-hour).
+
+---
+
+### 13.13 Text to Table Endpoints
+
+All JWT required. Parse unstructured text into structured tables.
+
+| Method | Path | Request Body | Response |
+|---|---|---|---|
+| `POST` | `/text-to-table/parse` | `{ text, separators[], parseMode?, hasHeader?, hl7*? }` | `{ columns, rows }` |
+| `POST` | `/text-to-table/parse-file` | `multipart/form-data`: `file`, `sheetName?` | `{ columns, rows }` |
+| `POST` | `/text-to-table/import` | `{ connectionId, tableName, columns[], rows[], dropExisting?, batchSize? }` | `{ tableName, rowsInserted, ddlStatements[] }` |
+
+**Parse modes**: `flat` (default), `hierarchical`, `hl7-flat`
+
+**HL7 options**: `hl7FieldSep` (default `|`), `hl7CompSep` (`^`), `hl7RepSep` (`~`), `hl7EscapeChar` (`\`), `hl7SubCompSep` (`&`), `hl7AutoDetect` (default `true`), `hl7ExpandComponents` (default `true`)
+
+**Import** creates a table via DDL and inserts rows in batches using the target DB connection.
+
+---
+
+### 13.14 Spec Evaluator Endpoints
+
+All JWT required. Upload specification documents and evaluate data files against them.
+
+| Method | Path | Params / Body | Response |
+|---|---|---|---|
+| `POST` | `/spec-evaluator/upload` | `multipart/form-data`: `file`, `name?`, `description?`, `tags?` | Spec document with fields/formats/rules |
+| `GET` | `/spec-evaluator` | `?page=1&limit=20&tag=` | Paginated `SpecDocument[]` |
+| `GET` | `/spec-evaluator/:id` | — | Spec document with last 10 evaluations |
+| `DELETE` | `/spec-evaluator/:id` | — | `{ deleted: true }` |
+| `POST` | `/spec-evaluator/:id/evaluate` | `multipart/form-data`: `file` | `{ id, status: "PENDING" }` |
+| `GET` | `/spec-evaluator/:id/evaluations` | — | `SpecEvaluation[]` (last 20) |
+| `GET` | `/spec-evaluator/evaluations/:evalId` | — | `SpecEvaluation` with `specDocument` |
+| `POST` | `/spec-evaluator/:id/generate-template` | — | Created `MappingProfile` |
+
+**Supported spec file types**: `docx`, `xlsx`, `xls`, `pdf`, `txt`, `csv`, `tsv`, `dat`, `hl7`
+
+**Evaluation result**:
+```json
+{
+  "id": "uuid",
+  "status": "COMPLETED",
+  "score": 92.5,
+  "fieldCoverage": {},
+  "issues": [],
+  "summary": "92.5% of fields match the specification",
+  "inputFilename": "data.csv",
+  "inputRowCount": 500
+}
+```
+
+**Notes**: Evaluation runs asynchronously via Bull queue. Check status via GET evaluations/:evalId.
+
+---
+
+### 13.15 Admin Endpoints
+
+JWT + Admin role required.
+
+| Method | Path | Params / Body | Response |
+|---|---|---|---|
+| `GET` | `/admin/users` | `?search=&page=1&limit=50` | Paginated users with `_count` of relationships |
+| `GET` | `/admin/users/:id` | — | User with `_count` |
+| `PUT` | `/admin/users/:id` | `{ name?, email?, role? }` | Updated user |
+| `DELETE` | `/admin/users/:id` | — | Updated user (`isActive: false`) |
+
+**Valid roles**: `ADMIN`, `USER`
+
+**Restrictions**: Cannot modify or deactivate the super admin (`admin@datamapperpro.com`). Deletion is a soft-deactivate (sets `isActive: false`).
+
+---
+
+### 13.16 Shared Types
+
+**PaginatedResponse** (used by all list endpoints):
 ```json
 {
   "data": [ ... ],
@@ -1430,75 +1617,75 @@ Authorization: Bearer <jwt_token_or_api_key>
 }
 ```
 
-#### ProcessingJob
+**User** (returned from auth/profile):
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "User Name",
+  "role": "USER",
+  "isActive": true,
+  "notificationPreferences": { "jobCompleted": true, "jobFailed": true, "weeklySummary": false, "weeklySummaryDay": "Monday", "weeklySummaryTime": "09:00" },
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z"
+}
+```
 
+**ProcessingJob**:
 ```json
 {
   "id": "uuid",
   "status": "PENDING | PROCESSING | COMPLETED | FAILED",
-  "startedAt": "2025-05-15T08:00:00Z",
-  "completedAt": "2025-05-15T08:05:00Z",
   "totalRows": 100,
   "processedRows": 95,
   "failedRows": 5,
-  "errorLog": [
-    { "row": 12, "errors": ["Email validation failed"], "fieldErrors": { "email": "Invalid format" } }
-  ],
+  "errorLog": [ { "row": 12, "errors": ["Email validation failed"], "fieldErrors": { "email": "Invalid format" } } ],
   "outputFormat": "csv",
-  "outputFile": "output-2025-05-15.csv",
-  "createdAt": "2025-05-15T07:59:00Z",
+  "outputFile": "output-uuid.csv",
+  "createdAt": "2025-01-01T00:00:00.000Z",
   "uploadedFile": { "id": "uuid", "originalName": "data.csv" },
   "profile": { "id": "uuid", "name": "My Profile" }
 }
 ```
 
-#### ValidationRule
+---
 
+### 13.17 Error Codes
+
+| Status | Meaning |
+|---|---|
+| `200` | Success |
+| `201` | Created |
+| `400` | Bad Request — validation error or invalid input |
+| `401` | Unauthorized — missing or invalid JWT |
+| `403` | Forbidden — insufficient role |
+| `404` | Not Found — resource does not exist |
+| `409` | Conflict — operation conflicts with current state |
+| `413` | Payload Too Large — file exceeds limit |
+| `429` | Too Many Requests — rate limit exceeded (100/min) |
+| `500` | Internal Server Error |
+
+**Standard error response**:
 ```json
 {
-  "field": "email",
-  "type": "required | maxLength | minLength | regex | date | email | number | lookup | enum",
-  "value": "50",
-  "message": "Custom error message (optional)"
+  "message": "Description of the error",
+  "error": "Error type",
+  "statusCode": 400
 }
 ```
 
-#### NotificationPreferences
-
+**Validation error response**:
 ```json
 {
-  "jobCompleted": true,
-  "jobFailed": true,
-  "weeklySummary": false,
-  "weeklySummaryDay": "monday",
-  "weeklySummaryTime": "09:00"
-}
-```
-
-#### Error Response
-
-```json
-{
-  "message": "Job not found",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
-
-Validation errors include a `messages` array:
-
-```json
-{
-  "message": [
-    "fileId must be a UUID",
-    "outputFormat must be a string"
-  ],
+  "message": ["field1 must be a string", "field2 must be an email"],
   "error": "Bad Request",
   "statusCode": 400
 }
 ```
 
-### 13.4 Common Patterns
+---
+
+### 13.18 Common Patterns
 
 #### Pagination
 
@@ -1508,7 +1695,6 @@ All list endpoints support the same pagination pattern:
 GET /api/jobs?page=2&limit=20
 ```
 
-Query parameters:
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `page` | integer | 1 | Page number (1-indexed) |
@@ -1516,33 +1702,13 @@ Query parameters:
 
 Response includes pagination metadata alongside the `data` array.
 
-#### Status Filtering
-
-The `GET /api/jobs` endpoint supports optional `?status=` filtering:
-
-```
-GET /api/jobs?status=COMPLETED
-GET /api/jobs?status=FAILED
-GET /api/jobs?status=PROCESSING
-GET /api/jobs?status=PENDING
-```
-
-#### Profile Search
-
-The `GET /api/profiles` endpoint supports full-text search:
-
-```
-GET /api/profiles?search=customer
-GET /api/profiles?search=HL7
-```
-
 #### Date Format
 
 All date-time fields use **ISO 8601** format: `2025-05-15T08:00:00.000Z`
 
 #### File Upload
 
-File uploads use `multipart/form-data` with the following fields:
+File uploads use `multipart/form-data`:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -1551,7 +1717,29 @@ File uploads use `multipart/form-data` with the following fields:
 | `delimiter` | string | No | Custom delimiter for CSV (default `,`) |
 | `hasHeader` | boolean | No | Whether first row is a header (default `true`) |
 
-### 13.5 Rate Limiting
+#### Endpoint Summary
+
+| Module | Endpoints | Auth Required | Open |
+|---|---|---|---|
+| Auth | 7 | 3 | 4 |
+| Files | 5 | 5 | 0 |
+| Mappings | 6 | 6 | 0 |
+| Profiles | 9 | 9 | 0 |
+| Jobs | 7 | 7 | 0 |
+| Templates | 7 | 7 | 0 |
+| Transformations | 2 | 2 | 0 |
+| Validation | 2 | 2 | 0 |
+| Export | 1 | 1 | 0 |
+| Database Connections | 8 | 8 | 0 |
+| Notifications | 2 | 2 | 0 |
+| Text to Table | 3 | 3 | 0 |
+| Spec Evaluator | 7 | 7 | 0 |
+| Admin | 4 | 4 | 0 |
+| **Total** | **65** | **61** | **4** |
+
+---
+
+### 13.19 Rate Limiting
 
 The API is protected by a global rate limiter:
 
