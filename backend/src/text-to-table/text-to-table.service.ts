@@ -52,6 +52,15 @@ export class TextToTableService {
       dto.separators,
       dto.parseMode || 'flat',
       dto.hasHeader !== false,
+      {
+        fieldSep: dto.hl7FieldSep,
+        compSep: dto.hl7CompSep,
+        repSep: dto.hl7RepSep,
+        escapeChar: dto.hl7EscapeChar,
+        subCompSep: dto.hl7SubCompSep,
+        autoDetect: dto.hl7AutoDetect,
+        expandComponents: dto.hl7ExpandComponents,
+      },
     );
   }
 

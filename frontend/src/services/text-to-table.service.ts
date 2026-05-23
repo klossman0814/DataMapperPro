@@ -5,8 +5,15 @@ export const textToTableService = {
   parse: (data: {
     text: string;
     separators: string[];
-    parseMode?: 'flat' | 'hierarchical';
+    parseMode?: 'flat' | 'hierarchical' | 'hl7-flat';
     hasHeader?: boolean;
+    hl7FieldSep?: string;
+    hl7CompSep?: string;
+    hl7RepSep?: string;
+    hl7EscapeChar?: string;
+    hl7SubCompSep?: string;
+    hl7AutoDetect?: boolean;
+    hl7ExpandComponents?: boolean;
   }) => api.post<ParseTextResult>('/text-to-table/parse', data).then(r => r.data),
 
   parseFile: (file: File, sheetName?: string) => {

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Hl7ParserService } from './hl7-parser.service';
+import { Hl7FlatParserService } from './hl7-flat-parser.service';
 
 export interface ColumnInfo {
   name: string;
@@ -29,9 +30,26 @@ export interface ParseOutput extends ParseResult {
 
 @Injectable()
 export class TextParserService {
-  constructor(private hl7Parser: Hl7ParserService) {}
+  constructor(
+    private hl7Parser: Hl7ParserService,
+    private hl7FlatParser: Hl7FlatParserService,
+  ) {}
 
-  parse(text: string, separators: string[], parseMode: string, hasHeader: boolean): ParseOutput {
+  parse(
+    text: string,
+    separators: string[],
+    parseMode: string,
+    hasHeader: boolean,
+    hl7Options?: {
+      fieldSep?: string;
+      compSep?: string;
+      repSep?: string;
+      escapeChar?: string;
+      subCompSep?: string;
+      autoDetect?: boolean;
+      expandComponents?: boolean;
+    },
+  ): ParseOutput {
     if (!text.trim()) {
       return { columns: [], rows: [], rowCount: 0, separatorUsed: '', stats: [], selectedSeparator: '' };
     }
@@ -47,6 +65,19 @@ export class TextParserService {
         return this.hl7Parser.parse(text);
       }
       return this.parseHierarchical(lines, separators, hasHeader);
+    }
+
+    if (parseMode === 'hl7-flat') {
+      return this.hl7FlatParser.parse(text, {
+        fieldSep: hl7Options?.fieldSep || '|',
+        compSep: hl7Options?.compSep || '^',
+        repSep: hl7Options?.repSep || '~',
+        escapeChar: hl7Options?.escapeChar || '\\',
+        subCompSep: hl7Options?.subCompSep || '&',
+        autoDetect: hl7Options?.autoDetect ?? true,
+        expandComponents: hl7Options?.expandComponents ?? true,
+        hasHeader,
+      });
     }
 
     const stats: ParseStats[] = separators.map(sep => this.scoreSeparator(lines, sep, 'flat'));

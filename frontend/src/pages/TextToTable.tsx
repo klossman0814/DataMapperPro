@@ -38,9 +38,17 @@ export function TextToTable() {
   const [fileName, setFileName] = useState('');
 
   const [selectedSeps, setSelectedSeps] = useState<Set<string>>(new Set([',', '|', '^', '&']));
-  const [parseMode, setParseMode] = useState<'flat' | 'hierarchical'>('flat');
+  const [parseMode, setParseMode] = useState<'flat' | 'hierarchical' | 'hl7-flat'>('flat');
   const [hasHeader, setHasHeader] = useState(true);
   const [primarySep, setPrimarySep] = useState('|');
+
+  const [hl7FieldSep, setHl7FieldSep] = useState('|');
+  const [hl7CompSep, setHl7CompSep] = useState('^');
+  const [hl7RepSep, setHl7RepSep] = useState('~');
+  const [hl7EscapeChar, setHl7EscapeChar] = useState('\\');
+  const [hl7SubCompSep, setHl7SubCompSep] = useState('&');
+  const [hl7AutoDetect, setHl7AutoDetect] = useState(true);
+  const [hl7ExpandComponents, setHl7ExpandComponents] = useState(true);
 
   const [parseResult, setParseResult] = useState<ParseTextResult | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -149,6 +157,15 @@ export function TextToTable() {
         separators: seps,
         parseMode: parseMode,
         hasHeader,
+        ...(parseMode === 'hl7-flat' ? {
+          hl7FieldSep,
+          hl7CompSep,
+          hl7RepSep,
+          hl7EscapeChar,
+          hl7SubCompSep,
+          hl7AutoDetect,
+          hl7ExpandComponents,
+        } : {}),
       });
       if (!result.selectedSeparator) {
         setParseError('Could not detect a working separator. Try different ones.');
@@ -312,7 +329,7 @@ export function TextToTable() {
                 Flat
               </button>
               <button
-                onClick={() => { setParseMode('hierarchical'); setSelectedSeps(new Set(['|', '^', '~', '&'])); setHasHeader(false); }}
+                onClick={() => setParseMode('hierarchical')}
                 className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
                   parseMode === 'hierarchical'
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
@@ -322,23 +339,111 @@ export function TextToTable() {
                 <Braces className="h-4 w-4" />
                 Hierarchical (HL7)
               </button>
+              <button
+                onClick={() => { setParseMode('hl7-flat'); setSelectedSeps(new Set(['|', '^', '~', '&'])); }}
+                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
+                  parseMode === 'hl7-flat'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400'
+                    : 'border-gray-300 text-gray-600 hover:border-gray-400 dark:border-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <Replace className="h-4 w-4" />
+                HL7 Flat File
+              </button>
             </div>
             <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">
-              {parseMode === 'flat'
-                ? 'All selected separators split at the same level.'
-                : 'HL7 standard: one row per OBX observation. Columns named using HL7 field definitions (e.g. pid_patient_name_given_name).'}
+              {parseMode === 'flat' && 'All selected separators split at the same level.'}
+              {parseMode === 'hierarchical' && 'HL7 standard: one row per OBX observation. Columns named using HL7 field definitions (e.g. pid_patient_name_given_name).'}
+              {parseMode === 'hl7-flat' && 'HL7 delimiters with role-aware splitting (field, component, subcomponent, repetition). Escape sequences decoded. Optionally expand components into sub-columns.'}
             </p>
           </div>
 
           <div>
             <label className="mb-2 block text-xs font-medium text-gray-500 dark:text-slate-400">
-              {parseMode === 'hierarchical' ? 'HL7 Encoding Characters' : 'Delimiters'}
+              {parseMode === 'hierarchical' && 'HL7 Encoding Characters'}
+              {parseMode === 'hl7-flat' && 'HL7 Delimiters'}
+              {parseMode === 'flat' && 'Delimiters'}
             </label>
             {parseMode === 'hierarchical' ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-500/30 dark:bg-amber-500/10">
                 <p className="mb-1 font-mono text-amber-700 dark:text-amber-300">| ^ ~ \ &</p>
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   HL7 encoding auto-detected from MSH-2. Field separator <code className="font-mono">|</code>, component <code className="font-mono">^</code>, repetition <code className="font-mono">~</code>, escape <code className="font-mono">\</code>, subcomponent <code className="font-mono">&amp;</code>.
+                </p>
+              </div>
+            ) : parseMode === 'hl7-flat' ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-5 gap-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400 dark:text-slate-500">Field</label>
+                    <input
+                      value={hl7FieldSep}
+                      onChange={e => setHl7FieldSep(e.target.value.slice(0, 1) || '|')}
+                      className="input-field w-full text-center font-mono text-sm"
+                      maxLength={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400 dark:text-slate-500">Component</label>
+                    <input
+                      value={hl7CompSep}
+                      onChange={e => setHl7CompSep(e.target.value.slice(0, 1) || '^')}
+                      className="input-field w-full text-center font-mono text-sm"
+                      maxLength={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400 dark:text-slate-500">Repetition</label>
+                    <input
+                      value={hl7RepSep}
+                      onChange={e => setHl7RepSep(e.target.value.slice(0, 1) || '~')}
+                      className="input-field w-full text-center font-mono text-sm"
+                      maxLength={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400 dark:text-slate-500">Escape</label>
+                    <input
+                      value={hl7EscapeChar}
+                      onChange={e => setHl7EscapeChar(e.target.value.slice(0, 1) || '\\')}
+                      className="input-field w-full text-center font-mono text-sm"
+                      maxLength={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400 dark:text-slate-500">Subcomponent</label>
+                    <input
+                      value={hl7SubCompSep}
+                      onChange={e => setHl7SubCompSep(e.target.value.slice(0, 1) || '&')}
+                      className="input-field w-full text-center font-mono text-sm"
+                      maxLength={1}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={hl7AutoDetect}
+                      onChange={e => setHl7AutoDetect(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600"
+                    />
+                    Auto-detect from MSH-2
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={hl7ExpandComponents}
+                      onChange={e => setHl7ExpandComponents(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600"
+                    />
+                    Expand components
+                  </label>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-slate-500">
+                  {hl7ExpandComponents
+                    ? 'Fields split by component/repetition/subcomponent separators into sub-columns.'
+                    : 'Only field-separator split with escape sequence decoding.'}
                 </p>
               </div>
             ) : (
@@ -358,7 +463,7 @@ export function TextToTable() {
                 ))}
               </div>
             )}
-            {parseMode !== 'hierarchical' && (
+            {parseMode === 'flat' && (
               <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500">{selectedSeps.size} selected</p>
             )}
           </div>
