@@ -185,11 +185,25 @@ export class SpecEvaluatorService {
       condition: null as any,
     }));
 
-    const fieldRefs = fields.map((f: any) => `{{${f.name}}}`);
-    const hasSubFields = extracted?.hasSubFields === true;
-    const delimiter = hasSubFields ? '|' : ',';
-    const template = fieldRefs.join(delimiter);
-    const outputFormat = hasSubFields ? 'pipe' : 'csv';
+    const hasPositions = fields.some((f: any) => f.sourcePosition != null);
+    let template: string;
+
+    if (hasPositions) {
+      const groups = new Map<number, string[]>();
+      for (const f of fields) {
+        const pos = f.sourcePosition ?? 0;
+        if (!groups.has(pos)) groups.set(pos, []);
+        groups.get(pos)!.push(`{{${f.name}}}`);
+      }
+      const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a - b);
+      template = sortedGroups.map(([, refs]) => refs.join('|')).join(',');
+    } else {
+      const hasSubFields = extracted?.hasSubFields === true;
+      const delimiter = hasSubFields ? '|' : ',';
+      template = fields.map((f: any) => `{{${f.name}}}`).join(delimiter);
+    }
+
+    const outputFormat = template.includes('|') ? 'pipe' : 'csv';
 
     const profile = await this.prisma.mappingProfile.create({
       data: {
