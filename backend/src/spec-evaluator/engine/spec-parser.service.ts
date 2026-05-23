@@ -126,25 +126,21 @@ export class SpecParserService {
 
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
-      const html = XLSX.utils.sheet_to_html(sheet);
-      const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      allText.push(`## ${sheetName}\n${text}`);
-
       const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
-      if (jsonData.length > 0) {
-        const firstRow = jsonData[0];
-        const colNames = Object.keys(firstRow);
-        const hasFieldHeaders = ['field', 'column', 'name', 'element', 'tag', 'data element'].some(
-          h => colNames.some(c => c.toLowerCase().includes(h)),
-        );
-        if (hasFieldHeaders) {
-          for (const row of jsonData) {
-            allText.push(Object.values(row).join(' | '));
-          }
-        }
-      }
 
-      sections.push({ heading: sheetName, content: text, level: 1 });
+      if (jsonData.length > 0) {
+        const colNames = Object.keys(jsonData[0]);
+        allText.push(`## ${sheetName}`);
+        allText.push(colNames.join(' | '));
+        for (const row of jsonData) {
+          allText.push(colNames.map(c => String(row[c] ?? '')).join(' | '));
+        }
+        sections.push({
+          heading: sheetName,
+          content: jsonData.map(r => Object.values(r).join(' | ')).join('\n'),
+          level: 1,
+        });
+      }
     }
 
     return this.parseStructuredText(allText.join('\n'));
