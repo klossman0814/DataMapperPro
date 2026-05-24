@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,37 +16,58 @@ import {
   LogOut,
   Menu,
   X,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
 import clsx from 'clsx';
 
-const baseNavItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/upload', icon: Upload, label: 'Upload' },
-  { to: '/mapping', icon: SplitSquareHorizontal, label: 'Mapping Designer' },
-  { to: '/template', icon: FileCode, label: 'Template Editor' },
-  { to: '/database-connections', icon: Database, label: 'Database Connections' },
-  { to: '/text-to-table', icon: Table2, label: 'Text to Table' },
-  { to: '/jobs', icon: PlayCircle, label: 'Processing Jobs' },
-  { to: '/spec-evaluator', icon: ClipboardCheck, label: 'Spec Evaluator' },
-  { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-  { to: '/guide', icon: BookOpen, label: 'User Guide' },
-];
-
-const adminNavItems = [
-  { to: '/admin/users', icon: Shield, label: 'Admin' },
+const navGroups = [
+  {
+    label: 'Data Sources',
+    icon: Database,
+    items: [
+      { to: '/upload', icon: Upload, label: 'Upload' },
+      { to: '/database-connections', icon: Database, label: 'Database Connections' },
+      { to: '/text-to-table', icon: Table2, label: 'Text to Table' },
+    ],
+  },
+  {
+    label: 'Transformation',
+    icon: SplitSquareHorizontal,
+    items: [
+      { to: '/mapping', icon: SplitSquareHorizontal, label: 'Mapping Designer' },
+      { to: '/template', icon: FileCode, label: 'Template Editor' },
+    ],
+  },
+  {
+    label: 'Processing',
+    icon: PlayCircle,
+    items: [
+      { to: '/jobs', icon: PlayCircle, label: 'Processing Jobs' },
+      { to: '/spec-evaluator', icon: ClipboardCheck, label: 'Spec Evaluator' },
+    ],
+  },
+  {
+    label: 'Management',
+    icon: Settings,
+    items: [
+      { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
+      { to: '/settings', icon: Settings, label: 'Settings' },
+      { to: '/guide', icon: BookOpen, label: 'User Guide' },
+    ],
+  },
 ];
 
 export function Layout() {
   const { sidebarOpen, toggleSidebar, user, logout } = useAppStore();
   const navigate = useNavigate();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  const navItems = [
-    ...baseNavItems,
-    ...(user?.role === 'ADMIN' ? adminNavItems : []),
-  ];
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const handleLogout = () => {
     logout();
@@ -76,11 +98,63 @@ export function Layout() {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key="/"
+            to="/"
+            end
+            className={({ isActive }) =>
+              clsx(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.98]',
+                isActive
+                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-200'
+              )
+            }
+          >
+            <LayoutDashboard className="h-5 w-5" />
+            Dashboard
+          </NavLink>
+
+          {navGroups.map(group => {
+            const isCollapsed = collapsedGroups[group.label];
+            return (
+              <div key={group.label}>
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+                >
+                  <group.icon className="h-4 w-4" />
+                  {group.label}
+                  {isCollapsed ? <ChevronRight className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
+                </button>
+                {!isCollapsed && (
+                  <div className="ml-2 space-y-0.5">
+                    {group.items.map(({ to, icon: Icon, label }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        className={({ isActive }) =>
+                          clsx(
+                            'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 active:scale-[0.98]',
+                            isActive
+                              ? 'bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400'
+                              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-200'
+                          )
+                        }
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {user?.role === 'ADMIN' && (
             <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
+              to="/admin/users"
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.98]',
@@ -90,10 +164,10 @@ export function Layout() {
                 )
               }
             >
-              <Icon className="h-5 w-5" />
-              {label}
+              <Shield className="h-5 w-5" />
+              Admin
             </NavLink>
-          ))}
+          )}
         </nav>
 
         <div className="border-t border-gray-200 p-4 dark:border-slate-700">
