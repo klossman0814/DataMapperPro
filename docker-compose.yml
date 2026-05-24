@@ -43,7 +43,7 @@ services:
       DB_ENCRYPTION_KEY: ${DB_ENCRYPTION_KEY:-datamapper-pro-db-key}
       UPLOAD_DIR: /app/uploads
       OUTPUT_DIR: /app/output
-      CORS_ORIGIN: http://localhost:5175,http://100.110.235.90:5175
+      CORS_ORIGIN: http://localhost:5175,http://100.110.235.90:5175,http://100.77.168.91:5175
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5175}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -75,7 +75,7 @@ services:
     ports:
       - "5175:5173"
     environment:
-      VITE_API_URL: http://100.110.235.90:3002
+      VITE_API_URL: http://100.77.168.91:3002
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend
