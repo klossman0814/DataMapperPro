@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -63,7 +63,15 @@ const navGroups = [
 export function Layout() {
   const { sidebarOpen, toggleSidebar, user, logout } = useAppStore();
   const navigate = useNavigate();
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sidebarCollapsedGroups') || '{}');
+    } catch { return {}; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsedGroups', JSON.stringify(collapsedGroups));
+  }, [collapsedGroups]);
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups(prev => ({ ...prev, [label]: !prev[label] }));
