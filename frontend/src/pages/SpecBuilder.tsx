@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Plus, Trash2, Download, Upload } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Trash2, Download, Upload, RotateCcw } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -14,16 +14,49 @@ interface SpecFieldRow {
   include: boolean;
 }
 
+const STORAGE_KEY = 'specBuilderData';
+
+function loadSaved(): { specName: string; rows: SpecFieldRow[] } {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return { specName: '', rows: [] };
+}
+
 let nextId = 1;
 
 function emptyRow(): SpecFieldRow {
   return { id: nextId++, fieldNumber: 1, subFieldNumber: '', fieldName: '', required: true, repeating: false, delimiter: ',', include: true };
 }
 
+function initNextId(rows: SpecFieldRow[]) {
+  nextId = (rows.reduce((max, r) => Math.max(max, r.id), 0) || 0) + 1;
+}
+
 export function SpecBuilder() {
-  const [specName, setSpecName] = useState('');
-  const [rows, setRows] = useState<SpecFieldRow[]>([emptyRow()]);
+  const saved = loadSaved();
+  const [specName, setSpecName] = useState(saved.specName);
+  const [rows, setRows] = useState<SpecFieldRow[]>(() => {
+    if (saved.rows.length) {
+      initNextId(saved.rows);
+      return saved.rows;
+    }
+    return [emptyRow()];
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ specName, rows }));
+  }, [specName, rows]);
+
+  const handleReset = () => {
+    setSpecName('');
+    nextId = 1;
+    setRows([emptyRow()]);
+    localStorage.removeItem(STORAGE_KEY);
+    toast.success('Spec reset');
+  };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,7 +64,7 @@ export function SpecBuilder() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await api.post('/spec-builder/parse', formData);
+      const res = await api.post('/spec-builder/parse', formData, { headers: { 'Content-Type': undefined } });
       const { name, fields } = res.data;
       setSpecName(name || '');
       nextId = 1;
@@ -99,6 +132,10 @@ export function SpecBuilder() {
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
           <button onClick={() => fileInputRef.current?.click()} className="btn-secondary text-sm mt-5">
             <Upload className="h-4 w-4" /> Import
+          </button>
+          <div className="flex-1"></div>
+          <button onClick={handleReset} className="btn-danger text-sm mt-5">
+            <RotateCcw className="h-4 w-4" /> Reset
           </button>
           <button onClick={handleExport} className="btn-primary text-sm mt-5">
             <Download className="h-4 w-4" /> Export to Excel
