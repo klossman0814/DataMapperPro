@@ -19,6 +19,7 @@ import { UserGuide } from './pages/UserGuide';
 import { DatabaseConnections } from './pages/DatabaseConnections';
 import { TextToTable } from './pages/TextToTable';
 import { SpecEvaluator } from './pages/SpecEvaluator';
+import { SpecBuilder } from './pages/SpecBuilder';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="database-connections" element={<DatabaseConnections />} />
         <Route path="text-to-table" element={<TextToTable />} />
         <Route path="spec-evaluator" element={<SpecEvaluator />} />
+        <Route path="spec-builder" element={<SpecBuilder />} />
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -18,6 +18,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -47,6 +48,7 @@ const navGroups = [
     items: [
       { to: '/jobs', icon: PlayCircle, label: 'Processing Jobs' },
       { to: '/spec-evaluator', icon: ClipboardCheck, label: 'Spec Evaluator' },
+      { to: '/spec-builder', icon: FileSpreadsheet, label: 'Spec Builder' },
     ],
   },
   {
