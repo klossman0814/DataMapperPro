@@ -1,5 +1,6 @@
-import { Controller, Post, UseGuards, Body, Res } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/jwt-auth.guard';
+import { Controller, Post, UseGuards, Body, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SpecBuilderService } from './spec-builder.service';
 import { Response } from 'express';
 
@@ -18,5 +19,12 @@ export class SpecBuilderController {
       'Content-Length': buffer.length,
     });
     res.end(buffer);
+  }
+
+  @Post('parse')
+  @UseInterceptors(FileInterceptor('file'))
+  parse(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new Error('No file provided');
+    return this.service.parseXlsx(file.buffer, file.originalname);
   }
 }

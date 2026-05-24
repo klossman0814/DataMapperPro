@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Download } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Download, Upload } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,26 @@ function emptyRow(): SpecFieldRow {
 export function SpecBuilder() {
   const [specName, setSpecName] = useState('');
   const [rows, setRows] = useState<SpecFieldRow[]>([emptyRow()]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/spec-builder/parse', formData);
+      const { name, fields } = res.data;
+      setSpecName(name || '');
+      nextId = 1;
+      setRows(fields.map((f: any) => ({ ...f, id: nextId++ })));
+      if (!rows.length) addRow();
+      toast.success('Spec imported');
+    } catch {
+      toast.error('Import failed');
+    }
+    e.target.value = '';
+  };
 
   const addRow = () => {
     setRows(prev => [...prev, { ...emptyRow(), fieldNumber: prev.length + 1 }]);
@@ -76,6 +96,10 @@ export function SpecBuilder() {
             <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Spec Name</label>
             <input value={specName} onChange={e => setSpecName(e.target.value)} placeholder="e.g. HL7 Admission Spec" className="input-field text-sm" />
           </div>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+          <button onClick={() => fileInputRef.current?.click()} className="btn-secondary text-sm mt-5">
+            <Upload className="h-4 w-4" /> Import
+          </button>
           <button onClick={handleExport} className="btn-primary text-sm mt-5">
             <Download className="h-4 w-4" /> Export to Excel
           </button>
