@@ -14,6 +14,7 @@ import { MappingDesigner } from './pages/MappingDesigner';
 import { TemplateEditorPage } from './pages/TemplateEditorPage';
 import { ProcessingJobs } from './pages/ProcessingJobs';
 import { SavedProfiles } from './pages/SavedProfiles';
+import { ProfileReport } from './pages/ProfileReport';
 import { Settings } from './pages/Settings';
 import { UserGuide } from './pages/UserGuide';
 import { DatabaseConnections } from './pages/DatabaseConnections';
@@ -69,7 +70,8 @@ export default function App() {
         <Route path="mapping/:fileId?" element={<MappingDesigner />} />
         <Route path="template/:profileId?" element={<TemplateEditorPage />} />
         <Route path="jobs" element={<ProcessingJobs />} />
-        <Route path="profiles" element={<SavedProfiles />} />
+          <Route path="profiles" element={<SavedProfiles />} />
+          <Route path="profiles/:id/report" element={<ProfileReport />} />
         <Route path="settings" element={<Settings />} />
         <Route path="guide" element={<UserGuide />} />
         <Route path="database-connections" element={<DatabaseConnections />} />

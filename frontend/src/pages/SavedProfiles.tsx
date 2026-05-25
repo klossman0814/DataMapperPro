@@ -8,6 +8,7 @@ import {
   Download,
   Upload,
   Copy,
+  FileText,
   Search,
 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -173,13 +174,22 @@ export function SavedProfiles() {
                 <span>Updated {new Date(profile.updatedAt).toLocaleString()}</span>
               </div>
               <div className="mt-4 flex items-center gap-2">
-                <button
-                  onClick={() => navigate(`/mapping?profileId=${profile.id}`)}
-                  className="btn-primary text-xs flex-1"
-                >
-                  <GitBranch className="h-3.5 w-3.5" />
-                  Load
-                </button>
+                <div className="flex gap-2 flex-1">
+                  <button
+                    onClick={() => navigate(`/mapping?profileId=${profile.id}`)}
+                    className="btn-primary text-xs flex-1"
+                  >
+                    <GitBranch className="h-3.5 w-3.5" />
+                    Load
+                  </button>
+                  <button
+                    onClick={() => navigate(`/profiles/${profile.id}/report`)}
+                    className="btn-secondary text-xs"
+                    title="Report"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <button
                   onClick={() => handleClone(profile.id)}
                   disabled={cloningId === profile.id}
