@@ -186,16 +186,21 @@ export function ProfileReport() {
 
       <style>{`
         @media print {
-          body { background: white !important; }
-          .no-print { display: none !important; }
-          .print-container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-          .report { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+          @page { margin: 0.5in; size: auto; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { background: white !important; height: auto !important; overflow: visible !important; }
+          body > #root > div { display: block !important; height: auto !important; overflow: visible !important; }
+          aside, header, nav, .no-print { display: none !important; }
+          main { display: block !important; overflow: visible !important; padding: 0 !important; }
+          main > div { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+          .print-container { padding: 0 !important; margin: 0 !important; }
+          .report { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
           .report-section { break-inside: avoid; }
-          .report-section table { break-inside: auto; }
-          @page { margin: 0.6in; }
-          .dark { background: white !important; }
-          .dark * { color: black !important; border-color: #ddd !important; }
-          .report-header { border-bottom-color: #ddd !important; }
+          table { break-inside: auto; font-size: 9pt !important; }
+          th, td { padding: 4pt 6pt !important; }
+          .report-header { border-bottom: 1pt solid #ddd !important; }
+          .report-footer { position: fixed; bottom: 0; left: 0; right: 0; }
+          p, h1, h2, h3, div { color: black !important; }
         }
       `}</style>
     </div>
