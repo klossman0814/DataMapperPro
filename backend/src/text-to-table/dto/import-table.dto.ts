@@ -9,7 +9,7 @@ export class ImportTableDto {
 
   @IsArray()
   @IsObject({ each: true })
-  columns: { name: string; type: string; sampleValues?: any[] }[];
+  columns: { name: string; type: string; sampleValues?: any[]; dbTypeOverride?: string }[];
 
   @IsArray()
   @IsObject({ each: true })

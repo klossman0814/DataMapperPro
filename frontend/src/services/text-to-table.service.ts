@@ -28,7 +28,7 @@ export const textToTableService = {
   importToTable: (data: {
     connectionId: string;
     tableName: string;
-    columns: { name: string; type: string; sampleValues?: any[] }[];
+    columns: { name: string; type: string; sampleValues?: any[]; dbTypeOverride?: string }[];
     rows: Record<string, any>[];
     dropExisting?: boolean;
     batchSize?: number;

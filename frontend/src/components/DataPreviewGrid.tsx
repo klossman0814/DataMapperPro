@@ -22,7 +22,7 @@ interface DataPreviewGridProps {
 export function DataPreviewGrid({ columns, rows, loading }: DataPreviewGridProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(5);
 
   const columnDefs = useMemo<ColumnDef<Record<string, any>>[]>(() => {
     return columns.map((col) => ({
@@ -165,7 +165,7 @@ export function DataPreviewGrid({ columns, rows, loading }: DataPreviewGridProps
             onChange={(e) => setPageSize(Number(e.target.value))}
             className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
           >
-            {[10, 25, 50, 100].map((size) => (
+            {[1, 5, 10, 25, 50, 100].map((size) => (
               <option key={size} value={size}>
                 {size}
               </option>

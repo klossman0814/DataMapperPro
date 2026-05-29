@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileSpreadsheet,
+  Terminal,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -32,6 +33,7 @@ const navGroups = [
       { to: '/upload', icon: Upload, label: 'Upload' },
       { to: '/database-connections', icon: Database, label: 'Database Connections' },
       { to: '/text-to-table', icon: Table2, label: 'Text to Table' },
+      { to: '/sql-scripts', icon: Terminal, label: 'Execute SQL Script Sets' },
     ],
   },
   {

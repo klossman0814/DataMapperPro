@@ -59,25 +59,30 @@ export class FileProcessorService {
     const outputOptions = config.outputOptions || {};
 
     let rows: Record<string, any>[];
-    if (job.databaseConnectionId && job.querySql) {
-      const result = await this.dbConnections.executeQuery(job.databaseConnectionId, job.querySql, job.createdById);
-      rows = result.rows;
-    } else if (job.uploadedFile) {
-      rows = await this.loadRows(job.uploadedFile.filename, config);
-    } else {
-      throw new Error('No data source configured for this job');
+    try {
+      if (job.databaseConnectionId && job.querySql) {
+        const result = await this.dbConnections.executeQuery(job.databaseConnectionId, job.querySql, job.createdById);
+        rows = result.rows;
+      } else if (job.uploadedFile) {
+        rows = await this.loadRows(job.uploadedFile.filename, config);
+      } else {
+        throw new Error('No data source configured for this job');
+      }
+    } catch (err: any) {
+      await this.markFailed(jobId, 'Query failed: ' + err.message);
+      return;
     }
 
-    await this.prisma.processingJob.update({
-      where: { id: jobId },
-      data: {
-        status: 'PROCESSING',
-        startedAt: new Date(),
-        totalRows: rows.length,
-      },
-    });
-
     try {
+      await this.prisma.processingJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'PROCESSING',
+          startedAt: new Date(),
+          totalRows: rows.length,
+        },
+      });
+
       const processedRows: Record<string, any>[] = [];
       const errors: { row: number; message: string }[] = [];
 
@@ -137,15 +142,19 @@ export class FileProcessorService {
         });
       }
     } catch (err: any) {
-      await this.prisma.processingJob.update({
-        where: { id: jobId },
-        data: {
-          status: 'FAILED',
-          completedAt: new Date(),
-          errorLog: JSON.parse(JSON.stringify([{ message: err.message }])) as Prisma.InputJsonValue,
-        },
-      });
+      await this.markFailed(jobId, err.message);
     }
+  }
+
+  private async markFailed(jobId: string, message: string) {
+    await this.prisma.processingJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'FAILED',
+        completedAt: new Date(),
+        errorLog: JSON.parse(JSON.stringify([{ message }])) as Prisma.InputJsonValue,
+      },
+    });
   }
 
   private async loadRows(filename: string, config: any): Promise<Record<string, any>[]> {

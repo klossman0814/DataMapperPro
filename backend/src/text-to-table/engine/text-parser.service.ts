@@ -30,6 +30,8 @@ export interface ParseOutput extends ParseResult {
 
 @Injectable()
 export class TextParserService {
+  private _loggedSep = false;
+
   constructor(
     private hl7Parser: Hl7ParserService,
     private hl7FlatParser: Hl7FlatParserService,
@@ -85,9 +87,10 @@ export class TextParserService {
     const dataStart = hasHeader ? 1 : 0;
     const headerRow = hasHeader ? this.splitCombined(lines[0], combinedPattern) : null;
     const dataLines = lines.slice(dataStart);
-
+    console.log('[DEBUG] Flat parse - separators:', JSON.stringify(separators), 'pattern:', combinedPattern.source, 'sampleFirstLine:', lines[dataStart]?.substring(0, 200));
     const columnCounts = dataLines.map(line => this.splitCombined(line, combinedPattern).length);
     const maxCols = Math.max(...columnCounts, 0);
+    console.log('[DEBUG] Flat result - maxCols:', maxCols, 'totalLines:', dataLines.length, 'counts sample (first 5):', columnCounts.slice(0, 5), 'counts tail (last 3):', columnCounts.slice(-3));
     if (maxCols === 0) {
       return { columns: [], rows: [], rowCount: 0, separatorUsed: '', stats, selectedSeparator: '' };
     }
@@ -129,7 +132,8 @@ export class TextParserService {
   }
 
   private buildCombinedPattern(separators: string[]): RegExp {
-    const escaped = separators.map(s => this.escapeRegex(s)).join('');
+    // Inside a character class, only ], \, ^, and - need escaping
+    const escaped = separators.map(s => s.replace(/[\]\\^-]/g, '\\$&')).join('');
     return new RegExp(`[${escaped}]`);
   }
 
@@ -205,7 +209,7 @@ export class TextParserService {
     secondarySeps: string[],
     primarySep: string,
   ): ParseResult | null {
-    const sepPattern = new RegExp(`[${secondarySeps.map(s => this.escapeRegex(s)).join('')}]`);
+    const sepPattern = new RegExp(`[${secondarySeps.map(s => this.escapeForCharClass(s)).join('')}]`);
     const expandedRows: Record<string, any>[] = [];
     const expandedNames: string[] = [];
 
@@ -227,7 +231,7 @@ export class TextParserService {
 
     let colIdx = 0;
     for (const name of names) {
-      const sepPatternLocal = new RegExp(`[${secondarySeps.map(s => this.escapeRegex(s)).join('')}]`);
+      const sepPatternLocal = new RegExp(`[${secondarySeps.map(s => this.escapeForCharClass(s)).join('')}]`);
       const subValues = rows.map(r => String(r[name] ?? '')).filter(v => v && sepPatternLocal.test(v));
       if (subValues.length > rows.length * 0.5) {
         const partsList = rows.map(r => String(r[name] ?? '').split(sepPatternLocal));
@@ -245,7 +249,7 @@ export class TextParserService {
       const expandedRow: Record<string, any> = {};
       let colIdx = 0;
       for (const name of names) {
-        const sepPatternLocal = new RegExp(`[${secondarySeps.map(s => this.escapeRegex(s)).join('')}]`);
+        const sepPatternLocal = new RegExp(`[${secondarySeps.map(s => this.escapeForCharClass(s)).join('')}]`);
         const val = String(row[name] ?? '');
         const subValues = rows.filter(r => r !== row).map(r => String(r[name] ?? '')).filter(v => v && sepPatternLocal.test(v));
         if (subValues.length > (rows.length - 1) * 0.5) {
@@ -328,6 +332,11 @@ export class TextParserService {
     let inQuotes = false;
     let i = 0;
 
+    if (!this._loggedSep) {
+      console.log('[DEBUG] parseQuotedFields separatorRe:', separatorRe.source, 'flags:', separatorRe.flags);
+      this._loggedSep = true;
+    }
+
     while (i < line.length) {
       const ch = line[i];
       if (ch === '"') {
@@ -353,6 +362,11 @@ export class TextParserService {
 
   private escapeRegex(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private escapeForCharClass(s: string): string {
+    // Inside a character class [...], only ], \, ^, and - need escaping
+    return s.replace(/[\]\\^-]/g, '\\$&');
   }
 
   private sanitizeName(name: string): string {
@@ -390,17 +404,9 @@ export class TextParserService {
       const values = rows.map(r => r[name]);
       const nullCount = values.filter(v => v === null || v === undefined || v === '').length;
       const nonNullSamples = values.filter(v => v !== null && v !== undefined && v !== '').slice(0, 5);
-      let type = 'string';
-      if (nonNullSamples.length > 0) {
-        const allIntegers = nonNullSamples.every(v => /^-?\d+$/.test(String(v)));
-        const allNumbers = nonNullSamples.every(v => !isNaN(Number(v)) && v !== '');
-        const allDates = nonNullSamples.every(v => !isNaN(Date.parse(String(v))));
-        const allBooleans = nonNullSamples.every(v => ['true', 'false', '1', '0', 'yes', 'no'].includes(String(v).toLowerCase()));
-        if (allIntegers && nonNullSamples.length > 0) type = 'integer';
-        else if (allNumbers) type = 'number';
-        else if (allDates) type = 'date';
-        else if (allBooleans) type = 'boolean';
-      }
+      // All fields are treated as text since this tool produces extracts — schema types are
+      // not needed; consumers handle their own type coercion.
+      const type = 'string';
       return { name, type, nullCount, sampleValues: nonNullSamples };
     });
   }

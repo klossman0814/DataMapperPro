@@ -17,6 +17,7 @@ import { EmailModule } from './email/email.module';
 import { TextToTableModule } from './text-to-table/text-to-table.module';
 import { SpecEvaluatorModule } from './spec-evaluator/spec-evaluator.module';
 import { SpecBuilderModule } from './spec-builder/spec-builder.module';
+import { SqlScriptsModule } from './sql-scripts/sql-scripts.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { SpecBuilderModule } from './spec-builder/spec-builder.module';
     TextToTableModule,
     SpecEvaluatorModule,
     SpecBuilderModule,
+    SqlScriptsModule,
   ],
 })
 export class AppModule {}

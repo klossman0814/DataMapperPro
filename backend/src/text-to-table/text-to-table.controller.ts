@@ -17,7 +17,9 @@ export class TextToTableController {
   }
 
   @Post('parse-file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 500 * 1024 * 1024 },
+  }))
   parseFile(
     @UploadedFile() file: Express.Multer.File,
     @Query('sheetName') sheetName?: string,

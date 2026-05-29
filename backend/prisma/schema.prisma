@@ -26,6 +26,7 @@ model User {
   databaseConnections DatabaseConnection[]
   specDocuments       SpecDocument[]
   specEvaluations     SpecEvaluation[]
+  sqlScriptSets       SqlScriptSet[]
 }
 
 model DatabaseConnection {
@@ -44,6 +45,33 @@ model DatabaseConnection {
 
   createdBy       User            @relation(fields: [createdById], references: [id])
   processingJobs  ProcessingJob[]
+  sqlScriptSets   SqlScriptSet[]
+}
+
+model SqlScriptSet {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  connectionId String?
+  connection  DatabaseConnection? @relation(fields: [connectionId], references: [id])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps SqlScriptStep[]
+}
+
+model SqlScriptStep {
+  id          String       @id @default(uuid())
+  scriptSetId String
+  scriptSet   SqlScriptSet @relation(fields: [scriptSetId], references: [id], onDelete: Cascade)
+  stepOrder   Int
+  name        String
+  sql         String
+  enabled     Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model MappingProfile {

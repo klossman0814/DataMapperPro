@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   Database, Table2, Upload, FileText, Settings2, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, Loader2, ChevronDown,
-  Braces, SplitSquareHorizontal, Replace,
+  Braces, SplitSquareHorizontal, Replace, RotateCcw,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { DataPreviewGrid } from '../components/DataPreviewGrid';
@@ -28,6 +28,59 @@ const typeLabels: Record<string, string> = {
   mssql: 'SQL Server', postgresql: 'PostgreSQL', mysql: 'MySQL',
 };
 
+// SQL type mapping — mirrors backend table-creator.service.ts
+const DB_TYPE_OPTIONS: Record<string, string[]> = {
+  postgresql: [
+    'TEXT', 'VARCHAR(255)', 'VARCHAR(500)', 'VARCHAR(1000)', 'BIGINT', 'INTEGER',
+    'DOUBLE PRECISION', 'DECIMAL(18,2)', 'DECIMAL(10,4)', 'TIMESTAMP', 'DATE',
+    'BOOLEAN', 'JSONB', 'UUID', 'REAL', 'FLOAT',
+  ],
+  mysql: [
+    'TEXT', 'VARCHAR(255)', 'VARCHAR(500)', 'VARCHAR(1000)', 'BIGINT', 'INT',
+    'DOUBLE', 'DECIMAL(18,2)', 'DECIMAL(10,4)', 'DATETIME', 'DATE',
+    'TINYINT(1)', 'JSON', 'FLOAT', 'CHAR(36)',
+  ],
+  mssql: [
+    'TEXT', 'VARCHAR(255)', 'VARCHAR(500)', 'VARCHAR(1000)', 'NVARCHAR(255)',
+    'BIGINT', 'INT', 'FLOAT(53)', 'DECIMAL(18,2)', 'DATETIME2', 'DATE',
+    'BIT', 'UNIQUEIDENTIFIER',
+  ],
+};
+
+function defaultSqlType(detectedType: string, dbType: string, sampleValues?: any[]): string {
+  // Mirror of backend postgresTypeMap + char(255) heuristic for strings
+  const pgMap: Record<string, string> = {
+    string: 'TEXT',
+    number: 'DOUBLE PRECISION',
+    integer: 'BIGINT',
+    date: 'TIMESTAMP',
+    boolean: 'BOOLEAN',
+    email: 'VARCHAR(255)',
+    json: 'JSONB',
+    phone: 'VARCHAR(20)',
+    zip: 'VARCHAR(10)',
+    url: 'VARCHAR(2048)',
+    ip: 'VARCHAR(45)',
+    currency: 'DECIMAL(18,2)',
+    percentage: 'DECIMAL(5,2)',
+    uuid: 'UUID',
+  };
+  const mysqlMap: Record<string, string> = {
+    string: 'TEXT', number: 'DOUBLE', integer: 'BIGINT', date: 'DATETIME',
+    boolean: 'TINYINT(1)', email: 'VARCHAR(255)', json: 'JSON', phone: 'VARCHAR(20)',
+    zip: 'VARCHAR(10)', url: 'VARCHAR(2048)', ip: 'VARCHAR(45)',
+    currency: 'DECIMAL(18,2)', percentage: 'DECIMAL(5,2)', uuid: 'CHAR(36)',
+  };
+  const mssqlMap: Record<string, string> = {
+    string: 'VARCHAR(MAX)', number: 'FLOAT(53)', integer: 'BIGINT', date: 'DATETIME2',
+    boolean: 'BIT', email: 'VARCHAR(255)', json: 'NVARCHAR(MAX)', phone: 'VARCHAR(20)',
+    zip: 'VARCHAR(10)', url: 'VARCHAR(2048)', ip: 'VARCHAR(45)',
+    currency: 'DECIMAL(18,2)', percentage: 'DECIMAL(5,2)', uuid: 'UNIQUEIDENTIFIER',
+  };
+  const map = dbType === 'mysql' ? mysqlMap : dbType === 'mssql' ? mssqlMap : pgMap;
+  return map[detectedType] || 'TEXT';
+}
+
 type Step = 'input' | 'config' | 'preview' | 'import';
 
 export function TextToTable() {
@@ -37,7 +90,7 @@ export function TextToTable() {
   const [inputTab, setInputTab] = useState<'paste' | 'file'>('paste');
   const [fileName, setFileName] = useState('');
 
-  const [selectedSeps, setSelectedSeps] = useState<Set<string>>(new Set([',', '|', '^', '&']));
+  const [selectedSeps, setSelectedSeps] = useState<Set<string>>(new Set([',', '|']));
   const [parseMode, setParseMode] = useState<'flat' | 'hierarchical' | 'hl7-flat'>('flat');
   const [hasHeader, setHasHeader] = useState(true);
   const [primarySep, setPrimarySep] = useState('|');
@@ -53,6 +106,8 @@ export function TextToTable() {
   const [parseResult, setParseResult] = useState<ParseTextResult | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [schemaOverrides, setSchemaOverrides] = useState<Record<string, string>>({});
+  const [columnNameOverrides, setColumnNameOverrides] = useState<Record<string, string>>({});
 
   const [connections, setConnections] = useState<DatabaseConnection[]>([]);
   const [selectedConnId, setSelectedConnId] = useState('');
@@ -152,6 +207,7 @@ export function TextToTable() {
     setParseResult(null);
     try {
       const seps = Array.from(selectedSeps);
+      console.log('[DEBUG] Sending separators:', JSON.stringify(seps), 'parseMode:', parseMode);
       const result = await textToTableService.parse({
         text: rawText,
         separators: seps,
@@ -173,6 +229,8 @@ export function TextToTable() {
         return;
       }
       setParseResult(result);
+      setSchemaOverrides({});
+      setColumnNameOverrides({});
       setStep('preview');
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Parse failed';
@@ -193,7 +251,16 @@ export function TextToTable() {
       const result = await textToTableService.importToTable({
         connectionId: selectedConnId,
         tableName: tableName.trim(),
-        columns: parseResult.columns,
+        columns: (() => {
+          const selectedConn = connections.find(c => c.id === selectedConnId);
+          const dbType = selectedConn?.type || 'postgresql';
+          return parseResult.columns.map(col => ({
+            name: columnNameOverrides[col.name] || col.name,
+            type: col.type,
+            sampleValues: col.sampleValues,
+            dbTypeOverride: schemaOverrides[col.name] || defaultSqlType(col.type, dbType, col.sampleValues),
+          }));
+        })(),
         rows: parseResult.rows,
         dropExisting,
         batchSize: 100,
@@ -282,7 +349,7 @@ export function TextToTable() {
               <p className="text-lg font-medium text-gray-900 dark:text-white">
                 {isDragActive ? 'Drop your file here' : 'Drag & drop a text file, or click to browse'}
               </p>
-               <p className="text-sm text-gray-500 dark:text-slate-400">.txt, .csv, .tsv, .dat, .hl7, .xlsx, .xls — max 50 MB</p>
+               <p className="text-sm text-gray-500 dark:text-slate-400">.txt, .csv, .tsv, .dat, .hl7, .xlsx, .xls — max 500 MB</p>
             </div>
           </div>
         </div>
@@ -305,6 +372,29 @@ export function TextToTable() {
 
   const renderConfig = () => (
     <div className="space-y-6">
+      {/* File info & sample preview */}
+      {rawText && (
+        <div className="card">
+          <div className="mb-3 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
+              {fileName || 'Imported Text'}
+            </h3>
+            <span className="text-xs text-gray-400 dark:text-slate-500">
+              — {rawText.split(/\r?\n/).filter(l => l.trim()).length} lines
+            </span>
+          </div>
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-xs leading-relaxed dark:border-slate-700 dark:bg-slate-800/50">
+            {rawText.split(/\r?\n/).slice(0, 2).map((line, i) => (
+              <div key={i} className="flex">
+                <span className="mr-3 min-w-[1.5rem] text-right text-gray-400 dark:text-slate-500 select-none">{i + 1}</span>
+                <span className="whitespace-pre-wrap break-all text-gray-800 dark:text-slate-200">{line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <div className="mb-4 flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-gray-400" />
@@ -501,7 +591,7 @@ export function TextToTable() {
     if (!parseResult) return null;
 
     const mappedColumns: ColumnInfo[] = parseResult.columns.map(col => ({
-      name: col.name,
+      name: columnNameOverrides[col.name] || col.name,
       type: col.type,
       nullCount: col.nullCount,
       nullPercentage: parseResult.rowCount > 0 ? Math.round((col.nullCount / parseResult.rowCount) * 100) : 0,
@@ -559,6 +649,90 @@ export function TextToTable() {
         </div>
 
         <DataPreviewGrid columns={mappedColumns} rows={parseResult.rows} loading={false} />
+
+        {/* Schema Configuration — view and override SQL types before import */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings2 className="h-4 w-4 text-gray-500 dark:text-slate-400" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">Schema Configuration</h3>
+            <span className="text-xs text-gray-400 dark:text-slate-500">— override detected column types if needed</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-slate-700">
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Column</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Detected Type</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-slate-400">SQL Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mappedColumns.map(col => {
+                  const selectedConn = connections.find(c => c.id === selectedConnId);
+                  const dbType = selectedConn?.type || 'postgresql';
+                  const defaultType = defaultSqlType(col.type, dbType, col.sampleValues);
+                  const currentOverride = schemaOverrides[col.name];
+                  const currentSqlType = currentOverride || defaultType;
+                  const typeOptions = DB_TYPE_OPTIONS[dbType] || DB_TYPE_OPTIONS.postgresql;
+                  return (
+                    <tr key={col.name} className="border-b border-gray-100 dark:border-slate-700/50">
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          value={columnNameOverrides[col.name] ?? col.name}
+                          onChange={e => setColumnNameOverrides(prev => ({ ...prev, [col.name]: e.target.value }))}
+                          className="input-field w-40 text-xs"
+                          placeholder={col.name}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-slate-700 dark:text-slate-400">
+                          {col.type}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={currentSqlType}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setSchemaOverrides(prev => {
+                              const next = { ...prev };
+                              if (val === defaultType) {
+                                delete next[col.name];
+                              } else {
+                                next[col.name] = val;
+                              }
+                              return next;
+                            });
+                          }}
+                          className="input-field py-1 text-xs w-48"
+                        >
+                          <option value={defaultType}>{defaultType} (auto)</option>
+                          {typeOptions.filter(t => t !== defaultType).map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                        {currentOverride && (
+                          <button
+                            onClick={() => setSchemaOverrides(prev => {
+                              const next = { ...prev };
+                              delete next[col.name];
+                              return next;
+                            })}
+                            className="ml-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                            title="Reset to auto-detected type"
+                          >
+                            <RotateCcw className="h-3 w-3 inline" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div className="card">
           <div className="mb-4 flex items-center gap-2">

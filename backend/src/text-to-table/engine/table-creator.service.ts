@@ -4,6 +4,7 @@ interface ColumnDef {
   name: string;
   type: string;
   sampleValues?: any[];
+  dbTypeOverride?: string;
 }
 
 interface CreateTableResult {
@@ -37,7 +38,7 @@ export class TableCreatorService {
 
     const colDefs = columns.map(col => {
       const safeCol = this.sanitizeIdentifier(col.name);
-      const sqlType = this.mapType(col.type, dbType, col.sampleValues);
+      const sqlType = col.dbTypeOverride || this.mapType(col.type, dbType, col.sampleValues);
       return `  ${quote}${safeCol}${quote} ${sqlType}`;
     });
 

@@ -30,16 +30,37 @@ export class TextToTableService {
     }
 
     const headers = Object.keys(jsonData[0]);
-    const headerLine = headers.join('|');
-    const dataLines = jsonData.map(row =>
-      headers.map(h => String(row[h] ?? '').replace(/\|/g, ' ')).join('|'),
-    );
-    const text = [headerLine, ...dataLines].join('\n');
+    const totalRows = jsonData.length;
 
-    return this.textParser.parse(text, ['|'], 'flat', true);
+    // Build rows with string values — no separator parsing needed
+    const rows: Record<string, string>[] = jsonData.map(row => {
+      const cleanRow: Record<string, string> = {};
+      for (const h of headers) {
+        cleanRow[h] = String(row[h] ?? '');
+      }
+      return cleanRow;
+    });
+
+    // Build columns directly from the Excel data (same format as detectColumns)
+    const columns = headers.map(name => {
+      const values = rows.map(r => r[name]);
+      const nullCount = values.filter(v => v === null || v === undefined || v === '').length;
+      const nonNullSamples = values.filter(v => v !== null && v !== undefined && v !== '').slice(0, 5);
+      return { name, type: 'string' as const, nullCount, sampleValues: nonNullSamples };
+    });
+
+    return {
+      columns,
+      rows,
+      rowCount: totalRows,
+      separatorUsed: '',
+      stats: [] as any[],
+      selectedSeparator: '',
+    };
   }
 
   parseText(dto: ParseTextDto) {
+    console.log('[DEBUG] parseText received:', JSON.stringify({ separators: dto.separators, parseMode: dto.parseMode, hasHeader: dto.hasHeader }));
     if (!dto.text.trim()) {
       throw new BadRequestException('Text content is empty');
     }
