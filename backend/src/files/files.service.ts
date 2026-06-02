@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadFileDto } from './dto/upload-file.dto';
+import { CreateFromQueryDto } from './dto/create-from-query.dto';
 
 interface ColumnInfo {
   name: string;
@@ -137,6 +138,24 @@ export class FilesService {
     }
 
     return Object.values(columnMap);
+  }
+
+  async createFromQuery(dto: CreateFromQueryDto, userId: string) {
+    const uploadedFile = await this.prisma.uploadedFile.create({
+      data: {
+        filename: `${uuid()}.dbquery`,
+        originalName: dto.originalName,
+        mimeType: 'application/vnd.datamapper.db-query',
+        size: 0,
+        rowCount: dto.rowCount,
+        columns: JSON.parse(JSON.stringify(dto.columns)) as Prisma.InputJsonValue,
+        preview: JSON.parse(JSON.stringify(dto.preview)) as Prisma.InputJsonValue,
+        databaseConnectionId: dto.databaseConnectionId,
+        querySql: dto.querySql,
+        uploadedById: userId,
+      },
+    });
+    return uploadedFile;
   }
 
   async findAll(userId: string, page: number = 1, limit: number = 20) {

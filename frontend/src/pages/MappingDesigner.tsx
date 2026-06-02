@@ -161,17 +161,12 @@ export function MappingDesigner() {
     }
     try {
       const jobPayload: any = {
+        fileId: selectedFileId,
         template: store.template,
         mappings: store.mappings,
         outputFormat: store.outputFormat,
         outputOptions: Object.keys(opts).length ? opts : undefined,
       };
-      if (store.databaseConnectionId) {
-        jobPayload.databaseConnectionId = store.databaseConnectionId;
-        jobPayload.querySql = store.querySql;
-      } else {
-        jobPayload.fileId = selectedFileId;
-      }
       const job = await jobsService.create(jobPayload);
       toast.success('Job started');
       navigate('/jobs');
@@ -349,11 +344,28 @@ export function MappingDesigner() {
                 className="input-field"
               >
                 <option value="">Select a file...</option>
-                {files.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.originalName} ({f.rowCount} rows)
-                  </option>
-                ))}
+                {files.filter((f) => f.mimeType !== 'application/vnd.datamapper.db-query').length > 0 && (
+                  <optgroup label="Uploaded Files">
+                    {files
+                      .filter((f) => f.mimeType !== 'application/vnd.datamapper.db-query')
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.originalName} ({f.rowCount} rows)
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                {files.filter((f) => f.mimeType === 'application/vnd.datamapper.db-query').length > 0 && (
+                  <optgroup label="Database Queries">
+                    {files
+                      .filter((f) => f.mimeType === 'application/vnd.datamapper.db-query')
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.originalName} ({f.rowCount} rows)
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
               </select>
             )}
           </div>

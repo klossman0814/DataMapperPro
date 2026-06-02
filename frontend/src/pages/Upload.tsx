@@ -29,8 +29,10 @@ export function Upload() {
   const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
   const [selectedConnId, setSelectedConnId] = useState('');
   const [querySql, setQuerySql] = useState('');
+  const [queryName, setQueryName] = useState('');
   const [dbPreviewData, setDbPreviewData] = useState<{ columns: any[]; rows: any[] } | null>(null);
   const [dbPreviewLoading, setDbPreviewLoading] = useState(false);
+  const [savingQuery, setSavingQuery] = useState(false);
   const [delimiter, setDelimiter] = useState(',');
   const [hasHeader, setHasHeader] = useState(true);
 
@@ -88,6 +90,10 @@ export function Upload() {
     try {
       const result = await databaseConnectionsService.query(selectedConnId, querySql);
       setDbPreviewData({ columns: result.columns, rows: result.rows });
+      const conn = dbConnections.find((c) => c.id === selectedConnId);
+      if (!queryName) {
+        setQueryName(conn ? `Query: ${conn.name}` : 'Database Query');
+      }
       toast.success(`Query returned ${result.rowCount} rows`);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Query failed');
@@ -96,12 +102,28 @@ export function Upload() {
     }
   };
 
-  const handleContinueDbMapping = () => {
+  const handleContinueDbMapping = async () => {
     if (!dbPreviewData || !selectedConnId) return;
+    if (!queryName.trim()) {
+      toast.error('Enter a name for this query');
+      return;
+    }
+    setSavingQuery(true);
     store.reset();
-    store.setSourceColumns(dbPreviewData.columns);
-    store.setDatabaseConnection(selectedConnId, querySql);
-    navigate('/mapping');
+    try {
+      const saved = await filesService.createFromQuery({
+        databaseConnectionId: selectedConnId,
+        querySql,
+        originalName: queryName.trim(),
+        columns: dbPreviewData.columns,
+        preview: dbPreviewData.rows.slice(0, 100),
+        rowCount: dbPreviewData.rows.length,
+      });
+      navigate(`/mapping/${saved.id}`);
+    } catch {
+      toast.error('Failed to save query result');
+      setSavingQuery(false);
+    }
   };
 
   const loadPreview = async (fileId: string) => {
@@ -306,13 +328,24 @@ export function Upload() {
                     placeholder="SELECT * FROM my_table WHERE condition = 'value' LIMIT 100"
                   />
                 </div>
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs text-gray-500">Name this query</label>
+                  <input
+                    type="text"
+                    value={queryName}
+                    onChange={(e) => setQueryName(e.target.value)}
+                    className="input-field w-full text-sm"
+                    placeholder="e.g. Customer Export — Prod"
+                  />
+                </div>
                 <div className="mt-3 flex gap-2">
                   <button onClick={handleDbQuery} disabled={dbPreviewLoading} className="btn-secondary">
                     {dbPreviewLoading ? 'Running...' : 'Preview'}
                   </button>
                   {dbPreviewData && (
-                    <button onClick={handleContinueDbMapping} className="btn-primary">
-                      <ArrowRight className="h-4 w-4" /> Continue to Mapping
+                    <button onClick={handleContinueDbMapping} disabled={savingQuery} className="btn-primary">
+                      <ArrowRight className="h-4 w-4" />
+                      {savingQuery ? 'Saving...' : 'Continue to Mapping'}
                     </button>
                   )}
                 </div>
@@ -341,7 +374,11 @@ export function Upload() {
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-slate-800/50"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <FileSpreadsheet className="h-8 w-8 shrink-0 text-primary-500" />
+                      {f.mimeType === 'application/vnd.datamapper.db-query' ? (
+                        <Database className="h-8 w-8 shrink-0 text-purple-500" />
+                      ) : (
+                        <FileSpreadsheet className="h-8 w-8 shrink-0 text-primary-500" />
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-gray-900 dark:text-slate-200">
                           {f.originalName}

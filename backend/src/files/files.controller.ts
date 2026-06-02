@@ -16,11 +16,20 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FilesService } from './files.service';
 import { UploadFileDto } from './dto/upload-file.dto';
+import { CreateFromQueryDto } from './dto/create-from-query.dto';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
   constructor(private filesService: FilesService) {}
+
+  @Post('create-from-query')
+  createFromQuery(
+    @Body() dto: CreateFromQueryDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.filesService.createFromQuery(dto, userId);
+  }
 
   @Post('upload')
   @UseInterceptors(

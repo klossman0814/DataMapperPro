@@ -2,6 +2,15 @@ import api from './api';
 import type { UploadedFileInfo } from '../types';
 
 export const filesService = {
+  createFromQuery: (data: {
+    databaseConnectionId: string;
+    querySql: string;
+    originalName: string;
+    columns: any[];
+    preview: any[];
+    rowCount: number;
+  }) => api.post<UploadedFileInfo>('/files/create-from-query', data).then(r => r.data),
+
   upload: (file: File, options?: { sheetName?: string; delimiter?: string; hasHeader?: boolean }) => {
     const formData = new FormData();
     formData.append('file', file);

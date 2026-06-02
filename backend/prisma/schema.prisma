@@ -46,6 +46,7 @@ model DatabaseConnection {
   createdBy       User            @relation(fields: [createdById], references: [id])
   processingJobs  ProcessingJob[]
   sqlScriptSets   SqlScriptSet[]
+  uploadedFiles   UploadedFile[]
 }
 
 model SqlScriptSet {
@@ -90,20 +91,23 @@ model MappingProfile {
 }
 
 model UploadedFile {
-  id           String   @id @default(uuid())
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int
-  rowCount     Int?
-  columns      Json?
-  preview      Json?
-  sheetNames   Json?
-  uploadedById String
-  createdAt    DateTime @default(now())
+  id                   String   @id @default(uuid())
+  filename             String
+  originalName         String
+  mimeType             String
+  size                 Int
+  rowCount             Int?
+  columns              Json?
+  preview              Json?
+  sheetNames           Json?
+  databaseConnectionId String?
+  querySql             String?
+  uploadedById         String
+  createdAt            DateTime @default(now())
 
-  uploadedBy     User             @relation(fields: [uploadedById], references: [id])
-  processingJobs ProcessingJob[]
+  uploadedBy         User                @relation(fields: [uploadedById], references: [id])
+  databaseConnection DatabaseConnection? @relation(fields: [databaseConnectionId], references: [id])
+  processingJobs     ProcessingJob[]
 }
 
 model SpecDocument {

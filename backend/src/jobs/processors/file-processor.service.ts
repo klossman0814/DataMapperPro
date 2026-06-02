@@ -60,7 +60,14 @@ export class FileProcessorService {
 
     let rows: Record<string, any>[];
     try {
-      if (job.databaseConnectionId && job.querySql) {
+      if (job.uploadedFile?.databaseConnectionId && job.uploadedFile?.querySql) {
+        const result = await this.dbConnections.executeQuery(
+          job.uploadedFile.databaseConnectionId,
+          job.uploadedFile.querySql,
+          job.createdById,
+        );
+        rows = result.rows;
+      } else if (job.databaseConnectionId && job.querySql) {
         const result = await this.dbConnections.executeQuery(job.databaseConnectionId, job.querySql, job.createdById);
         rows = result.rows;
       } else if (job.uploadedFile) {

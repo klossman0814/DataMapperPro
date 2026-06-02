@@ -16,8 +16,6 @@ export class JobsService {
       ...(dto.outputOptions || {}),
       mappings: dto.mappings || [],
       template: dto.template || '',
-      databaseConnectionId: dto.databaseConnectionId || null,
-      querySql: dto.querySql || null,
     };
     const data: any = {
       status: 'PENDING',
