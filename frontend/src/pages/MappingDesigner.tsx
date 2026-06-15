@@ -67,6 +67,10 @@ export function MappingDesigner() {
         if (profile.configurationJson.outputOptions?.fileExtension) {
           store.setOutputExtension(profile.configurationJson.outputOptions.fileExtension);
         }
+        const savedFileId = profile.configurationJson.sourceFileId;
+        if (savedFileId) {
+          setSelectedFileId(savedFileId);
+        }
       })
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoadingProfile(false));
@@ -128,6 +132,7 @@ export function MappingDesigner() {
           mappings: store.mappings,
           outputFormat: store.outputFormat,
           outputOptions: Object.keys(opts).length ? opts : undefined,
+          sourceFileId: selectedFileId || store.uploadedFile?.id || undefined,
         },
         template: store.template,
       };
