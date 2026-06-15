@@ -113,6 +113,13 @@ export function TemplateEditorPage() {
         .then((tpl) => {
           setTemplateName(tpl.name);
           setTemplateContent(tpl.content);
+          const cfg = tpl.configurationJson;
+          if (cfg) {
+            if (cfg.sourceFileId) setSelectedFileId(cfg.sourceFileId);
+            if (cfg.sourceTab) setSourceTab(cfg.sourceTab as 'file' | 'database');
+            if (cfg.dbConnectionId) setDbConnectionId(cfg.dbConnectionId);
+            if (cfg.querySql) setQuerySql(cfg.querySql);
+          }
         })
         .catch(() => toast.error('Failed to load template'))
         .finally(() => setLoading(false));
@@ -230,17 +237,25 @@ export function TemplateEditorPage() {
       return;
     }
     setSaving(true);
+    const configuration = {
+      sourceFileId: selectedFileId || undefined,
+      sourceTab,
+      dbConnectionId: dbConnectionId || undefined,
+      querySql: querySql || undefined,
+    };
     try {
       if (selectedTemplateId) {
         await templatesService.update(selectedTemplateId, {
           name: templateName,
           content: templateContent,
+          configuration,
         });
         toast.success('Template updated');
       } else {
         const tpl = await templatesService.create({
           name: templateName,
           content: templateContent,
+          configuration,
         });
         setSelectedTemplateId(tpl.id);
         setTemplates((prev) => [tpl, ...prev]);

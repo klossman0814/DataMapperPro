@@ -21,14 +21,14 @@ export class TemplatesController {
 
   @Post()
   create(
-    @Body() body: { name: string; template: string; description?: string },
+    @Body() body: { name: string; template: string; description?: string; configuration?: any },
     @CurrentUser('id') userId: string,
   ) {
     return this.templatesService.create(body, userId);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: { name?: string; template?: string; description?: string }) {
+  update(@Param('id') id: string, @Body() body: { name?: string; template?: string; description?: string; configuration?: any }) {
     return this.templatesService.update(id, body);
   }
 

@@ -6,6 +6,13 @@ export interface Template {
   description?: string;
   content: string;
   version: number;
+  configurationJson?: {
+    sourceFileId?: string;
+    sourceTab?: string;
+    dbConnectionId?: string;
+    querySql?: string;
+    [key: string]: any;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -18,18 +25,20 @@ export const templatesService = {
 
   get: (id: string) => api.get<Template>(`/templates/${id}`).then(r => r.data),
 
-  create: (data: { name: string; content: string; description?: string }) =>
+  create: (data: { name: string; content: string; description?: string; configuration?: any }) =>
     api.post<Template>('/templates', {
       name: data.name,
       template: data.content,
       description: data.description,
+      configuration: data.configuration,
     }).then(r => r.data),
 
-  update: (id: string, data: { name?: string; content?: string; description?: string }) =>
+  update: (id: string, data: { name?: string; content?: string; description?: string; configuration?: any }) =>
     api.put<Template>(`/templates/${id}`, {
       name: data.name,
       template: data.content,
       description: data.description,
+      configuration: data.configuration,
     }).then(r => r.data),
 
   delete: (id: string) => api.delete(`/templates/${id}`).then(r => r.data),

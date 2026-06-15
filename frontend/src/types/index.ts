@@ -99,6 +99,8 @@ export interface MappingProfile {
     mappings: FieldMapping[];
     outputFormat?: OutputFormat;
     outputOptions?: Record<string, any>;
+    sourceFileId?: string;
+    [key: string]: any;
   };
   version: number;
   createdAt: string;
