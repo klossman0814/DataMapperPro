@@ -53,7 +53,7 @@ export class ProfilesService {
     const [profiles, total] = await Promise.all([
       this.prisma.mappingProfile.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
