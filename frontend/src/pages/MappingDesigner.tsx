@@ -51,7 +51,7 @@ export function MappingDesigner() {
   }, []);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId) { store.reset(); return; }
     setLoadingProfile(true);
     profilesService.get(profileId)
       .then((profile) => {
