@@ -43,6 +43,7 @@ export function MappingDesigner() {
   const [previewRows, setPreviewRows] = useState<Record<string, any>[]>([]);
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
   const [liveOutput, setLiveOutput] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export function MappingDesigner() {
         if (savedFileId) {
           setSelectedFileId(savedFileId);
         }
+        setSelectedTemplateId(profile.configurationJson.selectedTemplateId || '');
       })
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoadingProfile(false));
@@ -133,6 +135,7 @@ export function MappingDesigner() {
           outputFormat: store.outputFormat,
           outputOptions: Object.keys(opts).length ? opts : undefined,
           sourceFileId: selectedFileId || store.uploadedFile?.id || undefined,
+          selectedTemplateId: selectedTemplateId || undefined,
         },
         template: store.template,
       };
@@ -321,6 +324,8 @@ export function MappingDesigner() {
               liveOutput={liveOutput}
               livePreviewEnabled={livePreviewEnabled}
               onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+              selectedTemplateId={selectedTemplateId}
+              onTemplateSelect={setSelectedTemplateId}
             />
           </div>
 

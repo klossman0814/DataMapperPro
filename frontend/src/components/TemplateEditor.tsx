@@ -27,6 +27,8 @@ interface TemplateEditorProps {
   liveOutput?: string;
   livePreviewEnabled?: boolean;
   onToggleLivePreview?: () => void;
+  selectedTemplateId?: string;
+  onTemplateSelect?: (id: string) => void;
 }
 
 const syntaxHelpers = [
@@ -38,6 +40,7 @@ const syntaxHelpers = [
 export function TemplateEditor({
   value, onChange, preview, sourceColumns, templates,
   draggableColumns, previewRow, liveOutput, livePreviewEnabled, onToggleLivePreview,
+  selectedTemplateId, onTemplateSelect,
 }: TemplateEditorProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -229,10 +232,13 @@ export function TemplateEditor({
             <div className="flex flex-wrap items-center gap-2">
               {templates && templates.length > 0 && (
                 <select
-                  value=""
+                  value={selectedTemplateId || ""}
                   onChange={(e) => {
                     const tpl = templates.find((t) => t.id === e.target.value);
-                    if (tpl) onChange(tpl.content);
+                    if (tpl) {
+                      onChange(tpl.content);
+                      onTemplateSelect?.(tpl.id);
+                    }
                   }}
                   className="input-field w-48 text-xs"
                 >
