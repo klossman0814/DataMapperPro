@@ -3,8 +3,7 @@ import Editor from '@monaco-editor/react';
 import {
   FileCode, Eye, Braces, Variable, List, FileInput, X, Sparkles, GripVertical,
   ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2,
-  BookTemplate, PanelLeftClose, PanelLeft, FileCode as FileCodeIcon, Database,
-  Play,
+  BookTemplate, PanelLeftClose, PanelLeft, FileCode as FileCodeIcon, Database, Play,
 } from 'lucide-react';
 import type { ColumnInfo, UploadedFileInfo, DatabaseConnection } from '../types';
 import { FieldBuilder } from './FieldBuilder';
@@ -508,6 +507,15 @@ export function TemplateEditorPanel({
                 <span className="font-mono font-bold text-xs">|</span>
                 Pipe
               </button>
+              {onRender && (
+                <button
+                  onClick={onRender}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+                >
+                  <Play className="h-3 w-3" />
+                  Render
+                </button>
+              )}
               {previewRows.length > 0 && (
                 <button
                   onClick={onToggleLivePreview}

@@ -135,6 +135,20 @@ export function MappingDesigner() {
     }
   };
 
+  const handleRender = useCallback(async () => {
+    if (!store.template.trim() || previewRows.length === 0) {
+      toast.error('Enter a template and select a data source first');
+      return;
+    }
+    try {
+      const res = await templatesService.renderInline(store.template, { row: previewRows[0], index: 0 });
+      setLiveOutput(res.output);
+      toast.success('Template rendered');
+    } catch {
+      toast.error('Failed to render template');
+    }
+  }, [store.template, previewRows]);
+
   const doLiveRender = useCallback(async (template: string) => {
     if (!template.trim() || previewRows.length === 0) return;
     try {
@@ -360,6 +374,7 @@ export function MappingDesigner() {
             liveOutput={liveOutput}
             livePreviewEnabled={livePreviewEnabled}
             onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+            onRender={handleRender}
             templates={savedTemplates}
             selectedTemplateId={selectedTemplateId}
             onTemplateSelect={setSelectedTemplateId}
