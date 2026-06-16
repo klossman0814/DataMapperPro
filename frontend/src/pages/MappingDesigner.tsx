@@ -354,7 +354,7 @@ export function MappingDesigner() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2">
           <div className="card">
             <div className="mb-4 flex items-center gap-2">
               <SplitSquareHorizontal className="h-4 w-4 text-primary-500" />
@@ -366,32 +366,6 @@ export function MappingDesigner() {
               onMappingsChange={store.setMappings}
             />
           </div>
-
-          <TemplateEditorPanel
-            value={store.template}
-            onChange={store.setTemplate}
-            sourceColumns={store.sourceColumns}
-            previewRows={previewRows}
-            liveOutput={liveOutput}
-            livePreviewEnabled={livePreviewEnabled}
-            onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
-            onRender={handleRender}
-            templates={savedTemplates}
-            selectedTemplateId={selectedTemplateId}
-            onTemplateSelect={setSelectedTemplateId}
-            files={files}
-            selectedFileId={selectedFileId}
-            onSelectedFileChange={setSelectedFileId}
-            dbConnections={dbConnections}
-            dbConnectionId={dbConnectionId}
-            onDbConnectionChange={setDbConnectionId}
-            querySql={querySql}
-            onQuerySqlChange={setQuerySql}
-            onRunDbQuery={handleDbQuery}
-            dbQueryLoading={dbQueryLoading}
-            sourceTab={sourceTab}
-            onSourceTabChange={setSourceTab}
-          />
         </div>
 
         <div className="space-y-4">
@@ -491,26 +465,35 @@ export function MappingDesigner() {
               />
             </div>
           </div>
-
-          {store.sourceColumns.length > 0 && (
-            <div className="card flex flex-col min-h-0">
-              <h3 className="mb-3 shrink-0 text-sm font-semibold text-gray-900 dark:text-slate-300">
-                Source Columns ({store.sourceColumns.length})
-              </h3>
-              <div className="flex-1 space-y-1 overflow-y-auto max-h-48">
-                {store.sourceColumns.map((col) => (
-                  <div
-                    key={col.name}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-slate-700/30"
-                  >
-                    <span className="font-medium text-gray-700 dark:text-slate-200">{col.name}</span>
-                    <span className="text-xs text-gray-400 dark:text-slate-400">{col.type}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+
+      <div className="mt-6">
+        <TemplateEditorPanel
+          value={store.template}
+          onChange={store.setTemplate}
+          sourceColumns={store.sourceColumns}
+          previewRows={previewRows}
+          liveOutput={liveOutput}
+          livePreviewEnabled={livePreviewEnabled}
+          onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+          onRender={handleRender}
+          templates={savedTemplates}
+          selectedTemplateId={selectedTemplateId}
+          onTemplateSelect={setSelectedTemplateId}
+          files={files}
+          selectedFileId={selectedFileId}
+          onSelectedFileChange={setSelectedFileId}
+          dbConnections={dbConnections}
+          dbConnectionId={dbConnectionId}
+          onDbConnectionChange={setDbConnectionId}
+          querySql={querySql}
+          onQuerySqlChange={setQuerySql}
+          onRunDbQuery={handleDbQuery}
+          dbQueryLoading={dbQueryLoading}
+          sourceTab={sourceTab}
+          onSourceTabChange={setSourceTab}
+        />
       </div>
     </div>
   );
