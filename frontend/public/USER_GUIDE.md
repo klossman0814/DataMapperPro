@@ -37,26 +37,42 @@
    - [Cancelling Jobs](#64-cancelling-jobs)
    - [Filtering and Searching](#65-filtering-and-searching)
 7. [Saved Profiles](#7-saved-profiles)
-   - [Saving and Loading Profiles](#71-saving-and-loading-profiles)
-   - [Cloning, Exporting, and Importing](#72-cloning-exporting-and-importing)
-   - [Searching Profiles](#73-searching-profiles)
+    - [Saving and Loading Profiles](#71-saving-and-loading-profiles)
+    - [Cloning, Exporting, and Importing](#72-cloning-exporting-and-importing)
+    - [Searching Profiles](#73-searching-profiles)
+    - [Profile Report](#74-profile-report)
 8. [Settings](#8-settings)
-   - [Profile Settings](#81-profile-settings)
-   - [Security](#82-security)
-   - [API Keys](#83-api-keys)
-   - [Export Defaults](#84-export-defaults)
-   - [Appearance](#85-appearance)
-   - [Notification Preferences](#86-notification-preferences)
-9. [Validation Rules](#9-validation-rules)
-10. [Appendix A: Transformation Functions](#10-appendix-a-transformation-functions)
-11. [Appendix B: Output Formats](#11-appendix-b-output-formats)
-12. [Appendix C: Seed Data Examples](#12-appendix-c-seed-data-examples)
-13. [API Reference](#13-api-reference)
-    - [Base URL and Authentication](#131-base-url-and-authentication)
-    - [Endpoints](#132-endpoints)
-    - [Request and Response Schemas](#133-request-and-response-schemas)
-    - [Common Patterns](#134-common-patterns)
-    - [Rate Limiting](#135-rate-limiting)
+    - [Profile Settings](#81-profile-settings)
+    - [Security](#82-security)
+    - [API Keys](#83-api-keys)
+    - [Export Defaults](#84-export-defaults)
+    - [Appearance](#85-appearance)
+    - [Notification Preferences](#86-notification-preferences)
+    - [Workspace Backup](#87-workspace-backup)
+9. [Database Connections](#9-database-connections)
+    - [Creating a Connection](#91-creating-a-connection)
+    - [Testing and Managing](#92-testing-and-managing)
+10. [Execute SQL Script Sets](#10-execute-sql-script-sets)
+    - [Creating a Script Set](#101-creating-a-script-set)
+    - [Executing Steps](#102-executing-steps)
+11. [Spec Evaluator](#11-spec-evaluator)
+    - [Uploading a Spec](#111-uploading-a-spec)
+    - [Evaluating Data](#112-evaluating-data)
+12. [Spec Builder](#12-spec-builder)
+    - [Building a Spec](#121-building-a-spec)
+    - [Exporting](#122-exporting)
+13. [Admin Users](#13-admin-users)
+    - [Managing Users](#131-managing-users)
+14. [Validation Rules](#14-validation-rules)
+15. [Appendix A: Transformation Functions](#15-appendix-a-transformation-functions)
+16. [Appendix B: Output Formats](#16-appendix-b-output-formats)
+17. [Appendix C: Seed Data Examples](#17-appendix-c-seed-data-examples)
+18. [API Reference](#18-api-reference)
+    - [Base URL and Authentication](#181-base-url-and-authentication)
+    - [Endpoints](#182-endpoints)
+    - [Request and Response Schemas](#183-request-and-response-schemas)
+    - [Common Patterns](#184-common-patterns)
+    - [Rate Limiting](#185-rate-limiting)
 
 ---
 
@@ -790,7 +806,7 @@ Active jobs (PROCESSING, PENDING) auto-poll every 3 seconds for progress updates
 
 ### 6.3 Downloading Results
 
-For completed jobs, click the download icon (or the **Download** button in the expanded view). The browser downloads the output file named `output-<id>.<format>`.
+For completed jobs, click the download icon (or the **Download** button in the expanded view). The browser downloads the output file named `<source-file-name>-<job-id-short>.<format>` (e.g., `patient_records-a1b2c3d4.csv`).
 
 ### 6.4 Cancelling Jobs
 
@@ -844,6 +860,17 @@ The page header has two additional buttons:
 
 Use the **search box** to filter profiles by name or description.
 
+### 7.4 Profile Report
+
+Each profile card has a **Report** button (document icon). Click it to open a print-friendly report showing:
+- Profile metadata (name, description, version, creation/update dates)
+- Summary cards (field mapping count, output format, transformation count, condition count)
+- Full field mappings table (destination field, source field, transformation, expression, condition)
+- Output template in a code block
+- Configuration details
+
+Use the browser's **Print / Export PDF** function to save the report as a PDF.
+
 ---
 
 ## 8. Settings
@@ -878,7 +905,7 @@ dmp_a3k8fj2m9xq7r5b1v4n6w0c8p3y6e1t
 
 1. **Generate** — Click **Generate New** in the API Access card. The key is generated in your browser using `crypto.randomBytes`.
 2. **Copy immediately** — Click **Copy** to save the key. Once you navigate away or regenerate, the key **cannot be retrieved** again — it is never stored on the server in plain text.
-3. **Use** — Include the key in the `Authorization` header of API requests (see [Section 12 — API Reference](#12-api-reference)).
+3. **Use** — Include the key in the `Authorization` header of API requests (see [Section 18 — API Reference](#18-api-reference)).
 4. **Regenerate** — If a key is compromised or lost, generate a new one. This invalidates the previous key.
 
 #### Usage
@@ -926,9 +953,116 @@ Toggle notification settings:
 - **Job failure alerts**
 - **Weekly usage summary**
 
+### 8.7 Workspace Backup
+
+The **Workspace Backup** section lets you export or import your entire workspace as a single JSON file.
+
+- **Export** — Downloads all profiles and database connections as one JSON file
+- **Import** — Restore a previously exported workspace backup
+
 ---
 
-## 9. Validation Rules
+## 9. Database Connections
+
+Manage reusable connections to external databases for query-based data import and SQL script execution. Navigate via the sidebar.
+
+### 9.1 Creating a Connection
+
+Click **New Connection** and fill in:
+- **Name** — A label for this connection
+- **Type** — SQL Server, PostgreSQL, or MySQL
+- **Host** — Server hostname or IP
+- **Port** — Auto-filled based on type (editable)
+- **Database** — Database name
+- **Username**
+- **Password**
+- **SSL** — Toggle to enable
+
+### 9.2 Testing and Managing
+
+Each saved connection has:
+- **Test** — Pings the database and reports success/failure
+- **Edit** — Pre-fills the form with existing values
+- **Delete** — Removes the connection (with confirmation)
+
+Connections are available in the **Upload** page's Database Query tab and the **Execute SQL Script Sets** page.
+
+---
+
+## 10. Execute SQL Script Sets
+
+Create, edit, and run ordered sets of SQL statements against a database connection.
+
+### 10.1 Creating a Script Set
+
+1. Click **New Script Set**
+2. Enter a **Name** and optional **Description**
+3. Optionally set a **Default Connection**
+4. Click **Add Step** to add SQL statements
+5. For each step, enter a name, write the SQL, and toggle **Enabled** to include/skip
+6. Reorder steps with the **Up/Down** arrows
+7. Click **Save**
+
+### 10.2 Executing Steps
+
+1. Select a **Database Connection** from the dropdown
+2. Click **Execute**
+3. Results show per-step success/failure, duration (ms), and rows affected
+4. Click a result row to expand error details
+
+---
+
+## 11. Spec Evaluator
+
+Upload specification documents (.xlsx) and evaluate data extracts for compliance scoring. Navigate via the sidebar.
+
+### 11.1 Uploading a Spec
+
+1. Drag & drop or click to upload an `.xlsx`/`.xls` spec file
+2. Optionally enter a **Spec Name**
+3. Expand the spec to view extracted field definitions with field numbers, required/repeating flags, and delimiters
+4. Toggle **Include** to control which fields appear in the template
+
+### 11.2 Evaluating Data
+
+1. Click **Evaluate** on a spec
+2. Select a data file (`.csv`, `.txt`, `.tsv`, `.dat`)
+3. Results display a compliance score (0-100), field coverage stats, and a per-issue breakdown with severity
+
+---
+
+## 12. Spec Builder
+
+Create specification spreadsheets from scratch, downloadable as .xlsx files for use in the Spec Evaluator.
+
+### 12.1 Building a Spec
+
+1. Enter a **Spec Name**
+2. Add rows with field number, sub-field number, field name, required/repeating/include toggles, and delimiter
+3. **Import** an existing `.xlsx`/`.xls` file to seed the builder
+4. Auto-saves to browser local storage
+
+### 12.2 Exporting
+
+Click **Export** to download the spec as a `.xlsx` file, ready for the Spec Evaluator.
+
+---
+
+## 13. Admin Users
+
+> **Requires ADMIN role.** Only visible to admin users. Navigate to **Admin** > **Users** via the sidebar.
+
+### 13.1 Managing Users
+
+- Search users by name or email
+- Table shows name, email, role (USER/ADMIN), active status, and resource counts
+- **Edit** — Change name, email, and role
+- **Deactivate** — Disable a user's access (data is preserved)
+- The super admin (`admin@datamapperpro.com`) is protected from editing/deactivation
+
+---
+
+## 14. Validation Rules
 
 Validation rules enforce data quality constraints on your output. Rules are configured per profile and run during job processing. When a row fails validation, it is **skipped** in the output but processing continues. Failed rows are collected in the job's error log with descriptive messages.
 
@@ -977,7 +1111,7 @@ This configuration:
 
 ---
 
-## 10. Appendix A: Transformation Functions
+## 15. Appendix A: Transformation Functions
 
 ### String Functions
 
@@ -1087,7 +1221,7 @@ Returns the first non-empty value from `phone`, then `email`, then the literal `
 
 ---
 
-## 11. Appendix B: Output Formats
+## 16. Appendix B: Output Formats
 
 ### CSV (Comma-Separated Values)
 - **Extension**: `.csv`
@@ -1156,7 +1290,7 @@ Returns the first non-empty value from `phone`, then `email`, then the literal `
 
 ---
 
-## 12. Appendix C: Seed Data Examples
+## 17. Appendix C: Seed Data Examples
 
 The demo environment includes pre-seeded data that demonstrates all major features. Here is a summary:
 
@@ -1235,7 +1369,7 @@ This demonstrates how validation rules catch data quality issues during processi
 
 ---
 
-## 13. API Reference
+## 18. API Reference
 
 ### 13.1 Base URL and Authentication
 
