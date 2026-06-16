@@ -237,7 +237,7 @@ export function Dashboard() {
               Upload File
             </button>
             <button
-              onClick={() => navigate('/mapping')}
+              onClick={() => navigate('/mapping?new=true')}
               className="btn-secondary flex-1"
             >
               <SplitSquareHorizontal className="h-4 w-4" />

@@ -29,26 +29,18 @@ export function MappingDesigner() {
   const { fileId } = useParams();
   const [searchParams] = useSearchParams();
   const profileId = searchParams.get('profileId');
+  const isNew = searchParams.get('new') === 'true';
   const navigate = useNavigate();
   const store = useMappingStore();
 
   const [files, setFiles] = useState<UploadedFileInfo[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState(fileId || store.uploadedFile?.id || '');
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<Template[]>([]);
-  const [previewRows, setPreviewRows] = useState<Record<string, any>[]>([]);
-  const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
-  const [liveOutput, setLiveOutput] = useState('');
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [pendingTemplateMatch, setPendingTemplateMatch] = useState('');
-  const [sourceTab, setSourceTab] = useState<'file' | 'database'>('file');
   const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
-  const [dbConnectionId, setDbConnectionId] = useState('');
-  const [querySql, setQuerySql] = useState('');
   const [dbQueryLoading, setDbQueryLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -56,18 +48,19 @@ export function MappingDesigner() {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
     templatesService.list(1, 50).then((res) => setSavedTemplates(res.data)).catch(() => {});
     databaseConnectionsService.list().then((res) => setDbConnections(res)).catch(() => {});
+    if (isNew) store.reset();
   }, []);
 
   useEffect(() => {
-    if (!selectedTemplateId && savedTemplates.length > 0 && pendingTemplateMatch) {
-      const match = savedTemplates.find(t => t.content === pendingTemplateMatch);
-      if (match) setSelectedTemplateId(match.id);
-      setPendingTemplateMatch('');
+    if (!store.selectedTemplateId && savedTemplates.length > 0 && store.pendingTemplateMatch) {
+      const match = savedTemplates.find(t => t.content === store.pendingTemplateMatch);
+      if (match) store.setSelectedTemplateId(match.id);
+      store.setPendingTemplateMatch('');
     }
-  }, [savedTemplates, selectedTemplateId, pendingTemplateMatch]);
+  }, [savedTemplates, store.selectedTemplateId, store.pendingTemplateMatch]);
 
   useEffect(() => {
-    if (!profileId) { store.reset(); return; }
+    if (!profileId) return;
     setLoadingProfile(true);
     profilesService.get(profileId)
       .then((profile) => {
@@ -85,12 +78,12 @@ export function MappingDesigner() {
         }
         const savedFileId = profile.configurationJson.sourceFileId;
         if (savedFileId) {
-          setSelectedFileId(savedFileId);
+          store.setSelectedFileId(savedFileId);
         }
         const savedTemplateId = profile.configurationJson.selectedTemplateId || '';
-        setSelectedTemplateId(savedTemplateId);
+        store.setSelectedTemplateId(savedTemplateId);
         if (!savedTemplateId && profile.template) {
-          setPendingTemplateMatch(profile.template);
+          store.setPendingTemplateMatch(profile.template);
         }
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -98,35 +91,35 @@ export function MappingDesigner() {
   }, [profileId]);
 
   useEffect(() => {
-    if (selectedFileId && selectedFileId !== store.uploadedFile?.id) {
+    if (store.selectedFileId && store.selectedFileId !== store.uploadedFile?.id) {
       setLoading(true);
       Promise.all([
-        filesService.getFile(selectedFileId),
-        filesService.getPreview(selectedFileId, 1, 10),
+        filesService.getFile(store.selectedFileId),
+        filesService.getPreview(store.selectedFileId, 1, 10),
       ])
         .then(([file, preview]) => {
           store.setUploadedFile(file);
           store.setSourceColumns(file.columns);
-          setPreviewRows(preview.rows || []);
+          store.setPreviewRows(preview.rows || []);
         })
         .catch(() => toast.error('Failed to load file'))
         .finally(() => setLoading(false));
     }
-  }, [selectedFileId, store]);
+  }, [store.selectedFileId, store]);
 
   const handleDbQuery = async () => {
-    if (!dbConnectionId || !querySql.trim()) {
+    if (!store.templateDbConnectionId || !store.templateQuerySql.trim()) {
       toast.error('Select a connection and enter a SQL query');
       return;
     }
     setDbQueryLoading(true);
     try {
-      const result = await databaseConnectionsService.query(dbConnectionId, querySql);
+      const result = await databaseConnectionsService.query(store.templateDbConnectionId, store.templateQuerySql);
       store.setSourceColumns(result.columns.map((c: any) => ({
         name: c.name, type: c.type, nullCount: 0, nullPercentage: 0, sampleValues: [],
       })));
-      setPreviewRows(result.rows);
-      setLivePreviewEnabled(true);
+      store.setPreviewRows(result.rows);
+      store.setLivePreviewEnabled(true);
       toast.success(`Query returned ${result.rowCount} rows`);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || 'Query failed');
@@ -136,40 +129,42 @@ export function MappingDesigner() {
   };
 
   const handleRender = useCallback(async () => {
-    const { template } = useMappingStore.getState();
+    const { template, previewRows } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) {
       toast.error('Enter a template and select a data source first');
       return;
     }
     try {
       const res = await templatesService.renderInline(template, { row: previewRows[0], index: 0 });
-      setLiveOutput(res.output);
+      useMappingStore.getState().setLiveOutput(res.output);
       toast.success('Template rendered');
     } catch {
       toast.error('Failed to render template');
     }
-  }, [previewRows]);
+  }, []);
 
   const doLiveRender = useCallback(async (template: string) => {
+    const { previewRows } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) return;
     try {
       const res = await templatesService.renderInline(template, { row: previewRows[0], index: 0 });
-      setLiveOutput(res.output);
+      useMappingStore.getState().setLiveOutput(res.output);
     } catch {
       // silent fail for live preview
     }
-  }, [previewRows]);
+  }, []);
 
   useEffect(() => {
-    if (!livePreviewEnabled || !store.template.trim() || previewRows.length === 0) return;
+    const state = useMappingStore.getState();
+    if (!state.livePreviewEnabled || !state.template.trim() || state.previewRows.length === 0) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      doLiveRender(store.template);
+      doLiveRender(state.template);
     }, 400);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [store.template, livePreviewEnabled, previewRows, doLiveRender]);
+  }, [store.livePreviewEnabled, store.template, store.previewRows, doLiveRender]);
 
   const handleSaveProfile = async () => {
     if (!store.profileName.trim()) {
@@ -189,8 +184,8 @@ export function MappingDesigner() {
           mappings: store.mappings,
           outputFormat: store.outputFormat,
           outputOptions: Object.keys(opts).length ? opts : undefined,
-          sourceFileId: selectedFileId || store.uploadedFile?.id || undefined,
-          selectedTemplateId: selectedTemplateId || undefined,
+          sourceFileId: store.selectedFileId || store.uploadedFile?.id || undefined,
+          selectedTemplateId: store.selectedTemplateId || undefined,
         },
         template: store.template,
       };
@@ -209,7 +204,7 @@ export function MappingDesigner() {
   };
 
   const handleRunJob = async () => {
-    if (!selectedFileId) {
+    if (!store.selectedFileId) {
       toast.error('Select a file first');
       return;
     }
@@ -224,7 +219,7 @@ export function MappingDesigner() {
     }
     try {
       const jobPayload: any = {
-        fileId: selectedFileId,
+        fileId: store.selectedFileId,
         template: store.template,
         mappings: store.mappings,
         outputFormat: store.outputFormat,
@@ -318,7 +313,7 @@ export function MappingDesigner() {
   const dragColumns = store.sourceColumns.map((c) => ({
     name: c.name,
     type: c.type,
-    sampleValue: previewRows.length > 0 ? previewRows[0][c.name] : c.sampleValues?.[0],
+    sampleValue: store.previewRows.length > 0 ? store.previewRows[0][c.name] : c.sampleValues?.[0],
   }));
 
   return (
@@ -329,13 +324,13 @@ export function MappingDesigner() {
           <p className="mt-1 text-gray-500 dark:text-slate-400">Map source fields to destination fields</p>
         </div>
         <div className="flex gap-3">
-          {previewRows.length > 0 && (
+          {store.previewRows.length > 0 && (
             <button
-              onClick={() => setLivePreviewEnabled(!livePreviewEnabled)}
-              className={`btn-secondary ${livePreviewEnabled ? 'ring-2 ring-primary-500' : ''}`}
+              onClick={() => store.setLivePreviewEnabled(!store.livePreviewEnabled)}
+              className={`btn-secondary ${store.livePreviewEnabled ? 'ring-2 ring-primary-500' : ''}`}
             >
-              {livePreviewEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-              {livePreviewEnabled ? 'Live: On' : 'Live: Off'}
+              {store.livePreviewEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+              {store.livePreviewEnabled ? 'Live: On' : 'Live: Off'}
             </button>
           )}
           <button onClick={handleGeneratePreview} disabled={generatingPreview} className="btn-secondary">
@@ -381,8 +376,8 @@ export function MappingDesigner() {
               </div>
             ) : (
               <select
-                value={selectedFileId}
-                onChange={(e) => setSelectedFileId(e.target.value)}
+                value={store.selectedFileId}
+                onChange={(e) => store.setSelectedFileId(e.target.value)}
                 className="input-field"
               >
                 <option value="">Select a file...</option>
@@ -473,26 +468,26 @@ export function MappingDesigner() {
           value={store.template}
           onChange={store.setTemplate}
           sourceColumns={store.sourceColumns}
-          previewRows={previewRows}
-          liveOutput={liveOutput}
-          livePreviewEnabled={livePreviewEnabled}
-          onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+          previewRows={store.previewRows}
+          liveOutput={store.liveOutput}
+          livePreviewEnabled={store.livePreviewEnabled}
+          onToggleLivePreview={() => store.setLivePreviewEnabled(!store.livePreviewEnabled)}
           onRender={handleRender}
           templates={savedTemplates}
-          selectedTemplateId={selectedTemplateId}
-          onTemplateSelect={setSelectedTemplateId}
+          selectedTemplateId={store.selectedTemplateId}
+          onTemplateSelect={store.setSelectedTemplateId}
           files={files}
-          selectedFileId={selectedFileId}
-          onSelectedFileChange={setSelectedFileId}
+          selectedFileId={store.selectedFileId}
+          onSelectedFileChange={store.setSelectedFileId}
           dbConnections={dbConnections}
-          dbConnectionId={dbConnectionId}
-          onDbConnectionChange={setDbConnectionId}
-          querySql={querySql}
-          onQuerySqlChange={setQuerySql}
+          dbConnectionId={store.templateDbConnectionId}
+          onDbConnectionChange={store.setTemplateDbConnectionId}
+          querySql={store.templateQuerySql}
+          onQuerySqlChange={store.setTemplateQuerySql}
           onRunDbQuery={handleDbQuery}
           dbQueryLoading={dbQueryLoading}
-          sourceTab={sourceTab}
-          onSourceTabChange={setSourceTab}
+          sourceTab={store.sourceTab}
+          onSourceTabChange={store.setSourceTab}
         />
       </div>
     </div>

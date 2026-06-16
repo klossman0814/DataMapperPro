@@ -117,7 +117,7 @@ export function SavedProfiles() {
             <Upload className="h-4 w-4" />
             Import
           </button>
-          <button onClick={() => navigate('/mapping')} className="btn-primary">
+          <button onClick={() => navigate('/mapping?new=true')} className="btn-primary">
             <Plus className="h-4 w-4" />
             Create New Profile
           </button>
@@ -149,7 +149,7 @@ export function SavedProfiles() {
             </p>
           </div>
           {!searchQuery && (
-            <button onClick={() => navigate('/mapping')} className="btn-primary">
+            <button onClick={() => navigate('/mapping?new=true')} className="btn-primary">
               <GitBranch className="h-4 w-4" />
               Create Mapping
             </button>
