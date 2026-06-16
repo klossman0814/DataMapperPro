@@ -119,14 +119,14 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
   return (
     <div className="flex gap-6">
       <div className="w-64 shrink-0">
-        <div className="card">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="card flex flex-col min-h-0" style={{ maxHeight: '50vh' }}>
+          <div className="mb-3 shrink-0 flex items-center gap-2">
             <Columns className="h-4 w-4 text-primary-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
               Source Columns ({sourceColumns.length})
             </h3>
           </div>
-          <div className="space-y-1">
+          <div className="flex-1 space-y-1 overflow-y-auto">
             {sourceColumns.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-400 dark:text-slate-500">
                 No columns available
