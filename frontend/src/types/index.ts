@@ -124,6 +124,7 @@ export interface ProcessingJob {
   outputFormat: string;
   outputFile?: string;
   config?: Record<string, any>;
+  startedAt?: string;
   createdAt: string;
   completedAt?: string;
   uploadedFile?: FilePreview;

@@ -16,12 +16,21 @@ interface JobProgressProps {
   job: ProcessingJob;
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  const remainingM = m % 60;
+  return `${h}h ${remainingM}m ${s}s`;
+}
+
 export function JobProgress({ job }: JobProgressProps) {
   const [localJob, setLocalJob] = useState(job);
   const [downloading, setDownloading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     setLocalJob(job);
@@ -29,7 +38,6 @@ export function JobProgress({ job }: JobProgressProps) {
 
   useEffect(() => {
     if (localJob.status === 'PROCESSING' || localJob.status === 'PENDING') {
-      startTimeRef.current = Date.now();
       intervalRef.current = setInterval(async () => {
         try {
           const progress = await jobsService.getProgress(localJob.id);
@@ -66,10 +74,18 @@ export function JobProgress({ job }: JobProgressProps) {
     ? Math.round((localJob.processedRows / localJob.totalRows) * 100)
     : 0;
 
-  const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
-  const rowsPerSecond = elapsedSeconds > 0
-    ? (localJob.processedRows / elapsedSeconds).toFixed(1)
-    : '0.0';
+  const now = Date.now();
+  const startedAtMs = localJob.startedAt ? new Date(localJob.startedAt).getTime() : null;
+  const completedAtMs = localJob.completedAt ? new Date(localJob.completedAt).getTime() : null;
+
+  const elapsedSeconds = startedAtMs
+    ? Math.floor(((completedAtMs || now) - startedAtMs) / 1000)
+    : 0;
+
+  const rowsToCount = localJob.status === 'COMPLETED' ? localJob.totalRows : localJob.processedRows;
+  const rowsPerSecond = elapsedSeconds > 0 && startedAtMs
+    ? (rowsToCount / elapsedSeconds).toFixed(1)
+    : '—';
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -158,7 +174,7 @@ export function JobProgress({ job }: JobProgressProps) {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-4 gap-4">
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-700/30">
           <p className="text-xs text-gray-500 dark:text-slate-400">Total Rows</p>
           <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
@@ -180,7 +196,13 @@ export function JobProgress({ job }: JobProgressProps) {
         <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-700/30">
           <p className="text-xs text-gray-500 dark:text-slate-400">Speed</p>
           <p className="mt-1 text-lg font-semibold text-primary-600 dark:text-primary-400">
-            {rowsPerSecond}/s
+            {rowsPerSecond}{rowsPerSecond !== '—' ? '/s' : ''}
+          </p>
+        </div>
+        <div className="rounded-lg bg-gray-50 p-3 dark:bg-slate-700/30">
+          <p className="text-xs text-gray-500 dark:text-slate-400">Duration</p>
+          <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+            {elapsedSeconds > 0 ? formatDuration(elapsedSeconds) : '—'}
           </p>
         </div>
       </div>
