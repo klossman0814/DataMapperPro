@@ -44,12 +44,21 @@ export function MappingDesigner() {
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
   const [liveOutput, setLiveOutput] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [pendingTemplateMatch, setPendingTemplateMatch] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
     templatesService.list(1, 50).then((res) => setSavedTemplates(res.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedTemplateId && savedTemplates.length > 0 && pendingTemplateMatch) {
+      const match = savedTemplates.find(t => t.content === pendingTemplateMatch);
+      if (match) setSelectedTemplateId(match.id);
+      setPendingTemplateMatch('');
+    }
+  }, [savedTemplates, selectedTemplateId, pendingTemplateMatch]);
 
   useEffect(() => {
     if (!profileId) { store.reset(); return; }
@@ -72,7 +81,11 @@ export function MappingDesigner() {
         if (savedFileId) {
           setSelectedFileId(savedFileId);
         }
-        setSelectedTemplateId(profile.configurationJson.selectedTemplateId || '');
+        const savedTemplateId = profile.configurationJson.selectedTemplateId || '';
+        setSelectedTemplateId(savedTemplateId);
+        if (!savedTemplateId && profile.template) {
+          setPendingTemplateMatch(profile.template);
+        }
       })
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoadingProfile(false));
