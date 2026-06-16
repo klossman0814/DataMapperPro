@@ -117,16 +117,16 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
   };
 
   return (
-    <div className="flex gap-6">
-      <div className="w-64 shrink-0">
-        <div className="card flex flex-col min-h-0" style={{ maxHeight: '50vh' }}>
+    <div className="flex gap-6" style={{ maxHeight: 'calc(50vh + 120px)' }}>
+      <div className="w-64 shrink-0 flex flex-col min-h-0">
+        <div className="card flex flex-col min-h-0 flex-1">
           <div className="mb-3 shrink-0 flex items-center gap-2">
             <Columns className="h-4 w-4 text-primary-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
               Source Columns ({sourceColumns.length})
             </h3>
           </div>
-          <div className="flex-1 space-y-1 overflow-y-auto">
+          <div className="flex-1 space-y-1 overflow-y-auto min-h-0">
             {sourceColumns.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-400 dark:text-slate-500">
                 No columns available
@@ -152,42 +152,42 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
         </div>
       </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="card">
-            <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
-                Field Mappings ({mappings.length})
-              </h3>
-              <div className="flex gap-2">
-                {mappings.length > 1 && (
-                  <button
-                    onClick={toggleAll}
-                    className="btn-secondary text-xs"
-                  >
-                    <ChevronsUpDown className="h-3.5 w-3.5" />
-                    {allExpanded ? 'Collapse All' : 'Expand All'}
-                  </button>
-                )}
+      <div className="min-w-0 flex-1 flex flex-col min-h-0">
+        <div className="card flex flex-col min-h-0 flex-1">
+          <div className="mb-4 shrink-0 flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">
+              Field Mappings ({mappings.length})
+            </h3>
+            <div className="flex gap-2">
+              {mappings.length > 1 && (
                 <button
-                  onClick={handleAutoMap}
+                  onClick={toggleAll}
                   className="btn-secondary text-xs"
                 >
-                  <Wand2 className="h-3.5 w-3.5" />
-                  Auto-Map
+                  <ChevronsUpDown className="h-3.5 w-3.5" />
+                  {allExpanded ? 'Collapse All' : 'Expand All'}
                 </button>
-                {mappings.length > 0 && (
-                  <button
-                    onClick={() => setShowClearDialog(true)}
-                    className="btn-danger text-xs"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />
-                    Clear All
-                  </button>
-                )}
-              </div>
+              )}
+              <button
+                onClick={handleAutoMap}
+                className="btn-secondary text-xs"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Auto-Map
+              </button>
+              {mappings.length > 0 && (
+                <button
+                  onClick={() => setShowClearDialog(true)}
+                  className="btn-danger text-xs"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Clear All
+                </button>
+              )}
             </div>
+          </div>
 
-          <div className="mb-4 flex gap-2">
+          <div className="mb-4 shrink-0 flex gap-2">
             <input
               type="text"
               value={destinationField}
@@ -210,7 +210,7 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
               <p className="text-sm">No mappings yet. Add a destination field or use Auto-Map.</p>
             </div>
           ) : (
-            <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
               {mappings.map((mapping, index) => {
                 const isExpanded = expandedRows.has(index);
                 const sourceName = mapping.sourceField || '(not set)';
