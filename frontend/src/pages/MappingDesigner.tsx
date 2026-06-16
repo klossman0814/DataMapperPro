@@ -8,7 +8,6 @@ import { templatesService } from '../services/templates.service';
 import type { Template } from '../services/templates.service';
 import { useMappingStore } from '../stores/mappingStore';
 import { MappingCanvas } from '../components/MappingCanvas';
-import { OutputPreview } from '../components/OutputPreview';
 import { TemplateEditor } from '../components/TemplateEditor';
 import type { UploadedFileInfo, FieldMapping, OutputFormat } from '../types';
 import toast from 'react-hot-toast';
@@ -325,27 +324,18 @@ export function MappingDesigner() {
             />
           </div>
 
-          <div className="card">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-300">Template</h3>
-            <TemplateEditor
-              value={store.template}
-              onChange={store.setTemplate}
-              sourceColumns={store.sourceColumns}
-              templates={savedTemplates}
-              draggableColumns={dragColumns}
-              previewRow={previewRows[0]}
-              liveOutput={liveOutput}
-              livePreviewEnabled={livePreviewEnabled}
-              onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
-              selectedTemplateId={selectedTemplateId}
-              onTemplateSelect={setSelectedTemplateId}
-            />
-          </div>
-
-          <OutputPreview
-            output={store.outputPreview}
-            format={store.outputFormat}
-            loading={false}
+          <TemplateEditor
+            value={store.template}
+            onChange={store.setTemplate}
+            sourceColumns={store.sourceColumns}
+            templates={savedTemplates}
+            draggableColumns={dragColumns}
+            previewRow={previewRows[0]}
+            liveOutput={liveOutput}
+            livePreviewEnabled={livePreviewEnabled}
+            onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+            selectedTemplateId={selectedTemplateId}
+            onTemplateSelect={setSelectedTemplateId}
           />
         </div>
 
