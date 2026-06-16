@@ -477,11 +477,11 @@ export function MappingDesigner() {
           </div>
 
           {store.sourceColumns.length > 0 && (
-            <div className="card">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-slate-300">
+            <div className="card flex flex-col min-h-0">
+              <h3 className="mb-3 shrink-0 text-sm font-semibold text-gray-900 dark:text-slate-300">
                 Source Columns ({store.sourceColumns.length})
               </h3>
-              <div className="max-h-64 space-y-1 overflow-y-auto">
+              <div className="flex-1 space-y-1 overflow-y-auto max-h-48">
                 {store.sourceColumns.map((col) => (
                   <div
                     key={col.name}
