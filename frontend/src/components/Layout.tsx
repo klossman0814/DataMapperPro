@@ -40,6 +40,7 @@ const navGroups = [
     label: 'Transformation',
     icon: SplitSquareHorizontal,
     items: [
+      { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
       { to: '/mapping', icon: SplitSquareHorizontal, label: 'Mapping Designer' },
       { to: '/template', icon: FileCode, label: 'Template Editor' },
     ],
@@ -57,7 +58,6 @@ const navGroups = [
     label: 'Management',
     icon: Settings,
     items: [
-      { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
       { to: '/settings', icon: Settings, label: 'Settings' },
       { to: '/guide', icon: BookOpen, label: 'User Guide' },
     ],
