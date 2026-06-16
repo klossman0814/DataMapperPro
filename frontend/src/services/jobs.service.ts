@@ -15,7 +15,10 @@ function getOutputExtension(job: ProcessingJob): string {
 }
 
 export function getDownloadFilename(job: ProcessingJob): string {
-  return `output-${job.id.slice(0, 8)}.${getOutputExtension(job)}`;
+  const name = job.uploadedFile?.originalName
+    ? job.uploadedFile.originalName.replace(/\.\w+$/, '')
+    : `job-${job.id.slice(0, 8)}`;
+  return `${name}-${job.id.slice(0, 8)}.${getOutputExtension(job)}`;
 }
 
 export const jobsService = {
