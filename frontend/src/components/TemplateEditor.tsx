@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { Code, Eye, FileCode, Braces, Variable, List, FileInput, X, Sparkles, GripVertical, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
+import { Code, Eye, FileCode, Braces, Variable, List, FileInput, X, Sparkles, GripVertical, ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2, BookTemplate } from 'lucide-react';
 import type { ColumnInfo } from '../types';
 import { FieldBuilder } from './FieldBuilder';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface SavedTemplate {
   id: string;
@@ -35,6 +36,13 @@ const syntaxHelpers = [
   { label: '{{field}}', insert: '{{}}', description: 'Field reference' },
   { label: '{{#if}}', insert: '{{#if }}{{/if}}', description: 'Conditional' },
   { label: '{{#each}}', insert: '{{#each }}{{/each}}', description: 'Loop' },
+];
+
+const libraryTemplates = [
+  { name: 'JSON Output', content: '{\n  "record": {\n    "id": {{index}},\n    "value": "{{row.field}}"\n  }\n}' },
+  { name: 'CSV Row', content: '{{row.field1}},{{row.field2}},{{row.field3}}' },
+  { name: 'XML Element', content: '<record>\n  <field>{{row.field}}</field>\n  <index>{{index}}</index>\n</record>' },
+  { name: 'HL7 Segment', content: 'MSH|^~\\&|{{row.sending_app}}|{{row.sending_facility}}|||{{timestamp}}||ADT^A01|{{id}}|P|2.3' },
 ];
 
 export function TemplateEditor({
@@ -164,6 +172,42 @@ export function TemplateEditor({
 
   const [showTransforms, setShowTransforms] = useState(false);
   const [showFieldBuilder, setShowFieldBuilder] = useState(false);
+  const [showLibraryConfirm, setShowLibraryConfirm] = useState(false);
+  const [pendingLibraryContent, setPendingLibraryContent] = useState('');
+  const [pendingLibraryName, setPendingLibraryName] = useState('');
+  const [splitRatio, setSplitRatio] = useState(0.6);
+  const [isDragging, setIsDragging] = useState(false);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const splitRatioRef = useRef(splitRatio);
+  splitRatioRef.current = splitRatio;
+
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const container = splitContainerRef.current;
+    if (!container) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const ratio = Math.max(0.2, Math.min(0.8, y / rect.height));
+      setSplitRatio(ratio);
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging]);
 
   const transformGroups = [
     { category: 'Text', items: [
@@ -226,288 +270,329 @@ export function TemplateEditor({
 
   return (
     <>
-      <div className="grid gap-6" style={{ gridTemplateColumns: showPreview ? '1fr 1fr' : '1fr' }}>
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="flex flex-wrap items-center gap-2">
-              {templates && templates.length > 0 && (
-                <select
-                  value={selectedTemplateId || ""}
-                  onChange={(e) => {
-                    const tpl = templates.find((t) => t.id === e.target.value);
-                    if (tpl) {
-                      onChange(tpl.content);
-                      onTemplateSelect?.(tpl.id);
-                    }
-                  }}
-                  className="input-field w-48 text-xs"
-                >
-                  <option value="">Load saved template...</option>
-                  {templates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {syntaxHelpers.map((helper) => (
-                <button
-                  key={helper.label}
-                  onClick={() => {
-                    const editor = editorRef.current;
-                    if (editor) {
-                      const pos = editor.getPosition();
-                      editor.executeEdits('insert', [{
-                        range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
-                        text: helper.insert,
-                      }]);
-                      editor.focus();
-                    } else {
-                      insertAtCursor(helper.insert);
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
-                >
-                  {helper.label === '{{field}}' ? (
-                    <Variable className="h-3 w-3" />
-                  ) : helper.label === '{{#if}}' ? (
-                    <Braces className="h-3 w-3" />
-                  ) : (
-                    <List className="h-3 w-3" />
-                  )}
-                  {helper.description}
-                </button>
-              ))}
+      <div className="flex flex-col gap-4">
+        {/* Toolbar */}
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            {templates && templates.length > 0 && (
+              <select
+                value={selectedTemplateId || ""}
+                onChange={(e) => {
+                  const tpl = templates.find((t) => t.id === e.target.value);
+                  if (tpl) {
+                    onChange(tpl.content);
+                    onTemplateSelect?.(tpl.id);
+                  }
+                }}
+                className="input-field w-48 text-xs"
+              >
+                <option value="">Load saved template...</option>
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {syntaxHelpers.map((helper) => (
               <button
+                key={helper.label}
                 onClick={() => {
                   const editor = editorRef.current;
                   if (editor) {
                     const pos = editor.getPosition();
-                    editor.executeEdits('insert-text', [{
+                    editor.executeEdits('insert', [{
                       range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
-                      text: 'Type text here',
+                      text: helper.insert,
                     }]);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 14 });
                     editor.focus();
                   } else {
-                    insertAtCursor('Type text here');
+                    insertAtCursor(helper.insert);
                   }
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
               >
-                <span className="font-mono font-bold text-xs">T</span>
-                Text
+                {helper.label === '{{field}}' ? (
+                  <Variable className="h-3 w-3" />
+                ) : helper.label === '{{#if}}' ? (
+                  <Braces className="h-3 w-3" />
+                ) : (
+                  <List className="h-3 w-3" />
+                )}
+                {helper.description}
               </button>
+            ))}
+            <button
+              onClick={() => {
+                const editor = editorRef.current;
+                if (editor) {
+                  const pos = editor.getPosition();
+                  editor.executeEdits('insert-text', [{
+                    range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                    text: 'Type text here',
+                  }]);
+                  editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 14 });
+                  editor.focus();
+                } else {
+                  insertAtCursor('Type text here');
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              <span className="font-mono font-bold text-xs">T</span>
+              Text
+            </button>
+            <button
+              onClick={() => setShowFieldBuilder(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              <Wand2 className="h-3 w-3" />
+              Field Builder
+            </button>
+            <button
+              onClick={() => setShowTransforms(!showTransforms)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                showTransforms
+                  ? 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
+                  : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              <FunctionSquare className="h-3 w-3" />
+              Transforms
+              {showTransforms ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </button>
+            <button
+              onClick={() => onChange(value + ',')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              <span className="font-mono font-bold text-xs">,</span>
+              Comma
+            </button>
+            <button
+              onClick={() => onChange(value + '|')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              <span className="font-mono font-bold text-xs">|</span>
+              Pipe
+            </button>
+            {hasLivePreview && (
               <button
-                onClick={() => setShowGenerator(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
-              >
-                <FileInput className="h-3 w-3" />
-                From Sample
-              </button>
-              <button
-                onClick={() => setShowFieldBuilder(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
-              >
-                <Wand2 className="h-3 w-3" />
-                Field Builder
-              </button>
-              <button
-                onClick={() => setShowTransforms(!showTransforms)}
+                onClick={onToggleLivePreview}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  showTransforms
-                    ? 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
+                  livePreviewEnabled
+                    ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-500/10 dark:text-primary-400'
                     : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
                 }`}
               >
-                <FunctionSquare className="h-3 w-3" />
-                Transforms
-                {showTransforms ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {livePreviewEnabled ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}
+                Live Preview
               </button>
-              <button
-                onClick={() => onChange(value + ',')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
-              >
-                <span className="font-mono font-bold text-xs">,</span>
-                Comma
-              </button>
-              <button
-                onClick={() => onChange(value + '|')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
-              >
-                <span className="font-mono font-bold text-xs">|</span>
-                Pipe
-              </button>
-              {hasLivePreview && (
-                <button
-                  onClick={onToggleLivePreview}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    livePreviewEnabled
-                      ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-500/10 dark:text-primary-400'
-                      : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                  }`}
-                >
-                  {livePreviewEnabled ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}
-                  Live Preview
-                </button>
-              )}
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
-              >
-                <Eye className="h-3 w-3" />
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
-              </button>
-            </div>
-
-            {showTransforms && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowTransforms(false)} />
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 max-h-64 overflow-y-auto">
-                    {transformGroups.map((group) => (
-                      <div key={group.category}>
-                        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
-                          {group.category}
-                        </p>
-                        <div className="space-y-1">
-                          {group.items.map((fn) => (
-                            <button
-                              key={fn.name}
-                              onClick={() => { applyTransform(fn.name); setShowTransforms(false); }}
-                              className="group block w-full rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-purple-50 dark:hover:bg-purple-500/10"
-                              title={fn.description}
-                            >
-                              <span className="font-mono font-medium text-gray-800 group-hover:text-purple-700 dark:text-slate-200 dark:group-hover:text-purple-400">
-                                {fn.name}
-                              </span>
-                              <span className="ml-1 text-[10px] text-gray-400 dark:text-slate-500">{fn.syntax}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
-                    Select text in the editor and click a transform to wrap it. Example: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{upper(first_name)}}'}</code>
-                  </p>
-                </div>
-              </>
             )}
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
+            >
+              <Eye className="h-3 w-3" />
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
+            </button>
           </div>
 
-          {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          {columns.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-              <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-slate-400">
-                Drag columns into the template:
-              </p>
-              <div className="flex max-h-20 flex-wrap gap-1.5 overflow-y-auto">
-                {columns.map((col) => (
-                  <div
-                    key={col.name}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, col.name)}
-                    onDoubleClick={() => {
-                      const editor = editorRef.current;
-                      const token = `{{${col.name}}}`;
-                      if (editor) {
-                        const pos = editor.getPosition();
-                        editor.executeEdits('insert-field', [{
-                          range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
-                          text: token,
-                        }]);
-                        editor.focus();
-                      } else {
-                        onChange(value + token);
-                      }
-                    }}
-                    className="inline-flex cursor-grab items-center gap-1 rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 transition-colors hover:bg-primary-100 active:cursor-grabbing dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20"
-                    title={col.sampleValue !== undefined ? `Sample: ${col.sampleValue}` : col.type}
-                  >
-                    <GripVertical className="h-2.5 w-2.5 text-primary-400" />
-                    {col.name}
-                    <span className="text-[10px] text-gray-400 dark:text-slate-500">{col.type}</span>
-                  </div>
-                ))}
+          {showTransforms && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowTransforms(false)} />
+              <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 max-h-64 overflow-y-auto">
+                  {transformGroups.map((group) => (
+                    <div key={group.category}>
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                        {group.category}
+                      </p>
+                      <div className="space-y-1">
+                        {group.items.map((fn) => (
+                          <button
+                            key={fn.name}
+                            onClick={() => { applyTransform(fn.name); setShowTransforms(false); }}
+                            className="group block w-full rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-purple-50 dark:hover:bg-purple-500/10"
+                            title={fn.description}
+                          >
+                            <span className="font-mono font-medium text-gray-800 group-hover:text-purple-700 dark:text-slate-200 dark:group-hover:text-purple-400">
+                              {fn.name}
+                            </span>
+                            <span className="ml-1 text-[10px] text-gray-400 dark:text-slate-500">{fn.syntax}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
+                  Select text in the editor and click a transform to wrap it. Example: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">{'{{upper(first_name)}}'}</code>
+                </p>
               </div>
-            </div>
+            </>
           )}
-
-          <div
-            ref={editorContainerRef}
-            className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700"
-            onDragOver={handleContainerDragOver}
-            onDrop={handleContainerDrop}
-          >
-            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
-              <FileCode className="h-4 w-4 text-gray-400 dark:text-slate-400" />
-              <span className="text-sm text-gray-500 dark:text-slate-400">Template Content</span>
-            </div>
-            <Editor
-              height="500px"
-              defaultLanguage="handlebars"
-              theme="vs-dark"
-              value={value}
-              onChange={handleEditorChange}
-              onMount={handleEditorMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                automaticLayout: true,
-                tabSize: 2,
-              }}
-            />
-          </div>
         </div>
 
-        {showPreview && (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700">
-              <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
-                <Code className="h-4 w-4 text-gray-400 dark:text-slate-400" />
-                <span className="text-sm text-gray-500 dark:text-slate-400">Output Preview</span>
-                {hasLivePreview && livePreviewEnabled && (
-                  <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    Live
-                  </span>
-                )}
-              </div>
-              <pre className="overflow-auto bg-white p-4 text-sm text-gray-800 dark:bg-slate-900 dark:text-slate-300 font-mono whitespace-pre-wrap" style={{ minHeight: '400px', maxHeight: '600px' }}>
-                {effectivePreview || (hasLivePreview && livePreviewEnabled ? (value ? 'Rendering...' : 'Enter a template to see output') : 'No preview available. Render the template to see output.')}
-              </pre>
-            </div>
+        {error && (
+          <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
+            {error}
+          </div>
+        )}
 
-            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
-                Available Tokens
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
-                  {'{{row.field_name}}'}
-                </span>
-                <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
-                  {'{{index}}'}
-                </span>
-                <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
-                  {'{{#if}}...{{/if}}'}
-                </span>
-                <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
-                  {'{{#each}}...{{/each}}'}
-                </span>
-              </div>
+        {columns.length > 0 && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+            <p className="mb-1.5 text-xs font-medium text-gray-500 dark:text-slate-400">
+              Drag columns into the template:
+            </p>
+            <div className="flex max-h-20 flex-wrap gap-1.5 overflow-y-auto">
+              {columns.map((col) => (
+                <div
+                  key={col.name}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, col.name)}
+                  onDoubleClick={() => {
+                    const editor = editorRef.current;
+                    const token = `{{${col.name}}}`;
+                    if (editor) {
+                      const pos = editor.getPosition();
+                      editor.executeEdits('insert-field', [{
+                        range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+                        text: token,
+                      }]);
+                      editor.focus();
+                    } else {
+                      onChange(value + token);
+                    }
+                  }}
+                  className="inline-flex cursor-grab items-center gap-1 rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 transition-colors hover:bg-primary-100 active:cursor-grabbing dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20"
+                  title={col.sampleValue !== undefined ? `Sample: ${col.sampleValue}` : col.type}
+                >
+                  <GripVertical className="h-2.5 w-2.5 text-primary-400" />
+                  {col.name}
+                  <span className="text-[10px] text-gray-400 dark:text-slate-500">{col.type}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* Resizable split: editor (top) / preview (bottom) */}
+        <div className="flex flex-col min-h-0 overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700" ref={splitContainerRef}>
+          <div style={{ height: `${splitRatio * 100}%` }} className="flex flex-col min-h-0 overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800 shrink-0">
+              <FileCode className="h-4 w-4 text-gray-400 dark:text-slate-400" />
+              <span className="text-sm text-gray-500 dark:text-slate-400">Template Content</span>
+              {hasLivePreview && livePreviewEnabled && (
+                <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              )}
+            </div>
+            <div
+              className="flex-1"
+              onDragOver={handleContainerDragOver}
+              onDrop={handleContainerDrop}
+            >
+              <Editor
+                height="100%"
+                defaultLanguage="handlebars"
+                theme="vs-dark"
+                value={value}
+                onChange={handleEditorChange}
+                onMount={handleEditorMount}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 13,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                  tabSize: 2,
+                }}
+              />
+            </div>
+          </div>
+
+          {showPreview && (
+            <>
+              <div
+                className={`h-3 shrink-0 cursor-row-resize flex items-center justify-center transition-colors ${
+                  isDragging ? 'bg-primary-400' : 'bg-gray-300 hover:bg-primary-400 dark:bg-slate-600 dark:hover:bg-primary-500'
+                }`}
+                onMouseDown={handleDividerMouseDown}
+              >
+                <div className="flex items-center gap-1">
+                  <div className="h-1 w-1 rounded-full bg-gray-500 dark:bg-slate-400" />
+                  <div className="h-1 w-1 rounded-full bg-gray-500 dark:bg-slate-400" />
+                  <div className="h-1 w-1 rounded-full bg-gray-500 dark:bg-slate-400" />
+                </div>
+              </div>
+              <div className="flex flex-col min-h-0 overflow-hidden" style={{ height: `${(1 - splitRatio) * 100}%` }}>
+                <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col">
+                  <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800 shrink-0">
+                    <Eye className="h-4 w-4 text-gray-400 dark:text-slate-400" />
+                    <span className="text-sm text-gray-500 dark:text-slate-400">Output Preview</span>
+                    {hasLivePreview && livePreviewEnabled && (
+                      <span className="ml-auto flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <pre className="flex-1 overflow-auto bg-white p-4 text-sm text-gray-800 dark:bg-slate-900 dark:text-slate-300 font-mono whitespace-pre-wrap">
+                    {effectivePreview || (hasLivePreview && livePreviewEnabled ? (value ? 'Rendering...' : 'Enter a template to see output') : 'No preview available. Render the template to see output.')}
+                  </pre>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Template Library */}
+        <div className="card">
+          <div className="mb-3 flex items-center gap-2">
+            <BookTemplate className="h-4 w-4 text-gray-400 dark:text-slate-400" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-300">Template Library</h3>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {libraryTemplates.map((tpl) => (
+              <button
+                key={tpl.name}
+                onClick={() => {
+                  setPendingLibraryContent(tpl.content);
+                  setPendingLibraryName(tpl.name);
+                  setShowLibraryConfirm(true);
+                }}
+                className="rounded-lg border border-gray-200 bg-white p-3 text-left transition-colors hover:border-primary-300 hover:bg-primary-50 dark:border-slate-600 dark:bg-slate-800/50 dark:hover:border-primary-500 dark:hover:bg-primary-500/10"
+              >
+                <p className="text-sm font-medium text-gray-900 dark:text-slate-200">{tpl.name}</p>
+                <p className="mt-1 truncate text-xs text-gray-400 dark:text-slate-500">{tpl.content}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Token Reference */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+            Token Reference
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
+              {'{{row.field_name}}'}
+            </span>
+            <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
+              {'{{index}}'}
+            </span>
+            <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
+              {'{{#if}}...{{/if}}'}
+            </span>
+            <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
+              {'{{#each}}...{{/each}}'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {showGenerator && (
@@ -642,6 +727,19 @@ export function TemplateEditor({
           }
         }}
         onClose={() => setShowFieldBuilder(false)}
+      />
+
+      <ConfirmDialog
+        open={showLibraryConfirm}
+        title="Load Template Library Preset"
+        message={`Load "${pendingLibraryName}"? This will replace your current template content.`}
+        confirmLabel="Load"
+        variant="warning"
+        onConfirm={() => {
+          onChange(pendingLibraryContent);
+          setShowLibraryConfirm(false);
+        }}
+        onCancel={() => setShowLibraryConfirm(false)}
       />
     </>
   );
