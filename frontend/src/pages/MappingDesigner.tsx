@@ -8,8 +8,9 @@ import { templatesService } from '../services/templates.service';
 import type { Template } from '../services/templates.service';
 import { useMappingStore } from '../stores/mappingStore';
 import { MappingCanvas } from '../components/MappingCanvas';
-import { TemplateEditor } from '../components/TemplateEditor';
-import type { UploadedFileInfo, FieldMapping, OutputFormat } from '../types';
+import { TemplateEditorPanel } from '../components/TemplateEditorPanel';
+import type { UploadedFileInfo, FieldMapping, OutputFormat, DatabaseConnection } from '../types';
+import { databaseConnectionsService } from '../services/database-connections.service';
 import toast from 'react-hot-toast';
 
 const outputFormats: { value: OutputFormat; label: string }[] = [
@@ -44,11 +45,17 @@ export function MappingDesigner() {
   const [liveOutput, setLiveOutput] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [pendingTemplateMatch, setPendingTemplateMatch] = useState('');
+  const [sourceTab, setSourceTab] = useState<'file' | 'database'>('file');
+  const [dbConnections, setDbConnections] = useState<DatabaseConnection[]>([]);
+  const [dbConnectionId, setDbConnectionId] = useState('');
+  const [querySql, setQuerySql] = useState('');
+  const [dbQueryLoading, setDbQueryLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     filesService.list(1, 50).then((res) => setFiles(res.data)).catch(() => {});
     templatesService.list(1, 50).then((res) => setSavedTemplates(res.data)).catch(() => {});
+    databaseConnectionsService.list().then((res) => setDbConnections(res)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -106,6 +113,27 @@ export function MappingDesigner() {
         .finally(() => setLoading(false));
     }
   }, [selectedFileId, store]);
+
+  const handleDbQuery = async () => {
+    if (!dbConnectionId || !querySql.trim()) {
+      toast.error('Select a connection and enter a SQL query');
+      return;
+    }
+    setDbQueryLoading(true);
+    try {
+      const result = await databaseConnectionsService.query(dbConnectionId, querySql);
+      store.setSourceColumns(result.columns.map((c: any) => ({
+        name: c.name, type: c.type, nullCount: 0, nullPercentage: 0, sampleValues: [],
+      })));
+      setPreviewRows(result.rows);
+      setLivePreviewEnabled(true);
+      toast.success(`Query returned ${result.rowCount} rows`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Query failed');
+    } finally {
+      setDbQueryLoading(false);
+    }
+  };
 
   const doLiveRender = useCallback(async (template: string) => {
     if (!template.trim() || previewRows.length === 0) return;
@@ -324,18 +352,29 @@ export function MappingDesigner() {
             />
           </div>
 
-          <TemplateEditor
+          <TemplateEditorPanel
             value={store.template}
             onChange={store.setTemplate}
             sourceColumns={store.sourceColumns}
-            templates={savedTemplates}
-            draggableColumns={dragColumns}
-            previewRow={previewRows[0]}
+            previewRows={previewRows}
             liveOutput={liveOutput}
             livePreviewEnabled={livePreviewEnabled}
             onToggleLivePreview={() => setLivePreviewEnabled(!livePreviewEnabled)}
+            templates={savedTemplates}
             selectedTemplateId={selectedTemplateId}
             onTemplateSelect={setSelectedTemplateId}
+            files={files}
+            selectedFileId={selectedFileId}
+            onSelectedFileChange={setSelectedFileId}
+            dbConnections={dbConnections}
+            dbConnectionId={dbConnectionId}
+            onDbConnectionChange={setDbConnectionId}
+            querySql={querySql}
+            onQuerySqlChange={setQuerySql}
+            onRunDbQuery={handleDbQuery}
+            dbQueryLoading={dbQueryLoading}
+            sourceTab={sourceTab}
+            onSourceTabChange={setSourceTab}
           />
         </div>
 
