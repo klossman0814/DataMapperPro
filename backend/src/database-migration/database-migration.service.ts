@@ -62,15 +62,22 @@ export class DatabaseMigrationService {
     const sourceConn = await this.getConnectionConfig(dto.sourceConnectionId, userId);
     const destConn = await this.getConnectionConfig(dto.destConnectionId, userId);
 
-    return this.engine.runMigration(
-      sourceConn.type, sourceConn.config,
-      destConn.type, destConn.config,
-      dto.sourceTable,
-      dto.destTable,
-      dto.columnMappings,
-      dto.dropExisting ?? false,
-      dto.batchSize ?? 500,
-      dto.createTable ?? true,
-    );
+    try {
+      const result = await this.engine.runMigration(
+        sourceConn.type, sourceConn.config,
+        destConn.type, destConn.config,
+        dto.sourceTable,
+        dto.destTable,
+        dto.columnMappings,
+        dto.dropExisting ?? false,
+        dto.batchSize ?? 500,
+        dto.createTable ?? true,
+      );
+      return result;
+    } catch (err: any) {
+      throw new BadRequestException(
+        `Migration execution failed: ${err.message || 'Unknown error'}`,
+      );
+    }
   }
 }

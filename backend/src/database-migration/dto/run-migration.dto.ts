@@ -1,4 +1,5 @@
-import { IsString, IsArray, IsOptional, IsBoolean, IsNumber, MinLength } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsBoolean, IsNumber, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ColumnMappingDto {
   @IsString()
@@ -31,6 +32,8 @@ export class PreviewRowsDto {
   sourceTable: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ColumnMappingDto)
   columnMappings: ColumnMappingDto[];
 
   @IsOptional()
@@ -54,6 +57,8 @@ export class RunMigrationDto {
   destTable: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ColumnMappingDto)
   columnMappings: ColumnMappingDto[];
 
   @IsOptional()
