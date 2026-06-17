@@ -23,6 +23,7 @@ export function DatabaseMigration() {
   const [destTables, setDestTables] = useState<string[]>([]);
 
   const [sourceColumns, setSourceColumns] = useState<ColumnInfo[]>([]);
+  const [destColumns, setDestColumns] = useState<ColumnInfo[]>([]);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [loadingColumns, setLoadingColumns] = useState(false);
 
@@ -66,6 +67,13 @@ export function DatabaseMigration() {
       .catch(() => toast.error('Failed to discover columns'))
       .finally(() => setLoadingColumns(false));
   }, [sourceConnId, sourceTable]);
+
+  useEffect(() => {
+    if (!destConnId || !destTable || destTableMode !== 'select') { setDestColumns([]); return; }
+    databaseMigrationService.discoverColumns(destConnId, destTable)
+      .then(setDestColumns)
+      .catch(() => setDestColumns([]));
+  }, [destConnId, destTable, destTableMode]);
 
   const updateMapping = (index: number, destColumn: string) => {
     setColumnMappings(prev => prev.map((m, i) => i === index ? { ...m, destColumn } : m));
@@ -295,12 +303,36 @@ export function DatabaseMigration() {
                       <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-slate-700 dark:text-slate-400">{m.sourceType}</span>
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={m.destColumn}
-                        onChange={e => updateMapping(i, e.target.value)}
-                        className="input-field py-1 text-xs w-48"
-                      />
+                      {destColumns.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={m.destColumn}
+                            onChange={e => updateMapping(i, e.target.value)}
+                            className="input-field py-1 text-xs w-44"
+                          >
+                            <option value="">-- map to column --</option>
+                            {destColumns.map(dc => (
+                              <option key={dc.name} value={dc.name}>{dc.name} ({dc.type})</option>
+                            ))}
+                          </select>
+                          <span className="text-xs text-gray-400">or</span>
+                          <input
+                            type="text"
+                            value={m.destColumn}
+                            onChange={e => updateMapping(i, e.target.value)}
+                            className="input-field py-1 text-xs w-28"
+                            placeholder="type name"
+                          />
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={m.destColumn}
+                          onChange={e => updateMapping(i, e.target.value)}
+                          className="input-field py-1 text-xs w-48"
+                          placeholder="Destination column name"
+                        />
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       <button onClick={() => removeMapping(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
