@@ -49,9 +49,13 @@ export class MigrationEngineService {
     columnMappings: { sourceColumn: string; destColumn: string; sourceType: string }[],
     limit: number = 10,
   ): Promise<Record<string, any>[]> {
-    const sourceCols = columnMappings.map(m => `"${this.sanitizeIdentifier(m.sourceColumn)}"`).join(', ');
-    const sql = `SELECT ${sourceCols} FROM "${this.sanitizeIdentifier(sourceTable)}" LIMIT ${limit}`;
-    const result = await this.queryService.executeQuery(dbType, config, sql);
+    const sourceCols = columnMappings.map(m => this.qi(dbType, m.sourceColumn)).join(', ');
+    const limitClause = this.limitClause(dbType, limit);
+    const fromTable = this.qi(dbType, sourceTable);
+    const selectPart = dbType === 'mssql'
+      ? `SELECT ${limitClause} ${sourceCols} FROM ${fromTable}`
+      : `SELECT ${sourceCols} FROM ${fromTable} ${limitClause}`;
+    const result = await this.queryService.executeQuery(dbType, config, selectPart);
     return result.rows.map(row => {
       const mapped: Record<string, any> = {};
       columnMappings.forEach(m => {
@@ -75,19 +79,19 @@ export class MigrationEngineService {
   ): Promise<MigrationResult> {
     const startTime = Date.now();
     const errors: { row: number; message: string }[] = [];
-    const destTableSafe = this.sanitizeIdentifier(destTable);
 
     if (createTable) {
-      const ddl = this.generateCreateTable(destTableSafe, columnMappings, destType, dropExisting);
+      const ddl = this.generateCreateTable(destTable, columnMappings, destType, dropExisting);
       await this.queryService.executeQuery(destType, destConfig, ddl);
     }
 
-    const sourceCols = columnMappings.map(m => `"${this.sanitizeIdentifier(m.sourceColumn)}"`).join(', ');
-    const selectSql = `SELECT ${sourceCols} FROM "${this.sanitizeIdentifier(sourceTable)}"`;
+    const sourceCols = columnMappings.map(m => this.qi(sourceType, m.sourceColumn)).join(', ');
+    const selectSql = `SELECT ${sourceCols} FROM ${this.qi(sourceType, sourceTable)}`;
     const sourceResult = await this.queryService.executeQuery(sourceType, sourceConfig, selectSql);
     const totalRows = sourceResult.rows.length;
 
-    const destCols = columnMappings.map(m => `"${this.sanitizeIdentifier(m.destColumn)}"`).join(', ');
+    const destTableQi = this.qi(destType, destTable);
+    const destCols = columnMappings.map(m => this.qi(destType, m.destColumn)).join(', ');
     let rowsCopied = 0;
     let failedRows = 0;
 
@@ -97,7 +101,7 @@ export class MigrationEngineService {
         const values = columnMappings.map(m => this.formatLiteral(row[m.sourceColumn], destType, m.sourceType));
         return `(${values.join(', ')})`;
       });
-      const insertSql = `INSERT INTO "${destTableSafe}" (${destCols}) VALUES\n${valueRows.join(',\n')};`;
+      const insertSql = `INSERT INTO ${destTableQi} (${destCols}) VALUES\n${valueRows.join(',\n')};`;
 
       try {
         await this.queryService.executeQuery(destType, destConfig, insertSql);
@@ -140,6 +144,22 @@ export class MigrationEngineService {
     }
   }
 
+  private qi(dbType: string, name: string): string {
+    const safe = this.sanitizeIdentifier(name);
+    switch (dbType) {
+      case 'mysql': return `\`${safe}\``;
+      case 'mssql': return `"${safe}"`;
+      default: return `"${safe}"`;
+    }
+  }
+
+  private limitClause(dbType: string, limit: number): string {
+    switch (dbType) {
+      case 'mssql': return `TOP ${limit}`;
+      default: return `LIMIT ${limit}`;
+    }
+  }
+
   private sanitizeIdentifier(name: string): string {
     return name.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^_+|_+$/g, '').replace(/_+/g, '_') || 'col';
   }
@@ -150,13 +170,13 @@ export class MigrationEngineService {
     dbType: string,
     dropExisting: boolean,
   ): string {
-    const drop = dropExisting ? `DROP TABLE IF EXISTS "${tableName}";\n` : '';
+    const qi = (name: string) => this.qi(dbType, name);
+    const drop = dropExisting ? `DROP TABLE IF EXISTS ${qi(tableName)};\n` : '';
     const colDefs = columns.map(c => {
-      const safeCol = this.sanitizeIdentifier(c.destColumn);
       const sqlType = this.mapSourceType(c.sourceType, dbType);
-      return `  "${safeCol}" ${sqlType}`;
+      return `  ${qi(c.destColumn)} ${sqlType}`;
     });
-    return `${drop}CREATE TABLE "${tableName}" (\n${colDefs.join(',\n')}\n);`;
+    return `${drop}CREATE TABLE ${qi(tableName)} (\n${colDefs.join(',\n')}\n);`;
   }
 
   private mapSourceType(sourceType: string, dbType: string): string {
