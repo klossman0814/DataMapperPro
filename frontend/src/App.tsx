@@ -19,6 +19,7 @@ import { Settings } from './pages/Settings';
 import { UserGuide } from './pages/UserGuide';
 import { DatabaseConnections } from './pages/DatabaseConnections';
 import { TextToTable } from './pages/TextToTable';
+import { DatabaseMigration } from './pages/DatabaseMigration';
 import { SpecEvaluator } from './pages/SpecEvaluator';
 import { SpecBuilder } from './pages/SpecBuilder';
 import { SqlScripts } from './pages/SqlScripts';
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="guide" element={<UserGuide />} />
         <Route path="database-connections" element={<DatabaseConnections />} />
         <Route path="text-to-table" element={<TextToTable />} />
+        <Route path="database-migration" element={<DatabaseMigration />} />
         <Route path="spec-evaluator" element={<SpecEvaluator />} />
         <Route path="spec-builder" element={<SpecBuilder />} />
         <Route path="sql-scripts" element={<SqlScripts />} />
