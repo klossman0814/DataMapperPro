@@ -350,8 +350,8 @@ export function TemplateEditorPanel({
       {/* Editor + Source Columns Panel */}
       <div className="min-h-0 flex-1 flex gap-4 overflow-hidden">
         {showSourcePanel && sourceColumns.length > 0 && (
-          <div className="w-64 shrink-0 flex flex-col">
-            <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col">
+          <div className="w-64 shrink-0">
+            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[50vh]">
               <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 shrink-0">
                 <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">
                   Columns ({sourceColumns.length})
@@ -363,7 +363,7 @@ export function TemplateEditorPanel({
                   <PanelLeftClose className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto bg-white p-2 dark:bg-slate-900">
+              <div className="flex-1 overflow-y-auto min-h-0 bg-white p-2 dark:bg-slate-900">
                 {sourceColumns.map((col) => {
                   const sampleValue = previewRows.length > 0 ? previewRows[0][col.name] : col.sampleValues?.[0];
                   return (
