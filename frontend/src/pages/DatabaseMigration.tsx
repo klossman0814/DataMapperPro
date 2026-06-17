@@ -135,7 +135,7 @@ export function DatabaseMigration() {
         columnMappings,
         dropExisting: false,
         batchSize: 500,
-        createTable: true,
+        createTable: destTableMode === 'new',
       });
       setResult(res);
       if (res.failedRows > 0) {
