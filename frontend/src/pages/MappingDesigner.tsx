@@ -85,6 +85,13 @@ export function MappingDesigner() {
         if (!savedTemplateId && profile.template) {
           store.setPendingTemplateMatch(profile.template);
         }
+        store.setSourceTab(profile.configurationJson.sourceTab || 'file');
+        if (profile.configurationJson.templateDbConnectionId) {
+          store.setTemplateDbConnectionId(profile.configurationJson.templateDbConnectionId);
+        }
+        if (profile.configurationJson.templateQuerySql) {
+          store.setTemplateQuerySql(profile.configurationJson.templateQuerySql);
+        }
       })
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoadingProfile(false));
@@ -186,6 +193,9 @@ export function MappingDesigner() {
           outputOptions: Object.keys(opts).length ? opts : undefined,
           sourceFileId: store.selectedFileId || store.uploadedFile?.id || undefined,
           selectedTemplateId: store.selectedTemplateId || undefined,
+          sourceTab: store.sourceTab,
+          templateDbConnectionId: store.templateDbConnectionId || undefined,
+          templateQuerySql: store.templateQuerySql || undefined,
         },
         template: store.template,
       };
