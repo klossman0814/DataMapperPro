@@ -598,6 +598,14 @@ export function TextToTable() {
       sampleValues: col.sampleValues.map(v => String(v)),
     }));
 
+    const remappedRows = parseResult.rows.map(row => {
+      const mapped: Record<string, any> = {};
+      for (const col of parseResult.columns) {
+        mapped[columnNameOverrides[col.name] || col.name] = row[col.name];
+      }
+      return mapped;
+    });
+
     return (
       <div className="space-y-6">
         <div className="card">
@@ -648,7 +656,7 @@ export function TextToTable() {
           )}
         </div>
 
-        <DataPreviewGrid columns={mappedColumns} rows={parseResult.rows} loading={false} />
+        <DataPreviewGrid columns={mappedColumns} rows={remappedRows} loading={false} />
 
         {/* Schema Configuration — view and override SQL types before import */}
         <div className="card">
@@ -667,19 +675,20 @@ export function TextToTable() {
                 </tr>
               </thead>
               <tbody>
-                {mappedColumns.map(col => {
+                {parseResult.columns.map(col => {
                   const selectedConn = connections.find(c => c.id === selectedConnId);
                   const dbType = selectedConn?.type || 'postgresql';
                   const defaultType = defaultSqlType(col.type, dbType, col.sampleValues);
                   const currentOverride = schemaOverrides[col.name];
                   const currentSqlType = currentOverride || defaultType;
                   const typeOptions = DB_TYPE_OPTIONS[dbType] || DB_TYPE_OPTIONS.postgresql;
+                  const displayName = columnNameOverrides[col.name] ?? col.name;
                   return (
                     <tr key={col.name} className="border-b border-gray-100 dark:border-slate-700/50">
                       <td className="px-3 py-2">
                         <input
                           type="text"
-                          value={columnNameOverrides[col.name] ?? col.name}
+                          value={displayName}
                           onChange={e => setColumnNameOverrides(prev => ({ ...prev, [col.name]: e.target.value }))}
                           className="input-field w-40 text-xs"
                           placeholder={col.name}
