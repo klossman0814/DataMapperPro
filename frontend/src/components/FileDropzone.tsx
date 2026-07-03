@@ -82,7 +82,7 @@ export function FileDropzone({ onUploadComplete }: FileDropzoneProps) {
                   Drag & drop your file here, or click to browse
                 </p>
                 <p className="text-sm text-gray-500 dark:text-slate-400">
-                  Supports .csv, .xlsx, .xls, .txt, .tsv up to 100MB
+                  Supports .csv, .xlsx, .xls, .txt, .tsv up to 500MB
                 </p>
               </div>
             </>

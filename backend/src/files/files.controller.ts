@@ -12,6 +12,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { join } from 'path';
+import { v4 as uuid } from 'uuid';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FilesService } from './files.service';
@@ -34,7 +37,15 @@ export class FilesController {
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 500 * 1024 * 1024 },
+      limits: { fileSize: parseMaxFileSize() },
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads'),
+        filename: (req, file, cb) => {
+          const ext = file.originalname.toLowerCase().endsWith('.xlsx') || file.originalname.toLowerCase().endsWith('.xls')
+            ? '.xlsx' : '.csv';
+          cb(null, `${uuid()}${ext}`);
+        },
+      }),
       fileFilter: (req, file, cb) => {
         const ext = file.originalname.toLowerCase();
         if (ext.endsWith('.csv') || ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
@@ -83,4 +94,16 @@ export class FilesController {
   deleteFile(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.filesService.deleteFile(id, userId);
   }
+}
+
+function parseMaxFileSize(): number {
+  const env = process.env.MAX_FILE_SIZE || '500mb';
+  const match = env.match(/^(\d+)\s*(mb|gb|kb)$/i);
+  if (!match) return 500 * 1024 * 1024;
+  const num = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  if (unit === 'gb') return num * 1024 * 1024 * 1024;
+  if (unit === 'mb') return num * 1024 * 1024;
+  if (unit === 'kb') return num * 1024;
+  return 500 * 1024 * 1024;
 }

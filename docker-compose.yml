@@ -29,12 +29,14 @@ services:
     build:
       context: ./backend
       dockerfile: ../Dockerfile.backend
-      target: development
+      target: production
     command: >
-      sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
+      sh -c "npx prisma generate && npx prisma db push && node --max-old-space-size=4096 dist/src/main"
     ports:
       - "3002:3001"
     environment:
+      NODE_OPTIONS: --max-old-space-size=8192
+      MAX_FILE_SIZE: 500mb
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/datamapperpro
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-datamapper-pro-secret-change-in-prod}

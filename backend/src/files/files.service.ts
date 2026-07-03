@@ -1,14 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { join } from 'path';
 import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'fs';
-import { writeFile } from 'fs/promises';
-import * as csvParse from 'csv-parse/sync';
+import { parse as parseCsvStream } from 'csv-parse';
 import * as XLSX from 'xlsx';
 import { v4 as uuid } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadFileDto } from './dto/upload-file.dto';
 import { CreateFromQueryDto } from './dto/create-from-query.dto';
+
+const PREVIEW_ROW_LIMIT = 100;
 
 interface ColumnInfo {
   name: string;
@@ -34,61 +35,87 @@ export class FilesService {
   }
 
   async upload(file: Express.Multer.File, dto: UploadFileDto, userId: string) {
+    const filePath = file.path;
     const ext = file.originalname.toLowerCase().endsWith('.xlsx') || file.originalname.toLowerCase().endsWith('.xls')
       ? 'xlsx'
       : 'csv';
-    const filename = `${uuid()}.${ext}`;
-    const filePath = join(this.uploadDir, filename);
-
-    await writeFile(filePath, file.buffer);
 
     let parseResult: ParseResult;
     let sheetNames: string[] = [];
 
     if (ext === 'xlsx') {
-      const excelResult = this.parseExcel(filePath, dto.sheetName);
-      sheetNames = excelResult.sheetNames;
-      parseResult = excelResult;
+      try {
+        const excelResult = this.parseExcel(filePath, dto.sheetName);
+        sheetNames = excelResult.sheetNames;
+        parseResult = excelResult;
+      } catch (err) {
+        try { unlinkSync(filePath); } catch {}
+        if (err instanceof BadRequestException) throw err;
+        throw new BadRequestException('Failed to parse Excel file. Ensure the file is not corrupted or password-protected.');
+      }
     } else {
-      const content = file.buffer.toString('utf-8');
-      parseResult = this.parseCsv(content, dto.delimiter || ',', dto.hasHeader !== false);
+      try {
+        parseResult = await this.parseCsvFile(filePath, dto.delimiter || ',', dto.hasHeader !== false);
+      } catch (err) {
+        try { unlinkSync(filePath); } catch {}
+        throw new BadRequestException('Failed to parse CSV file. Check the file encoding and formatting.');
+      }
     }
 
-    const uploadedFile = await this.prisma.uploadedFile.create({
-      data: {
-        filename,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        rowCount: parseResult.rowCount,
-        columns: JSON.parse(JSON.stringify(parseResult.columns)) as Prisma.InputJsonValue,
-        preview: JSON.parse(JSON.stringify(parseResult.rows.slice(0, 100))) as Prisma.InputJsonValue,
-        sheetNames,
-        uploadedById: userId,
-      },
-    });
+    if (parseResult.rowCount === 0) {
+      try { unlinkSync(filePath); } catch {}
+      throw new BadRequestException('File appears to be empty or has no parseable data.');
+    }
 
-    return uploadedFile;
+    try {
+      const uploadedFile = await this.prisma.uploadedFile.create({
+        data: {
+          filename: file.filename,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          rowCount: parseResult.rowCount,
+          columns: JSON.parse(JSON.stringify(parseResult.columns)) as Prisma.InputJsonValue,
+          preview: JSON.parse(JSON.stringify(parseResult.rows.slice(0, PREVIEW_ROW_LIMIT))) as Prisma.InputJsonValue,
+          sheetNames,
+          uploadedById: userId,
+        },
+      });
+
+      return uploadedFile;
+    } catch (err) {
+      try { unlinkSync(filePath); } catch {}
+      throw new InternalServerErrorException('Failed to save file metadata to database');
+    }
   }
 
-  parseCsv(content: string, delimiter: string, hasHeader: boolean): ParseResult {
-    const records = csvParse.parse(content, {
+  async parseCsvFile(filePath: string, delimiter: string, hasHeader: boolean): Promise<ParseResult> {
+    const rows: Record<string, any>[] = [];
+    const columnMap: Record<string, ColumnInfo> = {};
+    let rowCount = 0;
+
+    const parser = createReadStream(filePath).pipe(parseCsvStream({
       delimiter,
       columns: hasHeader,
       skip_empty_lines: true,
       relax_column_count: true,
-    });
+      bom: true,
+    }));
 
-    if (!records || records.length === 0) {
-      return { columns: [], rows: [], rowCount: 0 };
+    for await (const record of parser) {
+      rowCount++;
+      const row = this.normalizeRow(record);
+      if (rows.length < PREVIEW_ROW_LIMIT) {
+        rows.push(row);
+      }
+      this.updateColumnStats(columnMap, row, rowCount);
     }
 
-    const columns = this.detectColumns(records);
-    return { columns, rows: records, rowCount: records.length };
+    return { columns: this.finalizeColumns(columnMap), rows, rowCount };
   }
 
   parseExcel(filePath: string, selectedSheet?: string): ParseResult & { sheetNames: string[] } {
-    const workbook = XLSX.readFile(filePath);
+    const workbook = XLSX.readFile(filePath, { sheetRows: PREVIEW_ROW_LIMIT + 1 });
     const sheetNames = workbook.SheetNames;
 
     const targetSheet = selectedSheet || sheetNames[0];
@@ -105,30 +132,46 @@ export class FilesService {
     const rows = jsonData as Record<string, any>[];
     return {
       columns: this.detectColumns(rows),
-      rows,
-      rowCount: rows.length,
+      rows: rows.slice(0, PREVIEW_ROW_LIMIT),
+      rowCount: this.getExcelDataRowCount(sheet, rows.length),
       sheetNames,
     };
   }
 
   private detectColumns(rows: Record<string, any>[]): ColumnInfo[] {
     const columnMap: Record<string, ColumnInfo> = {};
-    const totalRows = rows.length;
 
-    for (const row of rows) {
-      for (const [key, value] of Object.entries(row)) {
-        if (!columnMap[key]) {
-          columnMap[key] = { name: key, type: 'string', nullCount: 0, sampleValues: [] };
-        }
-        if (value === null || value === undefined || value === '') {
-          columnMap[key].nullCount++;
-        } else if (columnMap[key].sampleValues.length < 5) {
-          columnMap[key].sampleValues.push(value);
-        }
+    rows.forEach((row, index) => this.updateColumnStats(columnMap, row, index + 1));
+
+    return this.finalizeColumns(columnMap);
+  }
+
+  private updateColumnStats(columnMap: Record<string, ColumnInfo>, row: Record<string, any>, rowNumber: number) {
+    const seenKeys = new Set<string>();
+
+    for (const [key, value] of Object.entries(row)) {
+      seenKeys.add(key);
+      if (!columnMap[key]) {
+        columnMap[key] = { name: key, type: 'string', nullCount: rowNumber - 1, sampleValues: [] };
+      }
+      if (value === null || value === undefined || value === '') {
+        columnMap[key].nullCount++;
+      } else if (columnMap[key].sampleValues.length < 5) {
+        columnMap[key].sampleValues.push(value);
       }
     }
 
-    for (const col of Object.values(columnMap)) {
+    for (const [key, column] of Object.entries(columnMap)) {
+      if (!seenKeys.has(key)) {
+        column.nullCount++;
+      }
+    }
+  }
+
+  private finalizeColumns(columnMap: Record<string, ColumnInfo>): ColumnInfo[] {
+    const columns = Object.values(columnMap);
+
+    for (const col of columns) {
       const nonNullSamples = col.sampleValues.filter(v => v !== null && v !== undefined && v !== '');
       if (nonNullSamples.length > 0) {
         const allNumbers = nonNullSamples.every((v) => !isNaN(Number(v)) && v !== '');
@@ -137,7 +180,27 @@ export class FilesService {
       }
     }
 
-    return Object.values(columnMap);
+    return columns;
+  }
+
+  private normalizeRow(record: Record<string, any> | any[]): Record<string, any> {
+    if (!Array.isArray(record)) {
+      return record;
+    }
+
+    return record.reduce((row, value, index) => {
+      row[String(index)] = value;
+      return row;
+    }, {} as Record<string, any>);
+  }
+
+  private getExcelDataRowCount(sheet: XLSX.WorkSheet, fallback: number): number {
+    const ref = (sheet['!fullref'] || sheet['!ref']) as string | undefined;
+    if (!ref) return fallback;
+
+    const range = XLSX.utils.decode_range(ref);
+    const physicalRows = range.e.r - range.s.r + 1;
+    return Math.max(0, physicalRows - 1);
   }
 
   async createFromQuery(dto: CreateFromQueryDto, userId: string) {
