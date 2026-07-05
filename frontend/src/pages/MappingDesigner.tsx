@@ -145,7 +145,8 @@ export function MappingDesigner() {
       return;
     }
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines });
+      const { mappings } = useMappingStore.getState();
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines }, mappings);
       useMappingStore.getState().setLiveOutput(res.output);
       toast.success('Template rendered');
     } catch {
@@ -154,10 +155,10 @@ export function MappingDesigner() {
   }, []);
 
   const doLiveRender = useCallback(async (template: string) => {
-    const { previewRows, collapseNewlines } = useMappingStore.getState();
+    const { previewRows, collapseNewlines, mappings } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) return;
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines });
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines }, mappings);
       useMappingStore.getState().setLiveOutput(res.output);
     } catch {
       // silent fail for live preview

@@ -31,7 +31,7 @@ services:
       dockerfile: ../Dockerfile.backend
       target: production
     command: >
-      sh -c "npx prisma generate && npx prisma db push && node --max-old-space-size=4096 dist/src/main"
+      sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
     ports:
       - "3002:3001"
     environment:

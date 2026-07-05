@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TemplateEngineService } from './engine/template-engine.service';
+import { MappingEngineService } from '../mappings/engine/mapping-engine.service';
 import { RenderInlineDto } from './dto/render-inline.dto';
 
 @Injectable()
@@ -9,12 +10,19 @@ export class TemplatesService {
   constructor(
     private prisma: PrismaService,
     private templateEngine: TemplateEngineService,
+    private mappingEngine: MappingEngineService,
   ) {}
 
   async renderInline(dto: RenderInlineDto) {
-    const row = dto.context?.row || {};
+    let row = dto.context?.row || {};
     const index = dto.context?.index ?? 1;
     const collapseNewlines = dto.context?.collapseNewlines ?? false;
+
+    if (dto.mappings && dto.mappings.length > 0) {
+      const mapped = this.mappingEngine.executeMapping(row, dto.mappings as any);
+      row = { ...row, ...mapped };
+    }
+
     const output = this.templateEngine.renderPreview(dto.template, row, index, collapseNewlines);
     return { output };
   }

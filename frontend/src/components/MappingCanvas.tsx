@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, GripVertical, Wand2, Columns, XCircle, ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Wand2, Columns, XCircle, ChevronDown, ChevronRight, ChevronsUpDown, Map } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import type { ColumnInfo, FieldMapping } from '../types';
 
@@ -42,8 +42,45 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
   const [destinationField, setDestinationField] = useState('');
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set(mappings.map((_, i) => i)));
+  const [valueMapExpanded, setValueMapExpanded] = useState<Set<number>>(new Set());
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  const toggleValueMap = (index: number) => {
+    setValueMapExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  };
+
+  const getValueMapEntries = (vm?: Record<string, string>): { source: string; target: string }[] => {
+    const entries = vm ? Object.entries(vm).map(([k, v]) => ({ source: k, target: v })) : [];
+    return [...entries, { source: '', target: '' }];
+  };
+
+  const setValueMapEntries = (index: number, entries: { source: string; target: string }[]) => {
+    const vm: Record<string, string> = {};
+    for (const e of entries) {
+      if (e.source.trim() !== '') {
+        vm[e.source.trim()] = e.target;
+      }
+    }
+    handleUpdateMapping(index, { valueMap: Object.keys(vm).length > 0 ? vm : undefined });
+  };
+
+  const handleRemoveValueMapEntry = (mapIndex: number, entryIndex: number) => {
+    const entries = getValueMapEntries(mappings[mapIndex].valueMap);
+    if (entries.length <= 1) return;
+    entries.splice(entryIndex, 1);
+    setValueMapEntries(mapIndex, entries);
+  };
+
+  const handleUpdateValueMapEntry = (mapIndex: number, entryIndex: number, updates: Partial<{ source: string; target: string }>) => {
+    const entries = getValueMapEntries(mappings[mapIndex].valueMap);
+    entries[entryIndex] = { ...entries[entryIndex], ...updates };
+    setValueMapEntries(mapIndex, entries);
+  };
 
   const toggleRow = (index: number) => {
     setExpandedRows((prev) => {
@@ -215,6 +252,8 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
                 const isExpanded = expandedRows.has(index);
                 const sourceName = mapping.sourceField || '(not set)';
                 const hasTransform = !!mapping.transformation;
+                const valueMapEntries = mapping.valueMap ? Object.keys(mapping.valueMap) : [];
+                const valueMapCount = valueMapEntries.length;
                 return (
                   <div
                     key={index}
@@ -292,6 +331,11 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
                                 {mapping.transformation}
                               </span>
                             )}
+                            {valueMapCount > 0 && (
+                              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                Map({valueMapCount})
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={() => handleRemoveMapping(index)}
@@ -304,42 +348,91 @@ export function MappingCanvas({ sourceColumns, mappings, onMappingsChange }: Map
                     </div>
 
                     {isExpanded && (
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Transformation</label>
-                          <select
-                            value={mapping.transformation || ''}
-                            onChange={(e) => handleUpdateMapping(index, { transformation: e.target.value || undefined })}
-                            className="input-field text-sm"
+                      <>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Transformation</label>
+                            <select
+                              value={mapping.transformation || ''}
+                              onChange={(e) => handleUpdateMapping(index, { transformation: e.target.value || undefined })}
+                              className="input-field text-sm"
+                            >
+                              <option value="">None</option>
+                              {transformOptions.map((group) => (
+                                <optgroup key={group.category} label={group.category}>
+                                  {group.options.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Expression / Constant</label>
+                            <input
+                              type="text"
+                              value={mapping.expression || mapping.constant || ''}
+                              onChange={(e) =>
+                                handleUpdateMapping(index, {
+                                  expression: e.target.value,
+                                  constant: e.target.value,
+                                })
+                              }
+                              className="input-field text-sm"
+                              placeholder="e.g., {{row.field_name}}"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleValueMap(index)}
+                            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                           >
-                            <option value="">None</option>
-                            {transformOptions.map((group) => (
-                              <optgroup key={group.category} label={group.category}>
-                                {group.options.map((opt) => (
-                                  <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                            <Map className="h-3.5 w-3.5" />
+                            {valueMapExpanded.has(index) ? 'Hide' : 'Show'} Value Map
+                            {valueMapCount > 0 && ` (${valueMapCount})`}
+                          </button>
+
+                          {valueMapExpanded.has(index) && (
+                            <div className="mt-2 space-y-1.5 pl-4 border-l-2 border-amber-200 dark:border-amber-700">
+                              {getValueMapEntries(mapping.valueMap).map((entry, ei) => (
+                                <div key={ei} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={entry.source}
+                                    onChange={(e) => handleUpdateValueMapEntry(index, ei, { source: e.target.value })}
+                                    className="input-field text-sm w-28"
+                                    placeholder="Source value"
+                                  />
+                                  <span className="text-gray-400 dark:text-slate-500">&rarr;</span>
+                                  <input
+                                    type="text"
+                                    value={entry.target}
+                                    onChange={(e) => handleUpdateValueMapEntry(index, ei, { target: e.target.value })}
+                                    className="input-field text-sm flex-1"
+                                    placeholder="Mapped value"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveValueMapEntry(index, ei)}
+                                    className="rounded p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                              {valueMapCount === 0 && (
+                                <p className="text-[11px] text-gray-400 dark:text-slate-500">
+                                  Type a source value and its mapped output above.
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <label className="mb-1 block text-xs text-gray-500 dark:text-slate-400">Expression / Constant</label>
-                          <input
-                            type="text"
-                            value={mapping.expression || mapping.constant || ''}
-                            onChange={(e) =>
-                              handleUpdateMapping(index, {
-                                expression: e.target.value,
-                                constant: e.target.value,
-                              })
-                            }
-                            className="input-field text-sm"
-                            placeholder="e.g., {{row.field_name}}"
-                          />
-                        </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 );

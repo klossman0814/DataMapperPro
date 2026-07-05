@@ -6,6 +6,7 @@ export interface Mapping {
   transformation?: string;
   constant?: string;
   expression?: string;
+  valueMap?: Record<string, string>;
   condition?: {
     field: string;
     operator: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'isEmpty' | 'isNotEmpty';
@@ -33,6 +34,13 @@ export class MappingEngineService {
         value = this.evaluateExpression(mapping.expression, row);
       } else if (mapping.transformation) {
         value = this.applyTransformation(mapping.transformation, row, mapping.sourceField ? row[mapping.sourceField] : undefined);
+      }
+
+      if (mapping.valueMap && value != null) {
+        const strVal = String(value);
+        if (strVal in mapping.valueMap) {
+          value = mapping.valueMap[strVal];
+        }
       }
 
       if (mapping.transformation && value !== undefined) {

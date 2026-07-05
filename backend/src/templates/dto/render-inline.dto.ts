@@ -1,4 +1,4 @@
-import { IsString, IsObject, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsObject, IsOptional, IsArray } from 'class-validator';
 
 export class RenderInlineDto {
   @IsString()
@@ -10,4 +10,8 @@ export class RenderInlineDto {
     index?: number;
     collapseNewlines?: boolean;
   };
+
+  @IsOptional()
+  @IsArray()
+  mappings?: Record<string, any>[];
 }

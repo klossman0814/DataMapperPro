@@ -83,6 +83,7 @@ export interface FieldMapping {
   transformation?: string;
   constant?: string;
   expression?: string;
+  valueMap?: Record<string, string>;
   condition?: {
     field: string;
     operator: string;

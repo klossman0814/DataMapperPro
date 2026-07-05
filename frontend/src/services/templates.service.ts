@@ -46,6 +46,6 @@ export const templatesService = {
   render: (id: string, context: Record<string, any>) =>
     api.post<{ output: string }>(`/templates/${id}/render`, context).then(r => r.data),
 
-  renderInline: (template: string, context: { row: Record<string, any>; index?: number; collapseNewlines?: boolean }) =>
-    api.post<{ output: string }>('/templates/render-inline', { template, context }).then(r => r.data),
+  renderInline: (template: string, context: { row: Record<string, any>; index?: number; collapseNewlines?: boolean }, mappings?: Record<string, any>[]) =>
+    api.post<{ output: string }>('/templates/render-inline', { template, context, mappings }).then(r => r.data),
 };
