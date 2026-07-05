@@ -23,6 +23,7 @@ import { DatabaseMigration } from './pages/DatabaseMigration';
 import { SpecEvaluator } from './pages/SpecEvaluator';
 import { SpecBuilder } from './pages/SpecBuilder';
 import { SqlScripts } from './pages/SqlScripts';
+import { TemplateGenerator } from './pages/TemplateGenerator';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="upload" element={<Upload />} />
         <Route path="mapping/:fileId?" element={<MappingDesigner />} />
         <Route path="template/:profileId?" element={<TemplateEditorPage />} />
+        <Route path="template-generator" element={<TemplateGenerator />} />
         <Route path="jobs" element={<ProcessingJobs />} />
           <Route path="profiles" element={<SavedProfiles />} />
           <Route path="profiles/:id/report" element={<ProfileReport />} />

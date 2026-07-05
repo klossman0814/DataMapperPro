@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   Terminal,
   ArrowRightLeft,
+  Lightbulb,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -45,6 +46,7 @@ const navGroups = [
       { to: '/profiles', icon: Bookmark, label: 'Saved Profiles' },
       { to: '/mapping', icon: SplitSquareHorizontal, label: 'Mapping Designer' },
       { to: '/template', icon: FileCode, label: 'Template Editor' },
+      { to: '/template-generator', icon: Lightbulb, label: 'Template Generator' },
     ],
   },
   {

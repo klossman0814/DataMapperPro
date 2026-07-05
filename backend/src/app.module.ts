@@ -19,6 +19,7 @@ import { SpecEvaluatorModule } from './spec-evaluator/spec-evaluator.module';
 import { SpecBuilderModule } from './spec-builder/spec-builder.module';
 import { SqlScriptsModule } from './sql-scripts/sql-scripts.module';
 import { DatabaseMigrationModule } from './database-migration/database-migration.module';
+import { TemplateGeneratorModule } from './template-generator/template-generator.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { DatabaseMigrationModule } from './database-migration/database-migration
     SpecBuilderModule,
     SqlScriptsModule,
     DatabaseMigrationModule,
+    TemplateGeneratorModule,
   ],
 })
 export class AppModule {}
