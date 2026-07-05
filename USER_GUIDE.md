@@ -358,7 +358,10 @@ The editor supports the following syntax constructs:
 | `{{#if field}}...{{/if}}` | Conditional block — renders content only if the field is truthy | `{{#if email}}{{email}}{{/if}}` |
 | `{{#if field}}...{{else}}...{{/if}}` | Conditional with else branch | `{{#if active}}{{name}}{{else}}Inactive{{/if}}` |
 | `{{#each list}}{{field}}{{/each}}` | Iterate over an array | `{{#each items}}{{name}}{{/each}}` |
-| `{{index}}` | Current row index (0-based in preview, 1-based in output) | `Record #{{index}}` |
+| `{{index}}` | Current row index (1-based in preview and output) | `Record #{{index}}` |
+| `{{sequence}}` | Auto-incrementing sequence number (alias for `{{index}}`) | `{{sequence}}` |
+| `{{sequence(N)}}` | Sequence number zero-padded to N digits | `{{sequence(3)}}` → `001` |
+| `{{sequence(N, prefix, suffix)}}` | Padded sequence with prefix and suffix | `{{sequence(5, ID-, -X)}}` → `ID-00001-X` |
 | `{{func(args)}}` | Apply a transformation function to a field | `{{upper(first_name)}}` |
 
 **Token reference** — Click the helper buttons above the editor to insert syntax templates:
@@ -366,6 +369,7 @@ The editor supports the following syntax constructs:
 - **`Text`** — Inserts a literal text placeholder
 - **`{{#if}}`** — Inserts an if/endif block
 - **`{{#each}}`** — Inserts an each/endeach block
+- **`{{sequence}}`** — Inserts `{{sequence(3)}}` for a padded sequence number
 - **`Transforms`** — Opens a dropdown of 18 transformation functions to wrap selected text
 
 ---
@@ -524,7 +528,7 @@ Output: `1001` when `manager` is empty, `1001 (Manager)` when `manager` has a va
 
 #### `{{#each}}` — Looping Over Arrays in Detail
 
-The `{{#each}}` directive iterates over an array field, rendering the inner template once per element. Within the loop, each element's properties are available as direct tokens. The `{{index}}` variable tracks the current iteration (0-based in preview, 1-based in final output).
+The `{{#each}}` directive iterates over an array field, rendering the inner template once per element. Within the loop, each element's properties are available as direct tokens. The `{{index}}` and `{{sequence}}` variables track the current iteration (1-based in both preview and final output).
 
 **Basic syntax — iterate over a list of items:**
 
@@ -753,8 +757,9 @@ Click **Render** to test your template against sample data. The system uses hard
 
 The **Template Library** section at the bottom provides starter templates for common formats:
 
-- **JSON Output** — Template producing a JSON object
+- **JSON Output** — Template producing a JSON object with auto-incrementing ID via `{{sequence(3, ID-)}}`
 - **CSV Row** — Template for CSV row output
+- **CSV with Sequence** — Template combining a padded 5-digit sequence number with field values
 - **XML Element** — Template for XML record output
 - **HL7 Segment** — Template for an HL7 ADT segment
 

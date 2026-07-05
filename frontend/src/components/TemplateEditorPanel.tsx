@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import {
   FileCode, Eye, Braces, Variable, List, FileInput, X, Sparkles, GripVertical,
   ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2,
-  BookTemplate, PanelLeftClose, PanelLeft, FileCode as FileCodeIcon, Database, Play,
+  BookTemplate, PanelLeftClose, PanelLeft, FileCode as FileCodeIcon, Database, Play, ListOrdered,
 } from 'lucide-react';
 import type { ColumnInfo, UploadedFileInfo, DatabaseConnection } from '../types';
 import { FieldBuilder } from './FieldBuilder';
@@ -45,11 +45,13 @@ const syntaxHelpers = [
   { icon: Variable, label: '{{field}}', insert: '{{}}' },
   { icon: Braces, label: '{{#if}}', insert: '{{#if }}{{/if}}' },
   { icon: List, label: '{{#each}}', insert: '{{#each }}{{/each}}' },
+  { icon: ListOrdered, label: '{{sequence}}', insert: '{{sequence(3)}}' },
 ];
 
 const libraryTemplates = [
-  { name: 'JSON Output', content: '{\n  "record": {\n    "id": {{index}},\n    "value": "{{row.field}}"\n  }\n}' },
+  { name: 'JSON Output', content: '{\n  "record": {\n    "id": {{sequence(3, ID-)}},\n    "value": "{{row.field}}"\n  }\n}' },
   { name: 'CSV Row', content: '{{row.field1}},{{row.field2}},{{row.field3}}' },
+  { name: 'CSV with Sequence', content: '{{sequence(5)}},{{row.field1}},{{row.field2}}' },
   { name: 'XML Element', content: '<record>\n  <field>{{row.field}}</field>\n  <index>{{index}}</index>\n</record>' },
   { name: 'HL7 Segment', content: 'MSH|^~\\&|{{row.sending_app}}|{{row.sending_facility}}|||{{timestamp}}||ADT^A01|{{id}}|P|2.3' },
 ];
@@ -698,6 +700,9 @@ export function TemplateEditorPanel({
           </span>
           <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
             {'{{index}}'}
+          </span>
+          <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
+            {'{{sequence(N, prefix, suffix)}}'}
           </span>
           <span className="rounded-md bg-primary-50 px-2 py-1 text-xs font-mono text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
             {'{{#if}}...{{/if}}'}

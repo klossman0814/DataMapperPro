@@ -13,7 +13,7 @@ export class TemplatesService {
 
   async renderInline(dto: RenderInlineDto) {
     const row = dto.context?.row || {};
-    const index = dto.context?.index ?? 0;
+    const index = dto.context?.index ?? 1;
     const output = this.templateEngine.renderPreview(dto.template, row, index);
     return { output };
   }

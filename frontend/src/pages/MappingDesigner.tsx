@@ -142,7 +142,7 @@ export function MappingDesigner() {
       return;
     }
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 0 });
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1 });
       useMappingStore.getState().setLiveOutput(res.output);
       toast.success('Template rendered');
     } catch {
@@ -154,7 +154,7 @@ export function MappingDesigner() {
     const { previewRows } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) return;
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 0 });
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1 });
       useMappingStore.getState().setLiveOutput(res.output);
     } catch {
       // silent fail for live preview

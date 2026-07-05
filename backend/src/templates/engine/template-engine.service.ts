@@ -36,7 +36,7 @@ export class TemplateEngineService {
   }
 
   private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>, index = 0): string {
-    const merged = { ...row, ...mappings, index };
+    const merged = { ...row, ...mappings, index, sequence: index };
     const lines = template.split('\n');
     const resultLines: string[] = [];
     const skipStack: number[] = [];
@@ -105,12 +105,29 @@ export class TemplateEngineService {
   private replaceTokens(text: string, context: Record<string, any>): string {
     return text.replace(/\{\{(.+?)\}\}/g, (_, key) => {
       const trimmed = key.trim();
+
       const funcMatch = trimmed.match(/^(\w+)\((.+)\)$/);
       if (funcMatch && TRANSFORM_NAMES.includes(funcMatch[1].toLowerCase())) {
         const result = this.transformationEngine.apply(trimmed, context);
         if (result === null || result === undefined) return '';
         return String(result);
       }
+
+      const seqMatch = trimmed.match(/^(sequence|index)(?:\((.+?)\))?$/i);
+      if (seqMatch) {
+        const value = context.sequence ?? context.index;
+        if (value === null || value === undefined) return '';
+        const args = seqMatch[2] ? seqMatch[2].split(',').map(s => s.trim()) : [];
+        let result = String(value);
+        if (args.length >= 1 && /^\d+$/.test(args[0])) {
+          const width = parseInt(args[0], 10);
+          result = result.padStart(width, '0');
+          if (args.length >= 2 && args[1]) result = args[1] + result;
+          if (args.length >= 3 && args[2]) result = result + args[2];
+        }
+        return result;
+      }
+
       const value = this.resolveValue(trimmed, context);
       if (value === null || value === undefined) return '';
       return String(value);
