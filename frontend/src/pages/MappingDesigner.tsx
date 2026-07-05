@@ -233,15 +233,13 @@ export function MappingDesigner() {
     if (store.outputExtension.trim()) {
       opts.fileExtension = store.outputExtension.trim();
     }
-    if (store.collapseNewlines) {
-      opts.collapseNewlines = true;
-    }
     try {
       const jobPayload: any = {
         fileId: store.selectedFileId,
         template: store.template,
         mappings: store.mappings,
         outputFormat: store.outputFormat,
+        collapseNewlines: store.collapseNewlines,
         outputOptions: Object.keys(opts).length ? opts : undefined,
       };
       const job = await jobsService.create(jobPayload);

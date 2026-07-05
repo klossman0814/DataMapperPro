@@ -14,6 +14,7 @@ export class JobsService {
   async create(dto: CreateJobDto, userId: string) {
     const config = {
       ...(dto.outputOptions || {}),
+      collapseNewlines: dto.collapseNewlines ?? false,
       mappings: dto.mappings || [],
       template: dto.template || '',
     };

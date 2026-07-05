@@ -28,6 +28,7 @@ export const jobsService = {
     template?: string;
     mappings?: Record<string, any>[];
     outputFormat: string;
+    collapseNewlines?: boolean;
     outputOptions?: Record<string, any>;
   }) => api.post<ProcessingJob>('/jobs', data).then(r => r.data),
 

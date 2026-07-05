@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, IsObject, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsObject, IsArray, IsBoolean } from 'class-validator';
 
 export class CreateJobDto {
   @IsOptional()
@@ -31,4 +31,8 @@ export class CreateJobDto {
   @IsOptional()
   @IsObject()
   outputOptions?: Record<string, any>;
+
+  @IsOptional()
+  @IsBoolean()
+  collapseNewlines?: boolean;
 }

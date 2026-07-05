@@ -37,7 +37,8 @@ export class TemplateEngineService {
 
   private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>, index = 0, collapseNewlines = false): string {
     const merged = { ...row, ...mappings, index, sequence: index };
-    const lines = template.split('\n');
+    const normalizedTemplate = template.replace(/\r\n/g, '\n');
+    const lines = normalizedTemplate.split('\n');
     const resultLines: string[] = [];
     const skipStack: number[] = [];
     let elseMode = false;
@@ -45,7 +46,7 @@ export class TemplateEngineService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      const openIf = line.match(/^\s*\{\{#if (.+?)\}\}\s*$/);
+      const openIf = line.match(/^\s*\{\{#if ([^}]+)\}\}\s*$/);
       if (openIf) {
         const fieldName = openIf[1].trim();
         const value = this.resolveValue(fieldName, merged);
@@ -73,7 +74,7 @@ export class TemplateEngineService {
         continue;
       }
 
-      const eachMatch = line.match(/^\s*\{\{#each (.+?)\}\}(.*?)\{\{\/each\}\}\s*$/);
+      const eachMatch = line.match(/^\s*\{\{#each ([^}]+)\}\}(.*?)\{\{\/each\}\}\s*$/);
       if (eachMatch) {
         const fieldName = eachMatch[1].trim();
         const list = this.resolveValue(fieldName, merged);
@@ -88,7 +89,24 @@ export class TemplateEngineService {
         continue;
       }
 
-      const processed = this.replaceTokens(line, merged);
+      const inlineIfProcessed = line
+        .replace(
+          /\{\{#if (.+?)\}\}(.*?)\{\{else\}\}(.*?)\{\{\/if\}\}/g,
+          (_, field, trueContent, falseContent) => {
+            const value = this.resolveValue(field.trim(), merged);
+            const truthy = value !== null && value !== undefined && value !== '' && value !== false && value !== 0;
+            return truthy ? trueContent : falseContent;
+          }
+        )
+        .replace(
+          /\{\{#if (.+?)\}\}(.*?)\{\{\/if\}\}/g,
+          (_, field, content) => {
+            const value = this.resolveValue(field.trim(), merged);
+            const truthy = value !== null && value !== undefined && value !== '' && value !== false && value !== 0;
+            return truthy ? content : '';
+          }
+        );
+      const processed = this.replaceTokens(inlineIfProcessed, merged);
       resultLines.push(processed);
     }
 

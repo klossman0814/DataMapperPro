@@ -267,7 +267,7 @@ export class FileProcessorService {
         break;
       case 'freeform':
         const freeformContent = rows
-          .map((r) => r.output || Object.values(r).join('|'))
+          .map((r) => (r.output || Object.values(r).join('|')).replace(/\r?\n$/, ''))
           .join('\n');
         await writeFile(filePath, freeformContent);
         break;
