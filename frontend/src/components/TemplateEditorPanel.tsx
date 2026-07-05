@@ -23,6 +23,8 @@ interface TemplateEditorPanelProps {
   liveOutput: string;
   livePreviewEnabled: boolean;
   onToggleLivePreview: () => void;
+  collapseNewlines?: boolean;
+  onCollapseNewlinesChange?: (collapse: boolean) => void;
   templates: SavedTemplate[];
   selectedTemplateId: string;
   onTemplateSelect: (id: string) => void;
@@ -46,6 +48,7 @@ const syntaxHelpers = [
   { icon: Braces, label: '{{#if}}', insert: '{{#if }}{{/if}}' },
   { icon: List, label: '{{#each}}', insert: '{{#each }}{{/each}}' },
   { icon: ListOrdered, label: '{{sequence}}', insert: '{{sequence(3)}}' },
+  { icon: FileCode, label: '{{crlf}}', insert: '{{crlf}}' },
 ];
 
 const libraryTemplates = [
@@ -59,6 +62,7 @@ const libraryTemplates = [
 export function TemplateEditorPanel({
   value, onChange, sourceColumns, previewRows,
   liveOutput, livePreviewEnabled, onToggleLivePreview,
+  collapseNewlines, onCollapseNewlinesChange,
   templates, selectedTemplateId, onTemplateSelect,
   files, selectedFileId, onSelectedFileChange,
   dbConnections, dbConnectionId, onDbConnectionChange,
@@ -537,6 +541,30 @@ export function TemplateEditorPanel({
                   {livePreviewEnabled ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}
                   {livePreviewEnabled ? 'Live: On' : 'Live: Off'}
                 </button>
+              )}
+              {onCollapseNewlinesChange && (
+                <label
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    collapseNewlines
+                      ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-500/10 dark:text-amber-400'
+                      : 'border-gray-200 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!collapseNewlines}
+                    onChange={(e) => onCollapseNewlinesChange(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center text-[10px] ${
+                    collapseNewlines
+                      ? 'border-amber-400 bg-amber-400 text-white'
+                      : 'border-gray-300 dark:border-slate-500'
+                  }`}>
+                    {collapseNewlines ? '✓' : ''}
+                  </span>
+                  Collapse
+                </label>
               )}
               <button
                 onClick={() => setShowPreview(!showPreview)}

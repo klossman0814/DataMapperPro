@@ -76,6 +76,9 @@ export function MappingDesigner() {
         if (profile.configurationJson.outputOptions?.fileExtension) {
           store.setOutputExtension(profile.configurationJson.outputOptions.fileExtension);
         }
+        if (profile.configurationJson.outputOptions?.collapseNewlines) {
+          store.setCollapseNewlines(profile.configurationJson.outputOptions.collapseNewlines);
+        }
         const savedFileId = profile.configurationJson.sourceFileId;
         if (savedFileId) {
           store.setSelectedFileId(savedFileId);
@@ -136,13 +139,13 @@ export function MappingDesigner() {
   };
 
   const handleRender = useCallback(async () => {
-    const { template, previewRows } = useMappingStore.getState();
+    const { template, previewRows, collapseNewlines } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) {
       toast.error('Enter a template and select a data source first');
       return;
     }
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1 });
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines });
       useMappingStore.getState().setLiveOutput(res.output);
       toast.success('Template rendered');
     } catch {
@@ -151,10 +154,10 @@ export function MappingDesigner() {
   }, []);
 
   const doLiveRender = useCallback(async (template: string) => {
-    const { previewRows } = useMappingStore.getState();
+    const { previewRows, collapseNewlines } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) return;
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1 });
+      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines });
       useMappingStore.getState().setLiveOutput(res.output);
     } catch {
       // silent fail for live preview
@@ -183,6 +186,9 @@ export function MappingDesigner() {
       const opts: Record<string, any> = {};
       if (store.outputExtension.trim()) {
         opts.fileExtension = store.outputExtension.trim();
+      }
+      if (store.collapseNewlines) {
+        opts.collapseNewlines = true;
       }
       const payload: any = {
         name: store.profileName,
@@ -226,6 +232,9 @@ export function MappingDesigner() {
       const opts: Record<string, any> = {};
     if (store.outputExtension.trim()) {
       opts.fileExtension = store.outputExtension.trim();
+    }
+    if (store.collapseNewlines) {
+      opts.collapseNewlines = true;
     }
     try {
       const jobPayload: any = {
@@ -482,6 +491,8 @@ export function MappingDesigner() {
           liveOutput={store.liveOutput}
           livePreviewEnabled={store.livePreviewEnabled}
           onToggleLivePreview={() => store.setLivePreviewEnabled(!store.livePreviewEnabled)}
+          collapseNewlines={store.collapseNewlines}
+          onCollapseNewlinesChange={(v) => store.setCollapseNewlines(v)}
           onRender={handleRender}
           templates={savedTemplates}
           selectedTemplateId={store.selectedTemplateId}

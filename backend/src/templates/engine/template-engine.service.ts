@@ -16,7 +16,7 @@ export class TemplateEngineService {
     private transformationEngine: TransformationEngineService,
   ) {}
 
-  processTemplate(template: string, row: Record<string, any>, mappings: Mapping[], index = 0): string {
+  processTemplate(template: string, row: Record<string, any>, mappings: Mapping[], index = 0, collapseNewlines = false): string {
     const mappingResult: Record<string, any> = {};
     for (const m of mappings) {
       if (m.sourceField) {
@@ -28,14 +28,14 @@ export class TemplateEngineService {
       }
     }
 
-    return this.processRow(template, row, mappingResult, index);
+    return this.processRow(template, row, mappingResult, index, collapseNewlines);
   }
 
-  renderPreview(template: string, row: Record<string, any>, index = 0): string {
-    return this.processRow(template, row, {}, index);
+  renderPreview(template: string, row: Record<string, any>, index = 0, collapseNewlines = false): string {
+    return this.processRow(template, row, {}, index, collapseNewlines);
   }
 
-  private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>, index = 0): string {
+  private processRow(template: string, row: Record<string, any>, mappings: Record<string, any>, index = 0, collapseNewlines = false): string {
     const merged = { ...row, ...mappings, index, sequence: index };
     const lines = template.split('\n');
     const resultLines: string[] = [];
@@ -92,7 +92,7 @@ export class TemplateEngineService {
       resultLines.push(processed);
     }
 
-    return resultLines.join('\n');
+    return resultLines.join(collapseNewlines ? '' : '\n');
   }
 
   private resolveValue(key: string, context: Record<string, any>): any {
@@ -126,6 +126,10 @@ export class TemplateEngineService {
           if (args.length >= 3 && args[2]) result = result + args[2];
         }
         return result;
+      }
+
+      if (/^crlf$/i.test(trimmed)) {
+        return '\r\n';
       }
 
       const value = this.resolveValue(trimmed, context);

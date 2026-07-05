@@ -11,6 +11,7 @@ interface MappingState {
   profileDescription: string;
   outputFormat: OutputFormat;
   outputExtension: string;
+  collapseNewlines: boolean;
   savedProfileId: string | null;
   savedProfileVersion: number;
   databaseConnectionId: string | null;
@@ -37,6 +38,7 @@ interface MappingState {
   setProfileDescription: (desc: string) => void;
   setOutputFormat: (format: OutputFormat) => void;
   setOutputExtension: (ext: string) => void;
+  setCollapseNewlines: (collapse: boolean) => void;
   setSavedProfileId: (id: string | null) => void;
   setSavedProfileVersion: (v: number) => void;
   setDatabaseConnection: (id: string | null, sql: string) => void;
@@ -62,6 +64,7 @@ const initialState = {
   profileDescription: '',
   outputFormat: 'txt' as OutputFormat,
   outputExtension: '',
+  collapseNewlines: false,
   savedProfileId: null,
   savedProfileVersion: 0,
   databaseConnectionId: null,
@@ -113,6 +116,7 @@ export const useMappingStore = create<MappingState>((set) => ({
   setProfileDescription: (desc) => set({ profileDescription: desc }),
   setOutputFormat: (format) => set({ outputFormat: format }),
   setOutputExtension: (ext) => set({ outputExtension: ext }),
+  setCollapseNewlines: (collapse) => set({ collapseNewlines: collapse }),
   setSavedProfileId: (id) => set({ savedProfileId: id }),
   setSavedProfileVersion: (v) => set({ savedProfileVersion: v }),
   setDatabaseConnection: (id, sql) => set({ databaseConnectionId: id, querySql: sql }),

@@ -57,6 +57,7 @@ export class FileProcessorService {
     const template = config.template || job.profile?.template || '';
     const outputFormat = job.outputFormat;
     const outputOptions = config.outputOptions || {};
+    const collapseNewlines = config.collapseNewlines ?? false;
 
     let rows: Record<string, any>[];
     try {
@@ -104,7 +105,7 @@ export class FileProcessorService {
           const mapped = this.mappingEngine.executeMapping(rows[i], mappings);
           const transformed = this.applyTransformations(mapped, config.transformations);
           const output = template
-            ? { output: this.templateEngine.processTemplate(template, transformed, mappings, rowIndex) as string }
+            ? { output: this.templateEngine.processTemplate(template, transformed, mappings, rowIndex, collapseNewlines) as string }
             : { ...transformed, index: rowIndex };
 
           const validation = this.validationEngine.validateRow(output, config.validationRules || []);

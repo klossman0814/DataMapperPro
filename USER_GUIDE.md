@@ -29,7 +29,8 @@
    - [Creating a Template](#52-creating-a-template)
    - [Testing with Sample Data](#53-testing-with-sample-data)
    - [Template Library](#54-template-library)
-   - [From Sample Generator](#55-from-sample-generator)
+    - [From Sample Generator](#55-from-sample-generator)
+    - [CR/LF Control](#56-crlf-control)
 6. [Processing Jobs](#6-processing-jobs)
    - [Job Lifecycle](#61-job-lifecycle)
    - [Monitoring Progress](#62-monitoring-progress)
@@ -362,6 +363,7 @@ The editor supports the following syntax constructs:
 | `{{sequence}}` | Auto-incrementing sequence number (alias for `{{index}}`) | `{{sequence}}` |
 | `{{sequence(N)}}` | Sequence number zero-padded to N digits | `{{sequence(3)}}` → `001` |
 | `{{sequence(N, prefix, suffix)}}` | Padded sequence with prefix and suffix | `{{sequence(5, ID-, -X)}}` → `ID-00001-X` |
+| `{{crlf}}` | Insert a carriage return + line feed (`\r\n`) | `Field1{{crlf}}Field2` |
 | `{{func(args)}}` | Apply a transformation function to a field | `{{upper(first_name)}}` |
 
 **Token reference** — Click the helper buttons above the editor to insert syntax templates:
@@ -370,6 +372,7 @@ The editor supports the following syntax constructs:
 - **`{{#if}}`** — Inserts an if/endif block
 - **`{{#each}}`** — Inserts an each/endeach block
 - **`{{sequence}}`** — Inserts `{{sequence(3)}}` for a padded sequence number
+- **`{{crlf}}`** — Inserts `{{crlf}}` for a line break in the output
 - **`Transforms`** — Opens a dropdown of 18 transformation functions to wrap selected text
 
 ---
@@ -776,6 +779,31 @@ A modal dialog accessed from the Template Editor that helps you create templates
 5. Use **Use as Template** to load the result into the Monaco editor
 
 This is especially useful when you have an existing output format and want to create a matching template quickly.
+
+### 5.6 CR/LF Control
+
+The **Collapse** checkbox (in the editor toolbar, next to Live Preview) controls how newlines in the template are handled in the output:
+
+- **Collapse OFF** (default): Every newline in the template becomes a newline in the output.
+- **Collapse ON**: Newlines in the template are ignored in the output. Only `{{crlf}}` tokens produce line breaks.
+
+This lets you write templates across multiple lines for readability while controlling exactly where line breaks appear in the output.
+
+**Example — Collapse ON:**
+
+```
+Template (written on 3 lines for readability):
+  MRN:{{mrn}}|NAME:{{last_name}},{{first_name}}{{crlf}}
+  DOB:{{dob}}|GENDER:{{gender}}
+
+Output (single visual line split only at {{crlf}}):
+  MRN:12345|NAME:Smith,John
+  DOB:1980-01-01|M
+```
+
+The `{{crlf}}` token always works regardless of the Collapse setting. Use it mid-line to insert a break at any position.
+
+The Collapse setting is saved with your profile and used when processing jobs.
 
 ---
 

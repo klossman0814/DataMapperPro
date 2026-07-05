@@ -14,7 +14,8 @@ export class TemplatesService {
   async renderInline(dto: RenderInlineDto) {
     const row = dto.context?.row || {};
     const index = dto.context?.index ?? 1;
-    const output = this.templateEngine.renderPreview(dto.template, row, index);
+    const collapseNewlines = dto.context?.collapseNewlines ?? false;
+    const output = this.templateEngine.renderPreview(dto.template, row, index, collapseNewlines);
     return { output };
   }
 
@@ -108,8 +109,9 @@ export class TemplatesService {
     }
     const row = context.row || {};
     const index = context.index ?? 0;
+    const collapseNewlines = context.collapseNewlines ?? false;
     const mappings = (profile.configurationJson as any)?.mappings || [];
-    const output = this.templateEngine.processTemplate(profile.template, row, mappings, index);
+    const output = this.templateEngine.processTemplate(profile.template, row, mappings, index, collapseNewlines);
     return { output };
   }
 }

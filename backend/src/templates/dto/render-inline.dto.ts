@@ -1,4 +1,4 @@
-import { IsString, IsObject, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsObject, IsOptional, IsBoolean } from 'class-validator';
 
 export class RenderInlineDto {
   @IsString()
@@ -8,5 +8,6 @@ export class RenderInlineDto {
   context: {
     row: Record<string, any>;
     index?: number;
+    collapseNewlines?: boolean;
   };
 }
