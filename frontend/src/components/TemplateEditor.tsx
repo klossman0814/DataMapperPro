@@ -350,6 +350,13 @@ export function TemplateEditor({
               Field Builder
             </button>
             <button
+              onClick={() => setShowGenerator(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              <Sparkles className="h-3 w-3" />
+              From Sample
+            </button>
+            <button
               onClick={() => setShowTransforms(!showTransforms)}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                 showTransforms
