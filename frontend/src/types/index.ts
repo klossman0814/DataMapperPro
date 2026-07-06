@@ -10,20 +10,22 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'SUPERUSER' | 'USER';
   isActive?: boolean;
   createdAt?: string;
   notificationPreferences?: NotificationPreferences | null;
+  menuPermissions?: string[];
 }
 
 export interface UserListItem {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'SUPERUSER' | 'USER';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  menuPermissions?: string[];
   _count: {
     mappingProfiles: number;
     uploadedFiles: number;

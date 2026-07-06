@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Search, Shield, ShieldOff, UserCog, Trash2, X, Database, Bookmark, FileSpreadsheet, PlayCircle, Calendar } from 'lucide-react';
+import { Search, Shield, ShieldOff, UserCog, Trash2, X, Database, Bookmark, FileSpreadsheet, PlayCircle, Calendar, CheckSquare, Square } from 'lucide-react';
 import { adminService } from '../services/admin.service';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { MENU_ITEMS } from '../menuItems';
 import type { UserListItem } from '../types';
 import toast from 'react-hot-toast';
 
@@ -16,7 +17,7 @@ export function AdminUsers() {
   const limit = 20;
 
   const [editTarget, setEditTarget] = useState<UserListItem | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', menuPermissions: [] as string[] });
   const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<UserListItem | null>(null);
@@ -42,7 +43,7 @@ export function AdminUsers() {
 
   const openEdit = (user: UserListItem) => {
     setEditTarget(user);
-    setEditForm({ name: user.name, email: user.email, role: user.role });
+    setEditForm({ name: user.name, email: user.email, role: user.role, menuPermissions: user.menuPermissions || [] });
   };
 
   const handleSave = async () => {
@@ -53,7 +54,7 @@ export function AdminUsers() {
     setSaving(true);
     try {
       const updated = await adminService.updateUser(editTarget.id, editForm);
-      setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated, menuPermissions: updated.menuPermissions || [] } : u)));
       toast.success('User updated');
       setEditTarget(null);
     } catch (err: any) {
@@ -138,6 +139,8 @@ export function AdminUsers() {
                   <td className="whitespace-nowrap px-4 py-3 text-sm">
                     {user.role === 'ADMIN' ? (
                       <span className="badge-info text-xs">ADMIN</span>
+                    ) : user.role === 'SUPERUSER' ? (
+                      <span className="badge text-xs">SUPERUSER</span>
                     ) : (
                       <span className="badge text-xs">USER</span>
                     )}
@@ -257,10 +260,47 @@ export function AdminUsers() {
                   className="input-field text-sm"
                 >
                   <option value="USER">User</option>
+                  <option value="SUPERUSER">Superuser</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
             </div>
+              {editForm.role !== 'ADMIN' && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-slate-400">Menu Permissions</label>
+                  <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-slate-600 dark:bg-slate-700/30">
+                    {MENU_ITEMS.filter(m => m.key !== 'dashboard').map(item => {
+                      const checked = editForm.menuPermissions.includes(item.key);
+                      return (
+                        <label
+                          key={item.key}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-600/50"
+                        >
+                          {checked ? (
+                            <CheckSquare className="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
+                          ) : (
+                            <Square className="h-4 w-4 shrink-0 text-gray-400" />
+                          )}
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={checked}
+                            onChange={() => {
+                              setEditForm((p) => ({
+                                ...p,
+                                menuPermissions: checked
+                                  ? p.menuPermissions.filter(k => k !== item.key)
+                                  : [...p.menuPermissions, item.key],
+                              }));
+                            }}
+                          />
+                          {item.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setEditTarget(null)} className="btn-secondary text-sm">Cancel</button>
               <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">

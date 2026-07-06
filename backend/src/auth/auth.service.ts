@@ -41,6 +41,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         isActive: user.isActive,
+        menuPermissions: (user.menuPermissions as string[]) || [],
       },
     };
   }
@@ -66,6 +67,7 @@ export class AuthService {
         role: user.role,
         isActive: user.isActive,
         notificationPreferences: (user.notificationPreferences as Record<string, any>) || null,
+        menuPermissions: (user.menuPermissions as string[]) || [],
       },
     };
   }
@@ -105,6 +107,7 @@ export class AuthService {
     return {
       ...profile,
       notificationPreferences: (profile.notificationPreferences as Record<string, any>) || null,
+      menuPermissions: (profile.menuPermissions as string[]) || [],
     };
   }
 

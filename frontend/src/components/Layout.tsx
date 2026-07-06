@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
+import { pathToKey } from '../menuItems';
 import clsx from 'clsx';
 
 const navGroups = [
@@ -145,7 +146,12 @@ export function Layout() {
                 </button>
                 {!isCollapsed && (
                   <div className="ml-2 space-y-0.5">
-                    {group.items.map(({ to, icon: Icon, label }) => (
+                    {group.items
+                      .filter(item => {
+                        if (user?.role === 'ADMIN') return true;
+                        return user?.menuPermissions?.includes(pathToKey(item.to));
+                      })
+                      .map(({ to, icon: Icon, label }) => (
                       <NavLink
                         key={to}
                         to={to}

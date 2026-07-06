@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 const SUPER_ADMIN_EMAIL = 'admin@datamapperpro.com';
@@ -27,6 +28,7 @@ export class AdminService {
           name: true,
           role: true,
           isActive: true,
+          menuPermissions: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -57,6 +59,7 @@ export class AdminService {
         name: true,
         role: true,
         isActive: true,
+        menuPermissions: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -98,6 +101,9 @@ export class AdminService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.role !== undefined) data.role = dto.role;
+    if (dto.menuPermissions !== undefined) {
+      data.menuPermissions = JSON.parse(JSON.stringify(dto.menuPermissions)) as Prisma.InputJsonValue;
+    }
 
     const updated = await this.prisma.user.update({
       where: { id },
@@ -108,6 +114,7 @@ export class AdminService {
         name: true,
         role: true,
         isActive: true,
+        menuPermissions: true,
         createdAt: true,
         updatedAt: true,
       },
