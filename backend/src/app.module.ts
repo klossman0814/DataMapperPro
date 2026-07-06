@@ -20,6 +20,7 @@ import { SpecBuilderModule } from './spec-builder/spec-builder.module';
 import { SqlScriptsModule } from './sql-scripts/sql-scripts.module';
 import { DatabaseMigrationModule } from './database-migration/database-migration.module';
 import { TemplateGeneratorModule } from './template-generator/template-generator.module';
+import { DiffModule } from './diff/diff.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { TemplateGeneratorModule } from './template-generator/template-generator
     SqlScriptsModule,
     DatabaseMigrationModule,
     TemplateGeneratorModule,
+    DiffModule,
   ],
 })
 export class AppModule {}

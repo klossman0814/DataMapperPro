@@ -22,6 +22,7 @@ import {
   Terminal,
   ArrowRightLeft,
   Lightbulb,
+  GitCompare,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -57,6 +58,7 @@ const navGroups = [
       { to: '/jobs', icon: PlayCircle, label: 'Processing Jobs' },
       { to: '/spec-evaluator', icon: ClipboardCheck, label: 'Spec Evaluator' },
       { to: '/spec-builder', icon: FileSpreadsheet, label: 'Spec Builder' },
+      { to: '/diff-checker', icon: GitCompare, label: 'Diff Checker' },
     ],
   },
   {

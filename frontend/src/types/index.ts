@@ -278,3 +278,53 @@ export interface PaginatedSpecs {
   limit: number;
   totalPages: number;
 }
+
+export interface DiffColumnInfo {
+  id: string;
+  name: string;
+  rowCount: number;
+  columnCount: number;
+}
+
+export interface DiffSummary {
+  added: number;
+  removed: number;
+  changed: number;
+  unchanged: number;
+}
+
+export interface ColumnDiff {
+  column: string;
+  type: 'both' | 'file1_only' | 'file2_only';
+}
+
+export interface FieldDiff {
+  field: string;
+  oldValue: any;
+  newValue: any;
+}
+
+export interface RowDiff {
+  type: 'added' | 'removed' | 'changed' | 'unchanged';
+  key: string;
+  fields?: FieldDiff[];
+  row1?: Record<string, any>;
+  row2?: Record<string, any>;
+}
+
+export interface DiffComparison {
+  file1: DiffColumnInfo;
+  file2: DiffColumnInfo;
+  keyColumn: string | null;
+  summary: DiffSummary;
+  columnDiffs: ColumnDiff[];
+  rowDiffs: RowDiff[];
+  columns: string[];
+}
+
+export interface DiffLine {
+  type: 'added' | 'removed' | 'unchanged';
+  text: string;
+  line1: number | null;
+  line2: number | null;
+}

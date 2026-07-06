@@ -18,6 +18,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'jobs', label: 'Processing Jobs', path: '/jobs' },
   { key: 'spec-evaluator', label: 'Spec Evaluator', path: '/spec-evaluator' },
   { key: 'spec-builder', label: 'Spec Builder', path: '/spec-builder' },
+  { key: 'diff-checker', label: 'Diff Checker', path: '/diff-checker' },
   { key: 'settings', label: 'Settings', path: '/settings' },
   { key: 'guide', label: 'User Guide', path: '/guide' },
 ];

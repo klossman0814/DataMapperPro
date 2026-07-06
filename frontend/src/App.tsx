@@ -24,6 +24,7 @@ import { SpecEvaluator } from './pages/SpecEvaluator';
 import { SpecBuilder } from './pages/SpecBuilder';
 import { SqlScripts } from './pages/SqlScripts';
 import { TemplateGenerator } from './pages/TemplateGenerator';
+import { DiffChecker } from './pages/DiffChecker';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminRoute } from './components/AdminRoute';
 
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="spec-evaluator" element={<SpecEvaluator />} />
         <Route path="spec-builder" element={<SpecBuilder />} />
         <Route path="sql-scripts" element={<SqlScripts />} />
+        <Route path="diff-checker" element={<DiffChecker />} />
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
