@@ -106,6 +106,8 @@ export interface MappingProfile {
     [key: string]: any;
   };
   version: number;
+  isShared?: boolean;
+  createdById?: string;
   createdAt: string;
   updatedAt: string;
 }

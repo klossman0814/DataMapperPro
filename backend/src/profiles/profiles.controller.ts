@@ -59,13 +59,18 @@ export class ProfilesController {
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.profilesService.delete(id);
+  delete(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.profilesService.delete(id, userId);
   }
 
   @Post(':id/clone')
-  clone(@Param('id') id: string) {
-    return this.profilesService.clone(id);
+  clone(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.profilesService.clone(id, userId);
+  }
+
+  @Post(':id/toggle-share')
+  toggleShare(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.profilesService.toggleShare(id, userId);
   }
 
   @Get(':id/export')

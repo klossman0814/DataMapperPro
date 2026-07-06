@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -17,6 +17,9 @@ export class ProfilesService {
       const existing = await this.prisma.mappingProfile.findUnique({ where: { id: data.id } });
       if (!existing) {
         throw new NotFoundException('Profile not found');
+      }
+      if (existing.createdById !== userId) {
+        throw new ForbiddenException('You do not have permission to edit this profile');
       }
       return this.prisma.mappingProfile.update({
         where: { id: data.id },
@@ -42,11 +45,17 @@ export class ProfilesService {
   }
 
   async list(userId: string, search?: string, page: number = 1, limit: number = 20) {
-    const where: any = { createdById: userId };
+    const where: any = {
+      OR: [{ createdById: userId }, { isShared: true }],
+    };
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+      where.AND = [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -77,12 +86,26 @@ export class ProfilesService {
     return profile;
   }
 
-  async delete(id: string) {
-    await this.get(id);
+  async delete(id: string, userId: string) {
+    const profile = await this.get(id);
+    if (profile.createdById !== userId) {
+      throw new ForbiddenException('You do not have permission to delete this profile');
+    }
     await this.prisma.mappingProfile.delete({ where: { id } });
   }
 
-  async clone(id: string) {
+  async toggleShare(id: string, userId: string) {
+    const profile = await this.get(id);
+    if (profile.createdById !== userId) {
+      throw new ForbiddenException('You do not have permission to share this profile');
+    }
+    return this.prisma.mappingProfile.update({
+      where: { id },
+      data: { isShared: !profile.isShared },
+    });
+  }
+
+  async clone(id: string, userId: string) {
     const profile = await this.get(id);
     return this.prisma.mappingProfile.create({
       data: {
@@ -90,7 +113,7 @@ export class ProfilesService {
         description: profile.description,
         template: profile.template,
         configurationJson: profile.configurationJson as Prisma.InputJsonValue,
-        createdById: profile.createdById,
+        createdById: userId,
       },
     });
   }

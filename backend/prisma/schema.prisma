@@ -83,6 +83,7 @@ model MappingProfile {
   template           String
   configurationJson  Json
   version            Int      @default(1)
+  isShared           Boolean  @default(false)
   createdById        String
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

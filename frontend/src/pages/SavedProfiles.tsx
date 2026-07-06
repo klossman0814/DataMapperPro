@@ -10,17 +10,22 @@ import {
   Copy,
   FileText,
   Search,
+  Globe,
 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { profilesService } from '../services/profiles.service';
+import { useAppStore } from '../stores/appStore';
 import type { MappingProfile } from '../types';
+import clsx from 'clsx';
 import toast from 'react-hot-toast';
 
 export function SavedProfiles() {
   const navigate = useNavigate();
+  const user = useAppStore((s) => s.user);
   const [profiles, setProfiles] = useState<MappingProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [cloningId, setCloningId] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -51,6 +56,19 @@ export function SavedProfiles() {
       toast.error('Failed to clone profile');
     } finally {
       setCloningId(null);
+    }
+  };
+
+  const handleToggleShare = async (id: string) => {
+    setSharingId(id);
+    try {
+      const updated = await profilesService.toggleShare(id);
+      setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+      toast.success(updated.isShared ? 'Profile shared with all users' : 'Profile unshared');
+    } catch {
+      toast.error('Failed to update sharing');
+    } finally {
+      setSharingId(null);
     }
   };
 
@@ -163,6 +181,12 @@ export function SavedProfiles() {
                 <div className="rounded-lg bg-primary-100 p-2.5 dark:bg-primary-500/10">
                   <Bookmark className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                 </div>
+                {profile.isShared && (
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <Globe className="h-3 w-3" />
+                    Shared
+                  </span>
+                )}
               </div>
               <h3 className="mt-3 font-semibold text-gray-900 dark:text-white">{profile.name}</h3>
               {profile.description && (
@@ -205,13 +229,28 @@ export function SavedProfiles() {
                 >
                   <Download className="h-3.5 w-3.5" />
                 </button>
-                <button
-                  onClick={() => setDeleteTarget({ id: profile.id, name: profile.name })}
-                  className="btn-danger text-xs px-2"
-                  title="Delete"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {profile.createdById === user?.id && (
+                  <>
+                    <button
+                      onClick={() => handleToggleShare(profile.id)}
+                      disabled={sharingId === profile.id}
+                      className={clsx(
+                        'text-xs px-2',
+                        profile.isShared ? 'btn-primary' : 'btn-secondary'
+                      )}
+                      title={profile.isShared ? 'Unshare' : 'Share with all users'}
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget({ id: profile.id, name: profile.name })}
+                      className="btn-danger text-xs px-2"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

@@ -20,6 +20,9 @@ export const profilesService = {
   clone: (id: string) =>
     api.post<MappingProfile>(`/profiles/${id}/clone`).then(r => r.data),
 
+  toggleShare: (id: string) =>
+    api.post<MappingProfile>(`/profiles/${id}/toggle-share`).then(r => r.data),
+
   report: (id: string) => api.get<MappingProfile>(`/profiles/${id}`).then(r => r.data),
   export_: (id: string) =>
     api.get<MappingProfile>(`/profiles/${id}/export`).then(r => r.data),
