@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, ArrowLeft, Bookmark, GitBranch, FileCode, Settings2, AlertTriangle } from 'lucide-react';
+import { Download, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { profilesService } from '../services/profiles.service';
+import { generateReportHtml } from '../utils/report-html';
 import type { MappingProfile } from '../types';
 import toast from 'react-hot-toast';
 
@@ -18,6 +19,25 @@ export function ProfileReport() {
       .catch(() => toast.error('Failed to load profile'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleDownload = () => {
+    if (!profile) return;
+    try {
+      const html = generateReportHtml(profile);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${profile.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_report.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded');
+    } catch {
+      toast.error('Failed to generate report');
+    }
+  };
 
   if (loading) {
     return (
@@ -49,20 +69,19 @@ export function ProfileReport() {
   const formatLabel = outputFormat.toUpperCase();
 
   return (
-    <div className="print-container">
-      <div className="no-print mb-6 flex items-center justify-between">
+    <div>
+      <div className="mb-6 flex items-center justify-between">
         <button onClick={() => navigate('/profiles')} className="btn-secondary text-sm">
           <ArrowLeft className="h-4 w-4" /> Back to Profiles
         </button>
-        <button onClick={() => window.print()} className="btn-primary text-sm">
-          <Printer className="h-4 w-4" /> Print / Export PDF
+        <button onClick={handleDownload} className="btn-primary text-sm">
+          <Download className="h-4 w-4" /> Download Report HTML
         </button>
       </div>
 
-      <div className="report rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
-        <div className="report-header border-b border-gray-100 pb-6 dark:border-slate-700">
+      <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="border-b border-gray-100 pb-6 dark:border-slate-700">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary-600 dark:text-primary-400">
-            <Bookmark className="h-3.5 w-3.5" />
             Profile Report
           </div>
           <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{profile.name}</h1>
@@ -95,9 +114,8 @@ export function ProfileReport() {
           </div>
         </div>
 
-        <div className="report-section mt-8">
+        <div className="mt-8">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
-            <GitBranch className="h-4 w-4" />
             Field Mappings
           </h2>
           {mappings.length === 0 ? (
@@ -147,18 +165,16 @@ export function ProfileReport() {
         </div>
 
         {profile.template && (
-          <div className="report-section mt-8">
+          <div className="mt-8">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
-              <FileCode className="h-4 w-4" />
               Output Template
             </h2>
             <pre className="overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4 font-mono text-xs text-gray-800 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-200 whitespace-pre-wrap break-all">{profile.template}</pre>
           </div>
         )}
 
-        <div className="report-section mt-8">
+        <div className="mt-8">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
-            <Settings2 className="h-4 w-4" />
             Configuration
           </h2>
           <div className="rounded-lg border border-gray-200 dark:border-slate-700">
@@ -179,30 +195,10 @@ export function ProfileReport() {
           </div>
         </div>
 
-        <div className="report-footer mt-8 border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
+        <div className="mt-8 border-t border-gray-100 pt-4 text-center text-[10px] text-gray-400 dark:border-slate-700 dark:text-slate-500">
           Report generated on {new Date().toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
-
-      <style>{`
-        @media print {
-          @page { margin: 0.5in; size: auto; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { background: white !important; height: auto !important; overflow: visible !important; }
-          body > #root > div { display: block !important; height: auto !important; overflow: visible !important; }
-          aside, header, nav, .no-print { display: none !important; }
-          main { display: block !important; overflow: visible !important; padding: 0 !important; }
-          main > div { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-          .print-container { padding: 0 !important; margin: 0 !important; }
-          .report { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
-          .report-section { break-inside: avoid; }
-          table { break-inside: auto; font-size: 9pt !important; }
-          th, td { padding: 4pt 6pt !important; }
-          .report-header { border-bottom: 1pt solid #ddd !important; }
-          .report-footer { position: fixed; bottom: 0; left: 0; right: 0; }
-          p, h1, h2, h3, div { color: black !important; }
-        }
-      `}</style>
     </div>
   );
 }
