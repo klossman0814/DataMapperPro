@@ -13,7 +13,7 @@ interface ParsedFile {
   rowCount: number;
 }
 
-interface ColumnDiff {
+export interface ColumnDiff {
   column: string;
   type: 'both' | 'file1_only' | 'file2_only';
 }
@@ -24,7 +24,7 @@ interface FieldDiff {
   newValue: any;
 }
 
-interface RowDiff {
+export interface RowDiff {
   type: 'added' | 'removed' | 'changed' | 'unchanged';
   key: string;
   fields?: FieldDiff[];
@@ -49,10 +49,10 @@ export class DiffService {
     if (!file1) throw new NotFoundException('File 1 not found');
     if (!file2) throw new NotFoundException('File 2 not found');
 
-    if (file1.uploadedById !== userId && !file1.isShared) {
+    if (file1.uploadedById !== userId) {
       throw new BadRequestException('File 1 is not accessible');
     }
-    if (file2.uploadedById !== userId && !file2.isShared) {
+    if (file2.uploadedById !== userId) {
       throw new BadRequestException('File 2 is not accessible');
     }
 
