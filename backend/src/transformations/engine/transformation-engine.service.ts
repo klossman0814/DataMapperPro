@@ -90,6 +90,7 @@ export class TransformationEngineService {
       case 'if': return this.fnIf(args, row);
       case 'case': return this.fnCase(args);
       case 'join': return this.fnJoin(args);
+      case 'formatids': return this.fnFormatIds(args);
       case 'switch': return this.fnSwitch(args);
       default: return args[0];
     }
@@ -217,11 +218,34 @@ export class TransformationEngineService {
     return defaultVal;
   }
 
+  private fnFormatIds(args: any[]): string {
+    const values = args
+      .filter((value) => {
+        if (value === null || value === undefined) return false;
+        const text = String(value).trim();
+        return (
+          text !== '' &&
+          text.toLowerCase() !== 'null' &&
+          text.toLowerCase() !== 'undefined'
+        );
+      })
+      .map((value) => String(value).trim());
+    return values.length > 0 ? `,${values.join('~')}` : '';
+  }
+
   private fnJoin(args: any[]): string {
-    const separator = args.length > 0 ? String(args[0]) : '';
-    const values = args.slice(1).filter(
-      v => v !== null && v !== undefined && v !== '',
-    );
-    return values.join(separator);
+    const separator = args.length > 0 ? String(args.shift()) : '~';
+    return args
+      .filter((value) => {
+        if (value === null || value === undefined) return false;
+        const text = String(value).trim();
+        return (
+          text !== '' &&
+          text.toLowerCase() !== 'null' &&
+          text.toLowerCase() !== 'undefined'
+        );
+      })
+      .map((value) => String(value).trim())
+      .join(separator);
   }
 }
