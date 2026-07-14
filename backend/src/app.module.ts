@@ -21,6 +21,7 @@ import { SqlScriptsModule } from './sql-scripts/sql-scripts.module';
 import { DatabaseMigrationModule } from './database-migration/database-migration.module';
 import { TemplateGeneratorModule } from './template-generator/template-generator.module';
 import { DiffModule } from './diff/diff.module';
+import { NotesModule } from './notes/notes.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { DiffModule } from './diff/diff.module';
     DatabaseMigrationModule,
     TemplateGeneratorModule,
     DiffModule,
+    NotesModule,
   ],
 })
 export class AppModule {}

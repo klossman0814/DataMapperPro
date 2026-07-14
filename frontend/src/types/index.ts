@@ -328,3 +328,15 @@ export interface DiffLine {
   line1: number | null;
   line2: number | null;
 }
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  entityId?: string | null;
+  entityType?: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -15,6 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { NotesPanel } from '../components/NotesPanel';
 import { jobsService, getDownloadFilename } from '../services/jobs.service';
 import { useJobStore } from '../stores/jobStore';
 import { JobProgress } from '../components/JobProgress';
@@ -309,8 +310,9 @@ export function ProcessingJobs() {
                   </div>
                 </button>
                 {isExpanded && (
-                  <div className="border-t border-gray-200 dark:border-slate-700 p-4">
+                  <div className="border-t border-gray-200 dark:border-slate-700 p-4 space-y-4">
                     <JobProgress job={job} />
+                    <NotesPanel entityType="ProcessingJob" entityId={job.id} category="job" />
                   </div>
                 )}
               </div>

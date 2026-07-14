@@ -23,6 +23,7 @@ import {
   ArrowRightLeft,
   Lightbulb,
   GitCompare,
+  StickyNote,
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -67,6 +68,7 @@ const navGroups = [
     items: [
       { to: '/settings', icon: Settings, label: 'Settings' },
       { to: '/guide', icon: BookOpen, label: 'User Guide' },
+      { to: '/notes', icon: StickyNote, label: 'Notes' },
     ],
   },
 ];

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   FileCode, Eye, Braces, Variable, List, FileInput, X, Sparkles, GripVertical,
-  ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, Wand2,
+  ToggleLeft, ToggleRight, FunctionSquare, ChevronDown, ChevronRight, ChevronLeft, Wand2,
   BookTemplate, PanelLeftClose, PanelLeft, FileCode as FileCodeIcon, Database, Play, ListOrdered,
 } from 'lucide-react';
 import type { ColumnInfo, UploadedFileInfo, DatabaseConnection } from '../types';
@@ -41,6 +41,8 @@ interface TemplateEditorPanelProps {
   sourceTab: 'file' | 'database';
   onSourceTabChange: (tab: 'file' | 'database') => void;
   onRender?: () => void;
+  previewRowIndex?: number;
+  onPreviewRowIndexChange?: (index: number) => void;
 }
 
 const syntaxHelpers = [
@@ -68,6 +70,7 @@ export function TemplateEditorPanel({
   dbConnections, dbConnectionId, onDbConnectionChange,
   querySql, onQuerySqlChange, onRunDbQuery, dbQueryLoading,
   sourceTab, onSourceTabChange, onRender,
+  previewRowIndex = 0, onPreviewRowIndexChange,
 }: TemplateEditorPanelProps) {
   const [showPreview, setShowPreview] = useState(true);
   const [showSourcePanel, setShowSourcePanel] = useState(false);
@@ -311,6 +314,25 @@ export function TemplateEditorPanel({
                 Columns
               </button>
             )}
+            {previewRows.length > 1 && onPreviewRowIndexChange && (
+              <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 shrink-0">
+                <button
+                  onClick={() => onPreviewRowIndexChange(Math.max(0, previewRowIndex - 1))}
+                  disabled={previewRowIndex <= 0}
+                  className="rounded p-0.5 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-slate-700"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span className="tabular-nums whitespace-nowrap">Row {previewRowIndex + 1} of {previewRows.length}</span>
+                <button
+                  onClick={() => onPreviewRowIndexChange(Math.min(previewRows.length - 1, previewRowIndex + 1))}
+                  disabled={previewRowIndex >= previewRows.length - 1}
+                  className="rounded p-0.5 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-slate-700"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -349,6 +371,25 @@ export function TemplateEditorPanel({
                 Columns ({sourceColumns.length})
               </button>
             )}
+            {previewRows.length > 1 && onPreviewRowIndexChange && (
+              <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                <button
+                  onClick={() => onPreviewRowIndexChange(Math.max(0, previewRowIndex - 1))}
+                  disabled={previewRowIndex <= 0}
+                  className="rounded p-0.5 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-slate-700"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span className="tabular-nums whitespace-nowrap">Row {previewRowIndex + 1} of {previewRows.length}</span>
+                <button
+                  onClick={() => onPreviewRowIndexChange(Math.min(previewRows.length - 1, previewRowIndex + 1))}
+                  disabled={previewRowIndex >= previewRows.length - 1}
+                  className="rounded p-0.5 hover:bg-gray-200 disabled:opacity-30 dark:hover:bg-slate-700"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -371,7 +412,7 @@ export function TemplateEditorPanel({
               </div>
               <div className="flex-1 overflow-y-auto min-h-0 bg-white p-2 dark:bg-slate-900">
                 {sourceColumns.map((col) => {
-                  const sampleValue = previewRows.length > 0 ? previewRows[0][col.name] : col.sampleValues?.[0];
+                  const sampleValue = previewRows.length > 0 ? (previewRows[previewRowIndex]?.[col.name] ?? previewRows[0][col.name]) : col.sampleValues?.[0];
                   return (
                     <div
                       key={col.name}

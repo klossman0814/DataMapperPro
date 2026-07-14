@@ -24,6 +24,7 @@ interface MappingState {
   previewRows: Record<string, any>[];
   livePreviewEnabled: boolean;
   liveOutput: string;
+  previewRowIndex: number;
   pendingTemplateMatch: string;
   setUploadedFile: (file: UploadedFileInfo) => void;
   setSourceColumns: (columns: ColumnInfo[]) => void;
@@ -50,6 +51,7 @@ interface MappingState {
   setPreviewRows: (rows: Record<string, any>[]) => void;
   setLivePreviewEnabled: (enabled: boolean) => void;
   setLiveOutput: (output: string) => void;
+  setPreviewRowIndex: (index: number) => void;
   setPendingTemplateMatch: (match: string) => void;
   reset: () => void;
 }
@@ -77,6 +79,7 @@ const initialState = {
   previewRows: [] as Record<string, any>[],
   livePreviewEnabled: false,
   liveOutput: '',
+  previewRowIndex: 0,
   pendingTemplateMatch: '',
 };
 
@@ -125,9 +128,10 @@ export const useMappingStore = create<MappingState>((set) => ({
   setSourceTab: (tab) => set({ sourceTab: tab }),
   setTemplateDbConnectionId: (id) => set({ templateDbConnectionId: id }),
   setTemplateQuerySql: (sql) => set({ templateQuerySql: sql }),
-  setPreviewRows: (rows) => set({ previewRows: rows }),
+  setPreviewRows: (rows) => set({ previewRows: rows, previewRowIndex: 0 }),
   setLivePreviewEnabled: (enabled) => set({ livePreviewEnabled: enabled }),
   setLiveOutput: (output) => set({ liveOutput: output }),
+  setPreviewRowIndex: (index) => set({ previewRowIndex: index }),
   setPendingTemplateMatch: (match) => set({ pendingTemplateMatch: match }),
   reset: () => set(initialState),
 }));

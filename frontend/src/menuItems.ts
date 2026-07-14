@@ -21,6 +21,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'diff-checker', label: 'Diff Checker', path: '/diff-checker' },
   { key: 'settings', label: 'Settings', path: '/settings' },
   { key: 'guide', label: 'User Guide', path: '/guide' },
+  { key: 'notes', label: 'Notes', path: '/notes' },
 ];
 
 export function pathToKey(path: string): string {

@@ -28,6 +28,7 @@ model User {
   specDocuments       SpecDocument[]
   specEvaluations     SpecEvaluation[]
   sqlScriptSets       SqlScriptSet[]
+  notes               Note[]
 }
 
 model DatabaseConnection {
@@ -178,4 +179,18 @@ model ProcessingJob {
   databaseConnection DatabaseConnection? @relation(fields: [databaseConnectionId], references: [id])
   profile            MappingProfile?    @relation(fields: [profileId], references: [id])
   createdBy          User               @relation(fields: [createdById], references: [id])
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  category    String   @default("general")
+  entityId    String?
+  entityType  String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User     @relation(fields: [createdById], references: [id])
 }

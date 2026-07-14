@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadFileDto } from './dto/upload-file.dto';
 import { CreateFromQueryDto } from './dto/create-from-query.dto';
 
-const PREVIEW_ROW_LIMIT = 100;
+const PREVIEW_ROW_LIMIT = 5000;
 
 interface ColumnInfo {
   name: string;

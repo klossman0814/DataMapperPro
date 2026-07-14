@@ -105,7 +105,7 @@ export function MappingDesigner() {
       setLoading(true);
       Promise.all([
         filesService.getFile(store.selectedFileId),
-        filesService.getPreview(store.selectedFileId, 1, 10),
+        filesService.getPreview(store.selectedFileId, 1, 5000),
       ])
         .then(([file, preview]) => {
           store.setUploadedFile(file);
@@ -146,7 +146,9 @@ export function MappingDesigner() {
     }
     try {
       const { mappings } = useMappingStore.getState();
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines }, mappings);
+      const { previewRowIndex } = useMappingStore.getState();
+      const row = previewRows[previewRowIndex] || previewRows[0];
+      const res = await templatesService.renderInline(template, { row, index: 1, collapseNewlines }, mappings);
       useMappingStore.getState().setLiveOutput(res.output);
       toast.success('Template rendered');
     } catch {
@@ -155,10 +157,11 @@ export function MappingDesigner() {
   }, []);
 
   const doLiveRender = useCallback(async (template: string) => {
-    const { previewRows, collapseNewlines, mappings } = useMappingStore.getState();
+    const { previewRows, collapseNewlines, mappings, previewRowIndex } = useMappingStore.getState();
     if (!template.trim() || previewRows.length === 0) return;
     try {
-      const res = await templatesService.renderInline(template, { row: previewRows[0], index: 1, collapseNewlines }, mappings);
+      const row = previewRows[previewRowIndex] || previewRows[0];
+      const res = await templatesService.renderInline(template, { row, index: 1, collapseNewlines }, mappings);
       useMappingStore.getState().setLiveOutput(res.output);
     } catch {
       // silent fail for live preview
@@ -175,7 +178,7 @@ export function MappingDesigner() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [store.livePreviewEnabled, store.template, store.previewRows, doLiveRender]);
+  }, [store.livePreviewEnabled, store.template, store.previewRows, store.previewRowIndex, doLiveRender]);
 
   const handleSaveProfile = async () => {
     if (!store.profileName.trim()) {
@@ -331,7 +334,9 @@ export function MappingDesigner() {
   const dragColumns = store.sourceColumns.map((c) => ({
     name: c.name,
     type: c.type,
-    sampleValue: store.previewRows.length > 0 ? store.previewRows[0][c.name] : c.sampleValues?.[0],
+    sampleValue: store.previewRows.length > 0
+      ? (store.previewRows[store.previewRowIndex]?.[c.name] ?? store.previewRows[0][c.name])
+      : c.sampleValues?.[0],
   }));
 
   return (
@@ -508,6 +513,8 @@ export function MappingDesigner() {
           dbQueryLoading={dbQueryLoading}
           sourceTab={store.sourceTab}
           onSourceTabChange={store.setSourceTab}
+          previewRowIndex={store.previewRowIndex}
+          onPreviewRowIndexChange={store.setPreviewRowIndex}
         />
       </div>
     </div>
