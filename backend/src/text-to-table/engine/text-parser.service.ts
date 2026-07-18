@@ -89,7 +89,7 @@ export class TextParserService {
     const dataLines = lines.slice(dataStart);
     console.log('[DEBUG] Flat parse - separators:', JSON.stringify(separators), 'pattern:', combinedPattern.source, 'sampleFirstLine:', lines[dataStart]?.substring(0, 200));
     const columnCounts = dataLines.map(line => this.splitCombined(line, combinedPattern).length);
-    const maxCols = Math.max(...columnCounts, 0);
+    const maxCols = columnCounts.reduce((a, b) => Math.max(a, b), 0);
     console.log('[DEBUG] Flat result - maxCols:', maxCols, 'totalLines:', dataLines.length, 'counts sample (first 5):', columnCounts.slice(0, 5), 'counts tail (last 3):', columnCounts.slice(-3));
     if (maxCols === 0) {
       return { columns: [], rows: [], rowCount: 0, separatorUsed: '', stats, selectedSeparator: '' };
@@ -154,7 +154,7 @@ export class TextParserService {
     const dataLines = lines.slice(dataStart);
 
     const columnCounts = dataLines.map(line => this.splitLine(line, best.separator, 'hierarchical').length);
-    const maxCols = Math.max(...columnCounts, 0);
+    const maxCols = columnCounts.reduce((a, b) => Math.max(a, b), 0);
     if (maxCols === 0) {
       return { columns: [], rows: [], rowCount: 0, separatorUsed: '', stats, selectedSeparator: '' };
     }
@@ -235,7 +235,7 @@ export class TextParserService {
       const subValues = rows.map(r => String(r[name] ?? '')).filter(v => v && sepPatternLocal.test(v));
       if (subValues.length > rows.length * 0.5) {
         const partsList = rows.map(r => String(r[name] ?? '').split(sepPatternLocal));
-        const maxSub = Math.max(...partsList.map(p => p.length), 1);
+        const maxSub = partsList.reduce((a, b) => Math.max(a, b.length), 1);
         for (let i = 0; i < maxSub; i++) {
           expandedNames[colIdx] = `${name}_sub${i + 1}`;
           colIdx++;
