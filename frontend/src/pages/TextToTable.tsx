@@ -114,6 +114,7 @@ export function TextToTable() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [tableName, setTableName] = useState('');
   const [dropExisting, setDropExisting] = useState(true);
+  const [batchSize, setBatchSize] = useState(500);
 
   const [newConnForm, setNewConnForm] = useState({
     name: '', type: 'postgresql', host: '', port: 5432,
@@ -263,7 +264,7 @@ export function TextToTable() {
         })(),
         rows: parseResult.rows,
         dropExisting,
-        batchSize: 100,
+        batchSize,
       });
       setImportResult(result);
       toast.success(`Inserted ${result.rowsInserted} rows into "${result.tableName}"`);
@@ -831,7 +832,7 @@ export function TextToTable() {
             </div>
           )}
 
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-4 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
               <input
                 type="checkbox"
@@ -840,6 +841,17 @@ export function TextToTable() {
                 className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600"
               />
               Drop table if exists
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+              <span className="text-xs text-gray-500">Batch size:</span>
+              <input
+                type="number"
+                min={50}
+                max={10000}
+                value={batchSize}
+                onChange={(e) => setBatchSize(Math.max(50, Number(e.target.value)))}
+                className="input-field w-20 text-sm text-center"
+              />
             </label>
           </div>
         </div>

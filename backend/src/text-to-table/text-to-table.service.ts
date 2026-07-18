@@ -7,6 +7,8 @@ import { TableCreatorService } from './engine/table-creator.service';
 import { ParseTextDto } from './dto/parse-text.dto';
 import { ImportTableDto } from './dto/import-table.dto';
 
+const MAX_RETRIES = 1;
+
 @Injectable()
 export class TextToTableService {
   constructor(
@@ -32,7 +34,6 @@ export class TextToTableService {
     const headers = Object.keys(jsonData[0]);
     const totalRows = jsonData.length;
 
-    // Build rows with string values — no separator parsing needed
     const rows: Record<string, string>[] = jsonData.map(row => {
       const cleanRow: Record<string, string> = {};
       for (const h of headers) {
@@ -41,7 +42,6 @@ export class TextToTableService {
       return cleanRow;
     });
 
-    // Build columns directly from the Excel data (same format as detectColumns)
     const columns = headers.map(name => {
       const values = rows.map(r => r[name]);
       const nullCount = values.filter(v => v === null || v === undefined || v === '').length;
@@ -104,45 +104,152 @@ export class TextToTableService {
     }
 
     const dbType = conn.type;
+    const { decrypt } = await this.getCryptoUtils();
+    const password = decrypt(conn.encryptedPassword);
+    const dbConfig = {
+      host: conn.host,
+      port: conn.port,
+      database: conn.databaseName,
+      username: conn.username,
+      password,
+      ssl: conn.sslEnabled,
+    };
 
+    // Create table via one-shot connection
     const createDDL = this.tableCreator.generateCreateTable(dto.tableName, dto.columns, dto.dropExisting ?? true, dbType);
-    await this.executeOnConnection(conn, createDDL);
+    await this.queryService.executeQuery(conn.type, dbConfig, createDDL);
 
-    const batchSize = dto.batchSize || 100;
-    const result = this.tableCreator.generateInsertStatements(dto.tableName, dto.columns, dto.rows, batchSize, dbType);
-
+    const batchSize = dto.batchSize || 500;
     const ddlStatements: string[] = [createDDL];
+    const errors: { batch: number; message: string }[] = [];
+    let rowsInserted = 0;
+    let connHandle: any = null;
 
-    for (const insertSql of result.insertStatements) {
-      await this.executeOnConnection(conn, insertSql);
+    try {
+      // Open one persistent connection for all batch inserts
+      connHandle = await this.queryService.createConnection(conn.type, dbConfig);
+
+      // Use COPY for PostgreSQL (dramatically faster), batch INSERT for others
+      if (dbType === 'postgresql') {
+        const result = await this.importPostgresCopy(connHandle, dto.tableName, dto.columns, dto.rows);
+        rowsInserted = result.rowsInserted;
+        errors.push(...result.errors);
+      } else {
+        const result = await this.importBatchedInserts(
+          connHandle, conn.type, dto.tableName, dto.columns, dto.rows, batchSize,
+        );
+        rowsInserted = result.rowsInserted;
+        errors.push(...result.errors);
+      }
+    } catch (err: any) {
+      throw new BadRequestException(`Database error: ${err.message}`);
+    } finally {
+      if (connHandle) {
+        try {
+          await this.queryService.closeConnection(conn.type, connHandle);
+        } catch { /* ignore close errors */ }
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        `Import completed with ${errors.length} failed batch(es). Inserted ${rowsInserted} of ${dto.rows.length} rows. ` +
+        `First error: ${errors[0].message}`,
+      );
     }
 
     return {
       tableName: dto.tableName,
-      rowsInserted: dto.rows.length,
+      rowsInserted,
       ddlStatements,
     };
   }
 
-  private async executeOnConnection(conn: any, sql: string) {
-    const { decrypt } = await this.getCryptoUtils();
-    const password = decrypt(conn.encryptedPassword);
+  private async importPostgresCopy(
+    conn: any,
+    tableName: string,
+    columns: { name: string; type: string; sampleValues?: any[]; dbTypeOverride?: string }[],
+    rows: Record<string, any>[],
+  ): Promise<{ rowsInserted: number; errors: { batch: number; message: string }[] }> {
+    const errors: { batch: number; message: string }[] = [];
+    const safeName = this.tableCreator.sanitizeIdentifier(tableName);
+    const safeCols = columns.map(c => `"${this.tableCreator.sanitizeIdentifier(c.name)}"`);
+    const copySql = `COPY "${safeName}" (${safeCols.join(', ')}) FROM STDIN WITH (FORMAT CSV, NULL 'NULL', DELIMITER E'\\x01', QUOTE E'\\x02')`;
+
+    // Format all rows as CSV with low-ASCII delimiter/quote to avoid conflicts
+    const delimiter = '\x01';
+    const quote = '\x02';
+    const newline = '\n';
+
+    const csvRows = rows.map(row => {
+      return columns.map(col => {
+        const val = row[col.name];
+        if (val === null || val === undefined) return 'NULL';
+        const str = String(val);
+        // Escape quote and delimiter in the value
+        const escaped = str.replace(new RegExp(`[${quote}${delimiter}\\n\\r]`, 'g'), (m) => {
+          if (m === quote) return quote + quote;
+          return m;
+        });
+        return `${quote}${escaped}${quote}`;
+      }).join(delimiter);
+    });
+
+    const csvData = csvRows.join(newline) + newline;
+
     try {
-      await this.queryService.executeQuery(
-        conn.type,
-        {
-          host: conn.host,
-          port: conn.port,
-          database: conn.databaseName,
-          username: conn.username,
-          password,
-          ssl: conn.sslEnabled,
-        },
-        sql,
-      );
+      // Use a raw pg client from the pool for COPY
+      const pgPool = conn;
+      const client = await pgPool.connect();
+      try {
+        await client.query(copySql, [csvData]);
+      } finally {
+        client.release();
+      }
     } catch (err: any) {
-      throw new BadRequestException(`Database error: ${err.message}`);
+      errors.push({ batch: 0, message: err.message || 'COPY failed' });
+      // Fallback to batched INSERTs if COPY fails
+      return this.importBatchedInserts(conn, 'postgresql', tableName, columns, rows, 500);
     }
+
+    return { rowsInserted: rows.length, errors };
+  }
+
+  private async importBatchedInserts(
+    conn: any,
+    dbType: string,
+    tableName: string,
+    columns: { name: string; type: string; sampleValues?: any[]; dbTypeOverride?: string }[],
+    rows: Record<string, any>[],
+    batchSize: number,
+  ): Promise<{ rowsInserted: number; errors: { batch: number; message: string }[] }> {
+    const errors: { batch: number; message: string }[] = [];
+    let rowsInserted = 0;
+
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      const insertSql = this.tableCreator.buildInsertStatement(tableName, columns, batch, dbType);
+      let attempts = 0;
+      let success = false;
+
+      while (attempts <= MAX_RETRIES && !success) {
+        try {
+          await this.queryService.executeOnConnection(dbType, conn, insertSql);
+          rowsInserted += batch.length;
+          success = true;
+        } catch (err: any) {
+          attempts++;
+          if (attempts > MAX_RETRIES) {
+            errors.push({ batch: Math.floor(i / batchSize) + 1, message: err.message || 'Insert failed' });
+          } else {
+            // Wait briefly before retry (exponential backoff)
+            await new Promise(r => setTimeout(r, 1000 * attempts));
+          }
+        }
+      }
+    }
+
+    return { rowsInserted, errors };
   }
 
   private async getCryptoUtils() {

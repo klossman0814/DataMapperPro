@@ -59,11 +59,8 @@ export class TableCreatorService {
     const batches: string[] = [];
     for (let i = 0; i < rows.length; i += batchSize) {
       const batch = rows.slice(i, i + batchSize);
-      const valueRows = batch.map(row => {
-        const values = columns.map(col => this.formatLiteral(row[col.name], dbType, col.type));
-        return `(${values.join(', ')})`;
-      });
-      batches.push(`INSERT INTO ${quote}${safeName}${quote} (${safeCols.join(', ')}) VALUES\n${valueRows.join(',\n')};`);
+      const sql = this.buildInsertStatement(tableName, columns, batch, dbType);
+      batches.push(sql);
     }
 
     return {
@@ -71,6 +68,22 @@ export class TableCreatorService {
       insertStatements: batches,
       totalBatches: batches.length,
     };
+  }
+
+  buildInsertStatement(
+    tableName: string,
+    columns: ColumnDef[],
+    batch: Record<string, any>[],
+    dbType: string,
+  ): string {
+    const safeName = this.sanitizeIdentifier(tableName);
+    const quote = this.quoteChar(dbType);
+    const safeCols = columns.map(c => `${quote}${this.sanitizeIdentifier(c.name)}${quote}`);
+    const valueRows = batch.map(row => {
+      const values = columns.map(col => this.formatLiteral(row[col.name], dbType, col.type));
+      return `(${values.join(', ')})`;
+    });
+    return `INSERT INTO ${quote}${safeName}${quote} (${safeCols.join(', ')}) VALUES\n${valueRows.join(',\n')};`;
   }
 
   private quoteChar(dbType: string): string {

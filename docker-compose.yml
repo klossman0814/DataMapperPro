@@ -53,6 +53,10 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       FROM_EMAIL: ${FROM_EMAIL:-noreply@datamapperpro.com}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-30000}
+      DB_QUERY_TIMEOUT: ${DB_QUERY_TIMEOUT:-300000}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30000}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
       postgres:

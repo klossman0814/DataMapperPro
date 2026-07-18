@@ -21,5 +21,5 @@ export class ImportTableDto {
 
   @IsOptional()
   @IsNumber()
-  batchSize?: number = 100;
+  batchSize?: number = 500;
 }
